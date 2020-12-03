@@ -1,32 +1,38 @@
 
-.aa.v-123dse43 .bb {
+.aa > .bb[class~=v-123dse43].v-ewp-xxxxx {
   padding: 0px 0px 20px 0px;
 }
 
-.aa.v-123dse43 > .bb {
+.aa.v-ewp-xxxxx .bb {
   padding: 0px 0px 20px 0px;
 }
 
-.aa.v-123dse43 > .bb {
+.aa.v-ewp-xxxxx > .bb {
   padding: 0px 0px 20px 0px;
 }
 
-.aa .bb.v-123dse43::after {
+
+
+.aa.v-ewp-xxxxx > .bb {
+  padding: 0px 0px 20px 0px;
+}
+
+.aa .bb.v-ewp-xxxxx::after {
   height: 11px;
 }
 
-.dd.bb.v-123dse43 .aa {
+.dd.bb.v-ewp-xxxxx .aa {
   height: 11;
 }
 
-.sel1 .selc2.v-123dse43 {
+.sel1 .selc2.v-ewp-xxxxx {
   height: 1px;
 }
 
-div .selet.v-123dse43 {
+div .selet.v-ewp-xxxxx {
   height: 1px;
 }
 
-[dd].v-123dse43 {
+[dd].v-ewp-xxxxx {
   height: 1px;
 }

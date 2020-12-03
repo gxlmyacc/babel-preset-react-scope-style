@@ -16,5 +16,17 @@
       ],
       "cwd":"${workspaceFolder}"
     },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "babel-postcss-demo",
+      "program": "${workspaceFolder}/node_modules/postcss-cli/bin/postcss",
+      "args": [
+        "-o",
+        "postcss/demo/out/index.css",
+        "postcss/demo/src/*.css",
+      ],
+      "cwd":"${workspaceFolder}"
+    },
   ]
 }

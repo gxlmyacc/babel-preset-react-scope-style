@@ -1,6 +1,6 @@
 {
   "name": "babel-preset-react-scope-style",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "a babel plugin that scope style for style files in react component",
   "keywords": [
     "babel",
@@ -27,13 +27,17 @@
   },
   "author": "gxlmyacc",
   "dependencies": {
-    "classnames": "^2.2.6"
+    "@babel/helper-plugin-utils": "^7.10.4",
+    "@babel/plugin-syntax-jsx": "^7.12.1",
+    "classnames": "^2.2.6",
+    "hash-sum": "^2.0.0",
+    "postcss": "^8.1.13",
+    "postcss-selector-parser": "^6.0.2"
   },
   "peerDependencies": {},
   "devDependencies": {
     "@babel/cli": "^7.2.3",
     "@babel/core": "^7.5.4",
-    "@babel/helper-plugin-utils": "^7.10.4",
     "@babel/plugin-proposal-class-properties": "^7.5.0",
     "@babel/plugin-proposal-decorators": "^7.4.4",
     "@babel/plugin-proposal-export-default-from": "^7.2.0",
@@ -42,7 +46,6 @@
     "@babel/plugin-proposal-object-rest-spread": "^7.5.4",
     "@babel/plugin-syntax-dynamic-import": "^7.2.0",
     "@babel/plugin-syntax-import-meta": "^7.2.0",
-    "@babel/plugin-syntax-jsx": "^7.12.1",
     "@babel/plugin-transform-arrow-functions": "^7.2.0",
     "@babel/plugin-transform-destructuring": "^7.2.0",
     "@babel/plugin-transform-modules-commonjs": "^7.2.0",
@@ -64,8 +67,6 @@
     "eslint-plugin-react": "^7.14.3",
     "eslint-plugin-react-hooks": "^1.6.0",
     "find-up": "^4.1.0",
-    "hash-sum": "^2.0.0",
-    "postcss-cli": "^6.1.3",
-    "postcss-selector-parser": "^6.0.2"
+    "postcss-cli": "^8.3.0"
   }
 }

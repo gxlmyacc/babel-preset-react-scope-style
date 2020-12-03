@@ -17,6 +17,7 @@ function createScopeId(filename, scopeNamespace) {
 const excluedTags = ['template', 'slot'];
 
 module.exports = function ({ types: t, template }) {
+  const scope = Boolean(options.scope);
   const scopeAttrs = options.scopeAttrs;
   const scopeFn = isFunction(options.scope) ? options.scope : null;
   const scopeNamespace = options.scopeNamespace 
@@ -50,9 +51,11 @@ module.exports = function ({ types: t, template }) {
               if (!matched) return;
               let scopeId = '';
               let isGlobal = scoped === '?global';
-              if (isGlobal) scopeId = scopePrefix;
-              else if (scoped === '?scoped') scopeId = this.scopeId || createScopeId(filename, scopeNamespace, scopePrefix);
-
+              if (scope) {
+                if (isGlobal) scopeId = scopePrefix;
+                else if (scoped === '?scoped') scopeId = this.scopeId || createScopeId(filename, scopeNamespace, scopePrefix);
+              }
+  
               if (!scopeId) {
                 if (scopeFn) {
                   let file = source.replace(this.regx, (match, p1) => scopeFn(p1, '', { filename, source, scopeId: '' }));

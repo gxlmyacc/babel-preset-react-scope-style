@@ -1,31 +1,10 @@
 const t = require('@babel/types');
-const findUp = require('find-up');
 const fs = require('fs');
-const path = require('path');
 const template = require('@babel/template').default;
 
 const ScopeName = 'scope-style';
 const ClassNames = 'classNames';
 const LibraryClassNames = 'classnames';
-
-function formatDate(date, fmt) {
-  let o = {
-    'M+': date.getMonth() + 1,
-    'd+': date.getDate(),
-    'h+': date.getHours(),
-    'm+': date.getMinutes(),
-    's+': date.getSeconds(),
-    'q+': Math.floor((date.getMonth() + 3) / 3),
-    S: date.getMilliseconds()
-  };
-  if (/(y+)/.test(fmt)) fmt = fmt.replace(RegExp.$1, (date.getFullYear() + '').substr(4 - RegExp.$1.length));
-  Object.keys(o).forEach(k => {
-    if (new RegExp('(' + k + ')').test(fmt)) {
-      fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (('00' + o[k]).substr(('' + o[k]).length)));
-    }
-  });
-  return fmt;
-};
 
 function fileExists(path) {
   try {
@@ -40,14 +19,8 @@ function getImportDeclarations(path) {
   return program.node.body.filter(node => t.isImportDeclaration(node));
 }
 
-function isImportLibrary(path, libraryName = LibraryName) {
+function isImportLibrary(path, libraryName) {
   let declaration = getImportDeclarations(path).find(node => node.source.value === libraryName);
-  // path.traverse({
-  //   ImportDeclaration(path) {
-  //     if (path.node.source.value === libraryName) declaration = path.node;
-  //     path.stop();
-  //   },
-  // });
   return declaration;
 }
 
@@ -55,6 +28,7 @@ function arr2Expression(arr, parent) {
   let temp = '';
   let vars = {};
   arr.forEach((v, i) => {
+    // eslint-disable-next-line no-use-before-define
     let expr = var2Expression(v, arr);
     if (!expr) return;
     let key = `$${i}`;
@@ -67,6 +41,7 @@ function arr2Expression(arr, parent) {
 function obj2Expression(obj, parent) {
   let props = Object.keys(obj).map(k => {
     let v = obj[k];
+    // eslint-disable-next-line no-use-before-define
     let expr = var2Expression(v, obj);
     if (!expr) return;
     return t.objectProperty(t.identifier(k), expr);
@@ -103,9 +78,11 @@ function memberExpr2Str(expr) {
       objStr = memberExpr2Str(expr.object);
       break;
     default:
+      // eslint-disable-next-line no-use-before-define
       objStr = expr2str(expr.object);
   }
   let propIsMember = expr.property.type === 'MemberExpression';
+  // eslint-disable-next-line no-use-before-define
   let propStr = expr2str(expr.property);
   return objStr + (objStr && !propIsMember ? '.' : '') + (propIsMember ? `[${propStr}]` : propStr);
 }
@@ -155,6 +132,7 @@ function expr2str(expr) {
     case 'BlockStatement':
       return `{${expr2str(expr.body)}}`;
     case 'TemplateLiteral':
+      // eslint-disable-next-line no-use-before-define
       return temp2var(expr);
     case 'TaggedTemplateExpression':
       return `${expr2str(expr2str(expr.tag))}${expr2str(expr.quasi)}`;
@@ -175,6 +153,16 @@ function expr2str(expr) {
       return `{${expr.properties.map(v => expr2str(v)).join(', ')}}`;
     default: return '';
   }
+}
+
+function temp2var(expr) {
+  let arr = [...expr.expressions, ...expr.quasis].sort((a, b) => a.start - b.start);
+  let ret = '';
+  arr.forEach(v => {
+    if (v.type === 'TemplateElement') ret += v.value.raw;
+    else ret += '${' + expr2str(v) + '}';
+  });
+  return '`' + ret + '`';
 }
 
 
@@ -210,7 +198,7 @@ function isReactComponent(path) {
 }
 
 
-function isImportSpecifier(path, specifierName, declaration, libraryName = LibraryName) {
+function isImportSpecifier(path, specifierName, declaration, libraryName) {
   let declarations;
   if (!declaration) {
     if (libraryName) declaration = isImportLibrary(path, libraryName);
@@ -222,7 +210,7 @@ function isImportSpecifier(path, specifierName, declaration, libraryName = Libra
   return ret;
 }
 
-function importSpecifier(path, specifierName, libraryName = LibraryName) {
+function importSpecifier(path, specifierName, libraryName) {
   let declaration = isImportLibrary(path, libraryName);
 
   let [local, imported = specifierName] = specifierName.split(',');
@@ -243,7 +231,7 @@ function importSpecifier(path, specifierName, libraryName = LibraryName) {
   return specifier;
 }
 
-function importDefaultSpecifier(path, specifierName, libraryName = LibraryName) {
+function importDefaultSpecifier(path, specifierName, libraryName) {
   return importSpecifier(path, `${specifierName},default`, libraryName);
 }
 
@@ -269,4 +257,4 @@ module.exports = {
   isImportSpecifier,
   importSpecifier,
   importDefaultSpecifier,
-}
+};

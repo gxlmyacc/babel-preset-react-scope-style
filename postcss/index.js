@@ -4,8 +4,8 @@ const selectorParser = require('postcss-selector-parser');
 module.exports = postcss.plugin('scope-style-add-id', function (opts) {
   // opts = opts || {
   //   scoped: true,
-  //   global: true,
-  //   id: 'v-ewp-'
+  //   // global: true,
+  //   id: 'v-ewp-xxxxx'
   // };
   opts = opts || {};
   return function (root) {
