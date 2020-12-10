@@ -19,7 +19,7 @@ const excluedTags = ['template', 'slot'];
 module.exports = function ({ types: t, template }) {
   const scope = Boolean(options.scope);
   const scopeAttrs = options.scopeAttrs;
-  const scopeFn = isFunction(options.scope) ? options.scope : null;
+  const scopeFn = options.scopeFn || (isFunction(options.scope) ? options.scope : null);
   const scopeNamespace = options.scopeNamespace 
     || (typeof options.scope === 'string' ? options.scope : '');
   const scopePrefix = createScopePrefix(scopeNamespace);
