@@ -6,7 +6,7 @@ const {
 } = require('../utils');
 
 function createScopePrefix(scopeNamespace) {
-  return `x-${scopeNamespace ? `${scopeNamespace}-` : ''}`;
+  return `v-${scopeNamespace ? `${scopeNamespace}-` : ''}`;
 }
 
 function createScopeId(filename, scopeNamespace) {
