@@ -75,7 +75,7 @@ class Test extends React.Component {
 
   renderSome() {
     return <div>
-      <button>按钮</button>
+      <button>button</button>
     </div>
   }
 
