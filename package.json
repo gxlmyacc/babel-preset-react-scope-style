@@ -1,6 +1,6 @@
 {
   "name": "babel-preset-react-scope-style",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "A babel plugin that scope style for style files in react component",
   "keywords": [
     "babel",
@@ -32,7 +32,7 @@
     "classnames": "^2.2.6",
     "hash-sum": "^2.0.0",
     "postcss": "^8.1.13",
-    "postcss-selector-parser": "^6.0.2"
+    "postcss-selector-parser": "^6.0.6"
   },
   "peerDependencies": {},
   "devDependencies": {

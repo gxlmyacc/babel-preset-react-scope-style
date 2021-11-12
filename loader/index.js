@@ -3,7 +3,6 @@ const postcssPkg = require('postcss/package.json');
 const { getRemainingRequest, getOptions, getCurrentRequest } = require('loader-utils');
 const qs = require('qs');
 // const pkg = require('../package.json');
-const postcssPlugin = require('../postcss');
 
 const REGX = new RegExp('scope-style&scoped=true(?:&global=true)?&id=([a-z0-9-]+)');
 
@@ -18,16 +17,24 @@ module.exports = function loader(content, map, meta) {
   if (!matched) return this.callback(null, content, map, meta);
 
 
+  let isPostcss8 = false;
   if (meta) {
     const { ast } = meta;
 
-    if (ast && ast.type === 'postcss' && ast.version === postcssPkg.version) {
-      // eslint-disable-next-line no-param-reassign
-      content = ast.root;
+    if (ast) {
+      if (ast.type === 'postcss' && ast.version === postcssPkg.version) {
+        // eslint-disable-next-line no-param-reassign
+        content = ast.root;
+      }
+      isPostcss8 = ast.version.startsWith('8');
     }
   }
 
-  const plugins = [postcssPlugin(qs.parse(_query))];
+  const plugins = [
+    isPostcss8
+      ? require('../postcss/postcss8')(qs.parse(_query))
+      : require('../postcss')(qs.parse(_query))
+  ];
 
   postcss(plugins)
     .process(content, {
