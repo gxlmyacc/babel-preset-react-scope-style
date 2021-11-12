@@ -1,6 +1,6 @@
 {
   "name": "babel-preset-react-scope-style",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "A babel plugin that scope style for style files in react component",
   "keywords": [
     "babel",
@@ -15,7 +15,9 @@
   },
   "files": [
     "src",
-    "esm"
+    "esm",
+    "postcss",
+    "loader"
   ],
   "scripts": {
     "build": "babel src -d esm",
