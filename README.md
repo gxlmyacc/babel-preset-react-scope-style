@@ -237,9 +237,7 @@ A project generally contains some global style files, which usually contain some
 [
   'babel-preset-react-scope-style', 
   { 
-    inject: { 
-      scopeNamespace: 'demo' // configure the scope style namespace, such as `demo`
-    } 
+    scopeNamespace: 'demo' // configure the scope style namespace, such as `demo`
   }
 ],
 ...

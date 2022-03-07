@@ -20,7 +20,7 @@ module.exports = function ({ types: t, template }) {
   const scope = Boolean(options.scope);
   const scopeAttrs = options.scopeAttrs;
   const scopeFn = options.scopeFn || (isFunction(options.scope) ? options.scope : null);
-  const scopeNamespace = options.scopeNamespace 
+  const scopeNamespace = options.scopeNamespace
     || (typeof options.scope === 'string' ? options.scope : '');
   const scopePrefix = createScopePrefix(scopeNamespace);
   const classAttrs = options.classAttrs;
@@ -36,7 +36,7 @@ module.exports = function ({ types: t, template }) {
           }) {
           const ctx = {
             globalId: '',
-            scopeId: scopeAll 
+            scopeId: scopeAll
               ? createScopeId(filename, scopeNamespace, scopePrefix)
               : '',
             filename,
@@ -55,7 +55,7 @@ module.exports = function ({ types: t, template }) {
                 if (isGlobal) scopeId = scopePrefix;
                 else if (scoped === '?scoped') scopeId = this.scopeId || createScopeId(filename, scopeNamespace, scopePrefix);
               }
-  
+
               if (!scopeId) {
                 if (scopeFn) {
                   let file = source.replace(this.regx, (match, p1) => scopeFn(p1, '', { filename, source, scopeId: '' }));
@@ -68,11 +68,11 @@ module.exports = function ({ types: t, template }) {
               const query = `?${ScopeName}&scoped=true${isGlobal ? '&global=true' : ''}&id=${scopeId}`;
               let file = source.replace(this.regx, (match, p1) => {
                 if (!scopeFn) return p1 + query;
-                return scopeFn(p1, query, { 
-                  filename, 
-                  source, 
-                  scopeId, 
-                  global: isGlobal 
+                return scopeFn(p1, query, {
+                  filename,
+                  source,
+                  scopeId,
+                  global: isGlobal
                 });
               });
               if (file) path.node.source.value = file;
@@ -87,7 +87,7 @@ module.exports = function ({ types: t, template }) {
               } else if (t.isJSXExpressionContainer(classAttr.value)) {
                 let expr = classAttr.value.expression;
                 let updator = v => classAttr.value.expression = v;
-                if (t.isCallExpression(expr)  
+                if (t.isCallExpression(expr)
                   && expr2str(expr.callee) === ClassNames) {
                   expr = classAttr.value.expression.arguments[0];
                   updator = v => classAttr.value.expression.arguments[0] = v;
