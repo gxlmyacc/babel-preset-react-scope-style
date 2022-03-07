@@ -1304,9 +1304,9 @@ camelcase@^5.3.1:
   integrity sha1-48mzFWnhBoEd8kL3FXJaH0xJQyA=
 
 caniuse-lite@^1.0.30001157:
-  version "1.0.30001164"
-  resolved "http://npm.dc.servyou-it.com/caniuse-lite/-/caniuse-lite-1.0.30001164.tgz#5bbfd64ca605d43132f13cc7fdabb17c3036bfdc"
-  integrity sha1-W7/WTKYF1DEy8TzH/auxfDA2v9w=
+  version "1.0.30001313"
+  resolved "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001313.tgz"
+  integrity sha512-rI1UN0koZUiKINjysQDuRi2VeSCce3bYJNmDcj3PIKREiAmjakugBul1QSkg/fPrlULYl6oWfGg3PbgOSY9X4Q==
 
 chalk@^2.0.0, chalk@^2.1.0:
   version "2.4.2"
