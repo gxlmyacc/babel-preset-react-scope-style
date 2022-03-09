@@ -69,7 +69,7 @@ if one js/jsx import a css/scss/less with `?scoped` suffix，this means that you
 // test.js
 import React from 'react';
 
-import 'test.scss?scoped';
+import './test.scss?scoped';
 
 class Test extends React.Component {
 
@@ -107,9 +107,9 @@ When build, plugin will generate a hash string`v-xxxxxxxx`,that based on file na
 ```es6
 // test.js
 import React from 'react';
-import { Button } from 'dpl-react';
+import { Button } from 'antd';
 
-import 'test.scss?scoped';
+import './test.scss?scoped';
 
 class Test extends React.Component {
 
