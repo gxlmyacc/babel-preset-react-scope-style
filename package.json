@@ -1,11 +1,13 @@
 {
   "name": "babel-preset-react-scope-style",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "A babel plugin that scope style for style files in react component",
   "keywords": [
     "babel",
     "plugin",
-    "scope-style"
+    "scope-style",
+    "README_CN.md",
+    "README.md"
   ],
   "sideEffects": false,
   "main": "esm/index.js",
