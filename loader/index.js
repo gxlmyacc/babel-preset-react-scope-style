@@ -11,19 +11,19 @@ const IS_NATIVE_WIN32_PATH = /^[a-z]:[/\\]|^\\\\/i;
 const ABSOLUTE_SCHEME = /^[a-z0-9+\-.]+:/i;
 
 function getURLType(source) {
-  if (source[0] === "/") {
-    if (source[1] === "/") {
-      return "scheme-relative";
+  if (source[0] === '/') {
+    if (source[1] === '/') {
+      return 'scheme-relative';
     }
 
-    return "path-absolute";
+    return 'path-absolute';
   }
 
   if (IS_NATIVE_WIN32_PATH.test(source)) {
-    return "path-absolute";
+    return 'path-absolute';
   }
 
-  return ABSOLUTE_SCHEME.test(source) ? "absolute" : "path-relative";
+  return ABSOLUTE_SCHEME.test(source) ? 'absolute' : 'path-relative';
 }
 
 function normalizeSourceMapAfterPostcss(map, resourceContext) {
@@ -33,16 +33,16 @@ function normalizeSourceMapAfterPostcss(map, resourceContext) {
 
   delete newMap.file; // eslint-disable-next-line no-param-reassign
 
-  newMap.sourceRoot = ""; // eslint-disable-next-line no-param-reassign
+  newMap.sourceRoot = ''; // eslint-disable-next-line no-param-reassign
 
   newMap.sources = newMap.sources.map(source => {
-    if (source.indexOf("<") === 0) {
+    if (source.indexOf('<') === 0) {
       return source;
     }
 
     const sourceType = getURLType(source); // Do no touch `scheme-relative`, `path-absolute` and `absolute` types
 
-    if (sourceType === "path-relative") {
+    if (sourceType === 'path-relative') {
       return path.resolve(resourceContext, source);
     }
 
@@ -102,20 +102,20 @@ module.exports = function loader(content, map, meta) {
         .warnings()
         .forEach(warning => this.emitWarning(warning));
 
-        let map = result.map ? result.map.toJSON() : undefined;
+      let map = result.map ? result.map.toJSON() : undefined;
 
-        if (map && options.sourceMap) {
-          map = normalizeSourceMapAfterPostcss(map, this.context);
-        }
+      if (map && options.sourceMap) {
+        map = normalizeSourceMapAfterPostcss(map, this.context);
+      }
 
-        const ast = {
-          type: "react-scope-style/loader",
-          version: result.processor.version,
-          root: result.root
-        };
-        return callback(null, result.css || result.content, map, {
-          ast
-        });
+      const ast = {
+        type: 'react-scope-style/loader',
+        version: result.processor.version,
+        root: result.root
+      };
+      return callback(null, result.css || result.content, map, {
+        ast
+      });
     })
     .catch(callback);
 };
