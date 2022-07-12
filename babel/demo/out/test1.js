@@ -7,13 +7,13 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 
-var _classnames = _interopRequireDefault(require("classnames"));
-
 var _react = _interopRequireDefault(require("react"));
+
+var _classnames = _interopRequireDefault(require("classnames"));
 
 require("./test.scss");
 
-require("./index.scss?scope-style&scoped=true&id=x-cebfc274");
+require("./index.scss?scope-style&scoped=true&id=v-f63d7abe");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -53,14 +53,23 @@ var App = /*#__PURE__*/function (_Rainbow$Component) {
   _createClass(App, [{
     key: "cc",
     value: function cc() {
-      return <div className="x-cebfc274 test"></div>;
+      return <div className="v-f63d7abe test"></div>;
     }
   }, {
     key: "render",
     value: function render() {
       var a = true;
-      var ret = <div className="x-cebfc274"></div>;
-      if (a) ret = <span className={(0, _classnames.default)(["x-cebfc274", ['a', 'b']])}></span>;else ret = <p className="x-cebfc274"></p>;
+      var ret = <div className="v-f63d7abe">
+        <div className={(0, _classnames.default)(["v-f63d7abe", "demo-class ".concat(this.namespace)])}></div>
+        <div className={(0, _classnames.default)(["v-f63d7abe", ['class-a', 'class-b', {
+          'class-c': true,
+          'class-d': this.props.show
+        }]])}></div>
+        <div className={(0, _classnames.default)(["v-f63d7abe", {
+          a: true
+        }])}></div>
+      </div>;
+      if (a) ret = <span className={(0, _classnames.default)(["v-f63d7abe", ['a', 'b']])}></span>;else ret = <p className="v-f63d7abe"></p>;
       console.log('ddd', ret);
       return ret; // return this.cc();
       // return a && <div>dd</div>
@@ -77,7 +86,7 @@ var App = /*#__PURE__*/function (_Rainbow$Component) {
 
 _defineProperty(App, "methods", {
   dd: function dd() {
-    return <div className="x-cebfc274 test"></div>;
+    return <div className="v-f63d7abe test"></div>;
   }
 });
 

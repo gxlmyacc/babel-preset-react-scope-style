@@ -22,8 +22,8 @@
       "name": "babel-postcss-demo",
       "program": "${workspaceFolder}/node_modules/postcss-cli/bin/postcss",
       "args": [
-        "-o",
-        "postcss/demo/out/index.css",
+        "-d",
+        "postcss/demo/out",
         "postcss/demo/src/*.css",
       ],
       "cwd":"${workspaceFolder}"

@@ -36,8 +36,9 @@ module.exports = declare((api, opts = {}) => {
   let plugins = [
   ];
 
-  if (options.class) plugins.push(transformClass);
   plugins.push(injectScope);
+  plugins.push(transformClass);
+
 
   plugins = plugins.map(p => pluginHook(p));
 

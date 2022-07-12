@@ -1,38 +1,40 @@
 
-.aa > .bb[class~=v-123dse43].v-ewp-xxxxx {
+@import url(./test.css?scope-style&scoped=true&global=true&id=v-ewp-);
+
+.aa > .bb[class~=v-123dse43][class*=v-ewp-] {
   padding: 0px 0px 20px 0px;
 }
 
-.aa.v-ewp-xxxxx .bb {
+.aa[class*=v-ewp-] .bb {
   padding: 0px 0px 20px 0px;
 }
 
-.aa.v-ewp-xxxxx > .bb {
+.aa[class*=v-ewp-] > .bb {
   padding: 0px 0px 20px 0px;
 }
 
 
 
-.aa.v-ewp-xxxxx > .bb {
+.aa[class*=v-ewp-] > .bb {
   padding: 0px 0px 20px 0px;
 }
 
-.aa .bb.v-ewp-xxxxx::after {
+.aa .bb[class*=v-ewp-]::after {
   height: 11px;
 }
 
-.dd.bb.v-ewp-xxxxx .aa {
+.dd.bb[class*=v-ewp-] .aa {
   height: 11;
 }
 
-.sel1 .selc2.v-ewp-xxxxx {
+.sel1 .selc2[class*=v-ewp-] {
   height: 1px;
 }
 
-div .selet.v-ewp-xxxxx {
+div .selet[class*=v-ewp-] {
   height: 1px;
 }
 
-[dd].v-ewp-xxxxx {
+[dd][class*=v-ewp-] {
   height: 1px;
 }

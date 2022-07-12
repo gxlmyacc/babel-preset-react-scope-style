@@ -1,5 +1,5 @@
 module.exports = {
   plugins: [
-    require('./postcss')
+    require('./postcss/postcss8')()
   ]
 };

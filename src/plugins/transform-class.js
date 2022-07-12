@@ -1,24 +1,30 @@
-const { 
-  isReactComponent, importSpecifier, expr2str, ClassNames, LibraryClassNames 
+const {
+  isReactComponent, importSpecifier, expr2str, ClassNames, LibraryClassNames, existClassAttrName,
+  getImportSpecifier,
 } = require('../utils');
 const options = require('../options');
 
 module.exports = function ({ types: t, template }) {
-  const CLASSNAMES = ClassNames;
+  const scope = Boolean(options.scope);
   const classAttrs = options.classAttrs;
-  
+
   function JSXAttributeVisitor(path) {
-    if (!classAttrs.includes(path.node.name.name)
-      || !t.isJSXExpressionContainer(path.node.value)
-      || (t.isCallExpression(path.node.value.expression) 
-        && expr2str(path.node.value.expression.callee) === CLASSNAMES)) return;
+    let tagName = path.parent && expr2str(path.parent.name);
+    let arrtName = expr2str(path.node.name);
+    if (!classAttrs.some(classAttrName => existClassAttrName(classAttrName, arrtName, tagName))
+      || !t.isJSXExpressionContainer(path.node.value)) return;
+
+    let expression = path.node.value.expression;
+    if (t.isStringLiteral(expression)
+      || t.isTemplateLiteral(expression)
+      || (t.isCallExpression(expression) && expr2str(expression.callee) === this.CLASSNAMES)) return;
 
     if (!this.libraryVarSpecifier) {
-      this.libraryVarSpecifier = importSpecifier(path, `${CLASSNAMES},default`, LibraryClassNames);
+      this.libraryVarSpecifier = importSpecifier(path, `${this.CLASSNAMES},default`, LibraryClassNames);
     }
     path.node.value.expression = template('$RCS($EXPR$)')({
       $RCS: this.libraryVarSpecifier.local.name,
-      $EXPR$: path.node.value.expression
+      $EXPR$: expression
     }).expression;
   }
 
@@ -26,10 +32,12 @@ module.exports = function ({ types: t, template }) {
     visitor: {
       Program: {
         enter(path) {
-          if (!isReactComponent(path)) return;
+          if (!scope || !isReactComponent(path)) return;
 
+          let libraryVarSpecifier = getImportSpecifier(path, LibraryClassNames);
           const ctx = {
-            libraryVarSpecifier: null
+            libraryVarSpecifier,
+            CLASSNAMES: libraryVarSpecifier ? expr2str(libraryVarSpecifier.imported || libraryVarSpecifier.local) : ClassNames
           };
           path.traverse({
             JSXAttribute: JSXAttributeVisitor

@@ -203,7 +203,7 @@ function isImportSpecifier(path, specifierName, declaration, libraryName) {
   if (!declaration) {
     if (libraryName) declaration = isImportLibrary(path, libraryName);
     else declarations = getImportDeclarations(path);
-  } 
+  }
   if (declaration) declarations = [declaration];
   let ret;
   declarations && declarations.some(item => ret = item.specifiers.find(v => v.local.name === specifierName));
@@ -235,6 +235,32 @@ function importDefaultSpecifier(path, specifierName, libraryName) {
   return importSpecifier(path, `${specifierName},default`, libraryName);
 }
 
+function existClassAttrName(classAttrName, attrName, tagName) {
+  if (!attrName) return;
+  return typeof classAttrName === 'function'
+    ? classAttrName(attrName, tagName)
+    : attrName === classAttrName;
+}
+
+function createScopeQuery(scopeId, isGlobal) {
+  return `?${ScopeName}&scoped=true${isGlobal ? '&global=true' : ''}&id=${scopeId}`;
+}
+
+function getImportSpecifier(path, libraryName, exportType = 'default') {
+  let specifier = null;
+  let declaration = isImportLibrary(path, LibraryClassNames);
+  if (declaration) {
+    specifier = declaration.specifiers.find(s => {
+      if (exportType === 'default') {
+        return s.type === 'ImportDefaultSpecifier';
+      }
+      return expr2str(s.local) === exportType;
+    });
+    // if (specifier) ret = expr2str(specifier.imported || specifier.local);
+  }
+  return specifier;
+}
+
 module.exports = {
   ScopeName,
   ClassNames,
@@ -246,6 +272,7 @@ module.exports = {
   isRequired,
   isReactComponent,
   isImportLibrary,
+  getImportSpecifier,
 
   var2Expression,
   arr2Expression,
@@ -257,4 +284,7 @@ module.exports = {
   isImportSpecifier,
   importSpecifier,
   importDefaultSpecifier,
+
+  existClassAttrName,
+  createScopeQuery
 };
