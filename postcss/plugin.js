@@ -81,11 +81,11 @@ const plugin = function (opts) {
         return;
       }
       if (node.selector.startsWith(':global')) {
-        node.selector = node.selector.replace(/:global/g, globalSelector).trim();
+        node.selector = node.selector.replace(/:global/, globalSelector).replace(/:global/g, '').trim();
       } else if (node.selector.includes(':scope')) {
-        node.selector = node.selector.replace(/:scope/g, isGlobal
+        node.selector = node.selector.replace(/:scope/, isGlobal
           ? `[class*=${id}]`
-          : '.' + id);
+          : '.' + id).replace(/:scope/g, '');
       } else {
         node.selector = selectorParser(function (selectors) {
           selectors.each(function (selector) {

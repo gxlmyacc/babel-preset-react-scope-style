@@ -274,20 +274,20 @@ import '~/assets/styles/global.css?global';
 则，最后生成的样式文件是这样的：
 
 ```css
-.something-class *[class*=v-ewp-] {
+.something-class *[class*=v-demo-] {
     box-sizing: border-box;
   }
   
   
-.something-class.fl[class*=v-ewp-] {
+.something-class.fl[class*=v-demo-] {
   float: left;
 }
   
-.something-class .fr[class*=v-ewp-] {
+.something-class .fr[class*=v-demo-] {
   float: right;
 }
 
-.something-class .fr[class*=v-ewp-] .dd {
+.something-class .fr[class*=v-demo-] .dd {
   color: red;
 }
 ```
