@@ -200,13 +200,23 @@ function isReactComponent(path) {
 
 function isImportSpecifier(path, specifierName, declaration, libraryName) {
   let declarations;
+  let [local, imported] = specifierName.split(',');
   if (!declaration) {
     if (libraryName) declaration = isImportLibrary(path, libraryName);
     else declarations = getImportDeclarations(path);
   }
   if (declaration) declarations = [declaration];
   let ret;
-  declarations && declarations.some(item => ret = item.specifiers.find(v => v.local.name === specifierName));
+  declarations && declarations.some(item => ret = item.specifiers.find(v => {
+    if (imported) {
+      if (imported === 'default') {
+        if (v.type !== 'ImportDefaultSpecifier') return;
+      } else {
+        if (v.type !== 'ImportSpecifier') return;
+      }
+    }
+    return v.local.name === local;
+  }));
   return ret;
 }
 

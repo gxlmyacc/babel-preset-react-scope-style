@@ -2,6 +2,9 @@
 
 A babel plugin that scope style for style files in react component
 
+[![NPM version](https://img.shields.io/npm/v/babel-preset-react-scope-style.svg?style=flat)](https://npmjs.com/package/babel-preset-react-scope-style)
+[![NPM downloads](https://img.shields.io/npm/dm/babel-preset-react-scope-style.svg?style=flat)](https://npmjs.com/package/babel-preset-react-scope-style)
+
 ## [中文说明](./README_CN.md)
 
 ## Installtion
