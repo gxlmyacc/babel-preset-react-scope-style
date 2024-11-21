@@ -9,15 +9,22 @@ function createScopePrefix(scopeNamespace) {
   return `v-${scopeNamespace ? `${scopeNamespace}-` : ''}`;
 }
 
-function createScopeId(filename, scopeNamespace) {
-  if (options.pkg) filename = `${options.pkg.name}!${filename}`;
-  return `${createScopePrefix(scopeNamespace)}${hash(filename.replace(/\\/g, '/'))}`;
+const scopeIds = {};
+function createScopeId(filename, scopeNamespace, scopeVerson) {
+  if (options.pkg) filename = `${options.pkg.name}${scopeVerson ? options.pkg.version : ''}!${filename}`;
+  let key = `${filename}_${scopeNamespace}`;
+  let scopeId = scopeIds[key];
+  if (!scopeId) {
+    scopeId = scopeIds[key] = `${createScopePrefix(scopeNamespace)}${hash(filename.replace(/\\/g, '/'))}`;
+  }
+  return scopeId;
 }
 
 const excluedTags = ['template', 'slot'];
 
 module.exports = function ({ types: t, template }) {
   const scope = Boolean(options.scope);
+  const scopeVerson = options.scopeVerson;
   const scopeAttrs = options.scopeAttrs;
   const scopeFn = options.scopeFn || (isFunction(options.scope) ? options.scope : null);
   const scopeNamespace = options.scopeNamespace
@@ -37,7 +44,7 @@ module.exports = function ({ types: t, template }) {
           const ctx = {
             globalId: '',
             scopeId: scopeAll
-              ? createScopeId(filename, scopeNamespace, scopePrefix)
+              ? createScopeId(filename, scopeNamespace, scopeVerson)
               : '',
             filename,
             regx: options.scopeRegx,
@@ -50,11 +57,14 @@ module.exports = function ({ types: t, template }) {
               let source = path.node.source.value;
               const [matched, , scoped] = source.match(this.regx) || [];
               if (!matched) return;
+
               let scopeId = '';
               let isGlobal = scoped === '?global';
               if (scope) {
                 if (isGlobal) scopeId = scopePrefix;
-                else if (scoped === '?scoped') scopeId = this.scopeId || createScopeId(filename, scopeNamespace, scopePrefix);
+                else if (scoped === '?scoped') {
+                  scopeId = this.scopeId || createScopeId(filename, scopeNamespace, scopeVerson);
+                }
               }
 
               if (!scopeId) {
@@ -62,6 +72,10 @@ module.exports = function ({ types: t, template }) {
                   let file = source.replace(this.regx, (match, p1) => scopeFn(p1, '', { filename, source, scopeId: '' }));
                   if (file) path.node.source.value = file;
                 }
+                return;
+              }
+
+              if (!scope) {
                 return;
               }
 
@@ -127,3 +141,6 @@ module.exports = function ({ types: t, template }) {
     }
   };
 };
+
+module.exports.scopeIds = scopeIds;
+module.exports.createScopeId = createScopeId;

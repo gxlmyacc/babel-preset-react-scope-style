@@ -1,6 +1,6 @@
 {
   "name": "babel-preset-react-scope-style",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "A babel plugin that scope style for style files in react component",
   "keywords": [
     "babel",

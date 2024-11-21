@@ -5,6 +5,7 @@ module.exports = {
   scopePrefix: '',
   scopeAttrs: true,
   scopeAll: false,
+  scopeVerson: false,
 
   classAttrs: ['className'],
 };
