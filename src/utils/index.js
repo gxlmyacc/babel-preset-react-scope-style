@@ -166,6 +166,10 @@ function temp2var(expr) {
 }
 
 
+/**
+ * @param {*} fn
+ * @returns {fn is Function}
+ */
 function isFunction(fn) {
   return typeof fn === 'function';
 }

@@ -5,7 +5,7 @@ A babel plugin that scope style for style files in react component
 [![NPM version](https://img.shields.io/npm/v/babel-preset-react-scope-style.svg?style=flat)](https://npmjs.com/package/babel-preset-react-scope-style)
 [![NPM downloads](https://img.shields.io/npm/dm/babel-preset-react-scope-style.svg?style=flat)](https://npmjs.com/package/babel-preset-react-scope-style)
 
-## [中文说明](./README_CN.md)
+## [中文说明](https://github.com/gxlmyacc/babel-preset-react-scope-style/blob/main/README_CN.md)
 
 ## Installtion
 
@@ -66,10 +66,94 @@ webpack.config.js:
 }
 ```
 
+### Supported Options
+
+#### scopeRegx
+
+- Type: RegExp
+
+- Default: /(\.(?:le|sc|sa|c)ss)(\?[a-z]+)?$/
+- Description: A regular expression used to match style files that need to be processed. By default, it matches .less, .scss, .sass, and .css files and supports query parameters (e.g., ?scoped).
+
+#### scope
+- Type: Boolean
+
+- Default: true
+
+- Description: Whether to enable scoped styling. If set to false, scoped styles will not be generated.
+
+#### scopeFn
+
+- Type: (ext: string, query: string, options: { filename, source, scopeId, global, pkg }) => string
+
+- Default: null
+
+- Description: A custom function to modify the suffix and query parameters of imported style files.
+
+#### scopePrefix
+
+- Type: String
+- Default: ''
+- Description: The prefix for the generated scope hash string. For example, if set to 'v-', the generated hash string will look like v-xxxxxxxx.
+
+#### scopeAttrs
+
+- Type: Boolean
+- Default: true
+- Description: Whether to add scope attributes (e.g., data-v-xxxxxxxx) to the generated HTML elements. This helps with debugging and style overriding.
+
+#### scopeAll
+
+- Type: Boolean
+- Default: false
+- Description: Whether to generate scoped styles for all style files, not just those with the ?scoped query parameter.
+
+#### scopeVersion
+
+- Type: Boolean
+- Default: false
+- Description: Whether to include a version number in the generated scope hash string. This helps distinguish styles between different versions.
+
+#### pkg
+
+- Type: Object
+- Default: null
+- Description: A package information object, typically read from package.json. It provides additional information for generating the scope hash string.
+
+#### classAttrs
+- Type: Array<String>
+- Default: ['className']
+- Description: The class attribute names used in the generated scoped styles. By default, the plugin processes the className attribute.
+
+### Example Configuration
+
+```js
+module.exports = {
+  presets: [
+    [
+      'babel-preset-react-scope-style', 
+      {
+        scopeRegx: /(\.(?:le|sc|sa|c)ss)(\?scoped)?$/,
+        scope: true,
+        // Change the suffix of imported .scss/.less files to .css
+        scopeFn: (filename, pkgName) => '.css',
+        scopePrefix: 'v-',
+        scopeAttrs: true,
+        scopeAll: false,
+        scopeVersion: true,
+        pkg: require('./package.json'),
+        classAttrs: ['className', 'dropdownClassName']
+      }
+    ]
+  ]
+};
+```
+
 ## Usage
 
 
-if one js/jsx import a css/scss/less with `?scoped` suffix，this means that you have enabled the `scoped style` for this file：
+If a js/jsx file imports a style file with the ?scoped suffix, it means that scoped styles are enabled for that file. For example:
+
 ```es6
 // test.js
 import React from 'react';
@@ -107,7 +191,7 @@ class Test extends React.Component {
 ```
 
 
-When build, plugin will generate a hash string`v-xxxxxxxx`,that based on file name and(`package.json -> name`)，and it will be applied to all `className`：
+During the build process, a hash string `v-xxxxxxxx` is automatically generated based on the project name (`package.json -> name`) and file path, and applied to all `className` attributes in the JSX. For example:
 
 ```es6
 // test.js
@@ -144,13 +228,14 @@ class Test extends React.Component {
 }
 
 ```
-### Recommend
+### Recommendation
 
-It is recommended that the 'scoped style' file name and the corresponding JS file name maintain a 'one-to-one' relationship. That is, if the JS file name is` test.js `, the style file name is` test.scss `。
+It is recommended that the `scoped style` file name and the corresponding JS file name maintain a 'one-to-one' relationship. That is, if the JS file name is` test.js `, the style file name is` test.scss `。
 
 ## Customize the hash generation location 
 
-In the style file, the hash string is generated to the last selector by default. If you want to customize the hash generation location, you can use the `:scope` pseudo class or `>>`. For example, if the style file is as follows：
+By default, the hash string is generated for the last selector in the style file. If you want to customize the hash generation location, you can use the `:scope` pseudo-class or `>>>`. For example, if the style file is as follows:
+
 
 ```scss
 // test.scss
@@ -168,7 +253,7 @@ In the style file, the hash string is generated to the last selector by default.
 }
 
 ```
-then resulting style file is as follows：
+The resulting style file will be:
 
 ```scss
 // test.scss
@@ -187,9 +272,9 @@ then resulting style file is as follows：
 
 ```
 
-## Partial styles that do not generate hash
+## Partial Styles Without Generating Hash
 
-In some usage scenarios, if you don't want to generate hash scope for some styles, you can use the `:global` pseudo class. For example, if the style file is as follows：
+In some usage scenarios, if you do not want to generate a hash scope for some styles, you can use the `:global` pseudo-class. For example, if the style file is as follows:
 
 ```scss
 // test.scss
@@ -210,7 +295,7 @@ In some usage scenarios, if you don't want to generate hash scope for some style
 
 ```
 
-then generated style file is as follows：
+The generated style file will be:
 
 ```scss
 // test.scss
@@ -229,13 +314,13 @@ then generated style file is as follows：
 
 ```
 
-## ?global-style
+## Global Styles
 
-A project generally contains some global style files, which usually contain some settings or tool style classes that affect the global. In cross project integration, these global styles can easily lead to mutual pollution among projects. `?global-style` is to solve this problem as much as possible.
+A project generally contains some global style files that usually contain settings or utility style classes affecting the entire project. In cross-project integration, these global styles can easily lead to conflicts between projects. `?global-style` is designed to minimize this issue.
 
-### usage
+### Usage
 
-1. change the babel.config.js：
+1. Modify `babel.config.js`:
 
 ```js
 ...
@@ -248,9 +333,9 @@ A project generally contains some global style files, which usually contain some
 ...
 ```
 
-In the above configuration, the `scopeNamespace` is configured to `demo`'. Then hash string generated at this time is no longer `v-xxxxxxx`, but it becomes `v-demo-xxxxxxxx`.
+In the above configuration, `scopeNamespace` is set to demo. The generated hash string will now be `v-demo-xxxxxxxx` instead of `v-xxxxxxxx`.
 
-2. Add `?global` after the `import` statement that refers to the global style:
+2. Add `?global` to the `import` statement that references the global style:
 
 ```js
 // index.js
@@ -259,7 +344,7 @@ import '~/assets/styles/global.css?global';
 ....
 ```
 
-Hypothesis `global.css` file looks like this
+Assume the `global.css` file looks like this:
 
 ```css
 .something-class * {
@@ -279,7 +364,7 @@ Hypothesis `global.css` file looks like this
 }
 ```
 
-Then, the final generated style file looks like this：
+The final generated style file will look like this:
 
 ```css
 .something-class *[class*=v-demo-] {

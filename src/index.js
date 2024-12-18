@@ -30,7 +30,9 @@ module.exports = declare((api, opts = {}) => {
 
     Object.assign(options, opts);
 
-    options.pkg = pkg;
+    if (!options.pkg) {
+      options.pkg = pkg;
+    }
   }
 
   let plugins = [

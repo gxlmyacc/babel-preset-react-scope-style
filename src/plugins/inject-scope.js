@@ -10,8 +10,8 @@ function createScopePrefix(scopeNamespace) {
 }
 
 const scopeIds = {};
-function createScopeId(filename, scopeNamespace, scopeVerson) {
-  if (options.pkg) filename = `${options.pkg.name}${scopeVerson ? options.pkg.version : ''}!${filename}`;
+function createScopeId(filename, scopeNamespace, scopeVersion) {
+  if (options.pkg) filename = `${options.pkg.name}${scopeVersion ? options.pkg.version : ''}!${filename}`;
   let key = `${filename}_${scopeNamespace}`;
   let scopeId = scopeIds[key];
   if (!scopeId) {
@@ -24,7 +24,7 @@ const excluedTags = ['template', 'slot'];
 
 module.exports = function ({ types: t, template }) {
   const scope = Boolean(options.scope);
-  const scopeVerson = options.scopeVerson;
+  const scopeVersion = options.scopeVersion;
   const scopeAttrs = options.scopeAttrs;
   const scopeFn = options.scopeFn || (isFunction(options.scope) ? options.scope : null);
   const scopeNamespace = options.scopeNamespace
@@ -44,7 +44,7 @@ module.exports = function ({ types: t, template }) {
           const ctx = {
             globalId: '',
             scopeId: scopeAll
-              ? createScopeId(filename, scopeNamespace, scopeVerson)
+              ? createScopeId(filename, scopeNamespace, scopeVersion)
               : '',
             filename,
             regx: options.scopeRegx,
@@ -63,13 +63,13 @@ module.exports = function ({ types: t, template }) {
               if (scope) {
                 if (isGlobal) scopeId = scopePrefix;
                 else if (scoped === '?scoped') {
-                  scopeId = this.scopeId || createScopeId(filename, scopeNamespace, scopeVerson);
+                  scopeId = this.scopeId || createScopeId(filename, scopeNamespace, scopeVersion);
                 }
               }
 
               if (!scopeId) {
                 if (scopeFn) {
-                  let file = source.replace(this.regx, (match, p1) => scopeFn(p1, '', { filename, source, scopeId: '' }));
+                  let file = source.replace(this.regx, (match, p1) => scopeFn(p1, '', { filename, source, scopeId: '', pkg: options.pkg }));
                   if (file) path.node.source.value = file;
                 }
                 return;
@@ -87,7 +87,8 @@ module.exports = function ({ types: t, template }) {
                   filename,
                   source,
                   scopeId,
-                  global: isGlobal
+                  global: isGlobal,
+                  pkg: options.pkg
                 });
               });
               if (file) path.node.source.value = file;

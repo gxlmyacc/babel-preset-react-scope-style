@@ -5,7 +5,8 @@ module.exports = {
   scopePrefix: '',
   scopeAttrs: true,
   scopeAll: false,
-  scopeVerson: false,
+  scopeVersion: false,
+  pkg: /** @type {any} */(null),
 
   classAttrs: ['className'],
 };

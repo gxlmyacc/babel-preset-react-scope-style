@@ -19,7 +19,7 @@ babel.config.js:
 module.exports = {
   presets: [
     ...
-    ['babel-preset-react-scope-style']
+    ['babel-preset-react-scope-style', {}]
   ],
   plugins: [
    ...
@@ -60,6 +60,104 @@ webpack.config.js:
     ]
   }
 }
+```
+
+### options支持的选项
+
+#### scopeRegx
+
+类型: RegExp
+
+默认值: /(\.(?:le|sc|sa|c)ss)(\?[a-z]+)?$/
+
+描述: 用于匹配需要处理的样式文件的正则表达式。默认情况下，它匹配 .less, .scss, .sass, 和 .css 文件，并且支持查询参数（如 ?scoped）。
+
+#### scope
+
+类型: Boolean
+
+默认值: true
+
+描述: 是否启用样式作用域功能。如果设置为 false，则不会生成作用域样式。
+
+#### scopeFn
+
+类型: `(ext: string, query: string, options: { filename, source, scopeId, global, pkg }) => string`
+ 
+默认值: null
+
+描述: 自定义文件引入的样式文件的后缀名和查询参数。
+
+#### scopePrefix
+
+类型: String
+
+默认值: ''
+
+描述: 生成的作用域哈希字符串的前缀。例如，如果设置为 'v-'，生成的哈希字符串将类似于 v-xxxxxxxx。
+
+#### scopeAttrs
+
+类型: Boolean
+
+默认值: true
+
+描述: 是否在生成的 HTML 元素上添加作用域属性（如 data-v-xxxxxxxx）。这有助于调试和样式覆盖。
+
+#### scopeAll
+
+类型: Boolean
+
+默认值: false
+
+描述: 是否对所有样式文件生成作用域，而不仅仅是带有 ?scoped 查询参数的文件。
+
+#### scopeVersion
+
+类型: Boolean
+
+默认值: false
+
+描述: 是否在生成的作用域哈希字符串中包含版本号。这有助于在不同版本之间区分样式。
+
+#### pkg
+
+类型: Object
+
+默认值: null
+
+描述: 包信息对象，通常从 package.json 中读取。用于生成作用域哈希字符串时的附加信息。
+
+#### classAttrs
+
+类型: Array<String>
+
+默认值: ['className']
+
+描述: 在生成的作用域样式中使用的类属性名称。默认情况下，插件会处理 className 属性。
+
+### 使用示例
+js
+```js
+module.exports = {
+  presets: [
+    [
+      'babel-preset-react-scope-style', 
+      {
+        scopeRegx: /(\.(?:le|sc|sa|c)ss)(\?scoped)?$/,
+        scope: true,
+        // 将代码中引入的.scss/.less文件的后缀名改为.css
+        scopeFn: (filename, pkgName) => '.css',
+        scopePrefix: 'v-',
+        scopeAttrs: true,
+        scopeAll: false,
+        scopeVersion: true,
+        pkg: require('./package.json'),
+        classAttrs: ['className', 'dropdownClassName']
+      }
+    ]
+  ]
+};
 ```
 
 ## 使用方法
