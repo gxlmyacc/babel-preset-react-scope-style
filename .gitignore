@@ -1,5 +1,6 @@
 .idea/
 node_modules/
+node_modules1/
 temp/
 */.idea/
 */node_modules/

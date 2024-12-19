@@ -71,7 +71,7 @@ module.exports = function loader(content, map, meta) {
         // eslint-disable-next-line no-param-reassign
         content = ast.root;
       }
-      isPostcss8 = ast.version.startsWith('8');
+      isPostcss8 = Number(ast.version.split('.')[0]) >= 8;
     }
   }
 
