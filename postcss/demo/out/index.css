@@ -1,40 +1,154 @@
 
 @import url(./test.css?scope-style&scoped=true&global=true&id=v-ewp-);
 
-.aa > .bb[class~=v-123dse43][class*=v-ewp-] {
+.aa > .bb[class~=v-123dse43][class*=v-ewp-].v-123456678 {
   padding: 0px 0px 20px 0px;
 }
 
-.aa[class*=v-ewp-] .bb {
+.aa[class*=v-ewp-] .bb.v-123456678 {
   padding: 0px 0px 20px 0px;
 }
 
-.aa[class*=v-ewp-] > .bb {
+.aa[class*=v-ewp-] > .bb.v-123456678 {
   padding: 0px 0px 20px 0px;
 }
 
 
 
-.aa[class*=v-ewp-] > .bb {
+.aa[class*=v-ewp-] > .bb.v-123456678 {
   padding: 0px 0px 20px 0px;
 }
 
-.aa .bb[class*=v-ewp-]::after {
+.aa .bb[class*=v-ewp-].v-123456678::after {
   height: 11px;
 }
 
-.dd.bb[class*=v-ewp-] .aa {
+.dd.bb[class*=v-ewp-] .aa.v-123456678 {
   height: 11;
 }
 
-.sel1 .selc2[class*=v-ewp-] {
+.sel1 .selc2[class*=v-ewp-].v-123456678 {
   height: 1px;
 }
 
-div .selet[class*=v-ewp-] {
+div .selet[class*=v-ewp-].v-123456678 {
   height: 1px;
 }
 
-[dd][class*=v-ewp-] {
+[dd][class*=v-ewp-].v-123456678 {
+  height: 1px;
+}
+
+.aa > .bb[class~=v-123dse43][class*=v-ewp-].v-99999999.v-123456678 {
+  padding: 0px 0px 20px 0px;
+}
+
+.aa[class*=v-ewp-] .bb.v-99999999.v-123456678 {
+  padding: 0px 0px 20px 0px;
+}
+
+.aa[class*=v-ewp-] > .bb.v-99999999.v-123456678 {
+  padding: 0px 0px 20px 0px;
+}
+
+
+
+.aa[class*=v-ewp-] > .bb.v-99999999.v-123456678 {
+  padding: 0px 0px 20px 0px;
+}
+
+.aa .bb[class*=v-ewp-].v-99999999.v-123456678::after {
+  height: 11px;
+}
+
+.dd.bb[class*=v-ewp-] .aa.v-99999999.v-123456678 {
+  height: 11;
+}
+
+.sel1 .selc2[class*=v-ewp-].v-99999999.v-123456678 {
+  height: 1px;
+}
+
+div .selet[class*=v-ewp-].v-99999999.v-123456678 {
+  height: 1px;
+}
+
+[dd][class*=v-ewp-].v-99999999.v-123456678 {
+  height: 1px;
+}
+
+.aa > .bb[class~=v-123dse43][class*=v-ewp-].v-99999999 {
+  padding: 0px 0px 20px 0px;
+}
+
+.aa[class*=v-ewp-] .bb.v-99999999 {
+  padding: 0px 0px 20px 0px;
+}
+
+.aa[class*=v-ewp-] > .bb.v-99999999 {
+  padding: 0px 0px 20px 0px;
+}
+
+
+
+.aa[class*=v-ewp-] > .bb.v-99999999 {
+  padding: 0px 0px 20px 0px;
+}
+
+.aa .bb[class*=v-ewp-].v-99999999::after {
+  height: 11px;
+}
+
+.dd.bb[class*=v-ewp-] .aa.v-99999999 {
+  height: 11;
+}
+
+.sel1 .selc2[class*=v-ewp-].v-99999999 {
+  height: 1px;
+}
+
+div .selet[class*=v-ewp-].v-99999999 {
+  height: 1px;
+}
+
+[dd][class*=v-ewp-].v-99999999 {
+  height: 1px;
+}
+
+.aa > .bb[class~=v-123dse43][class*=v-ewp-].v-99999999.v-99999999 {
+  padding: 0px 0px 20px 0px;
+}
+
+.aa[class*=v-ewp-] .bb.v-99999999.v-99999999 {
+  padding: 0px 0px 20px 0px;
+}
+
+.aa[class*=v-ewp-] > .bb.v-99999999.v-99999999 {
+  padding: 0px 0px 20px 0px;
+}
+
+
+
+.aa[class*=v-ewp-] > .bb.v-99999999.v-99999999 {
+  padding: 0px 0px 20px 0px;
+}
+
+.aa .bb[class*=v-ewp-].v-99999999.v-99999999::after {
+  height: 11px;
+}
+
+.dd.bb[class*=v-ewp-] .aa.v-99999999.v-99999999 {
+  height: 11;
+}
+
+.sel1 .selc2[class*=v-ewp-].v-99999999.v-99999999 {
+  height: 1px;
+}
+
+div .selet[class*=v-ewp-].v-99999999.v-99999999 {
+  height: 1px;
+}
+
+[dd][class*=v-ewp-].v-99999999.v-99999999 {
   height: 1px;
 }

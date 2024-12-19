@@ -5,8 +5,8 @@ module.exports = opts => {
   return Object.assign(
     () => ({
       postcssPlugin: plugin.id,
-      Once(root) {
-        return _plugin(root);
+      Once(root, helpers) {
+        return _plugin(root, helpers);
       }
     }),
     { postcss: true }
