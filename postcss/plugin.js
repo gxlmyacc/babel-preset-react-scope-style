@@ -47,9 +47,21 @@ function normalizeNodes(nodes) {
     }
   }
 }
+/**
+ * @typedef {{
+ *   scoped?: boolean,
+ *   global?: boolean,
+ *   id?: string,
+ * }} PluginOptions
+ */
 
-const plugin = function (opts) {
-  // opts = opts || [
+/**
+ *
+ * @param {PluginOptions|PluginOptions[]|((root: any) => (PluginOptions|PluginOptions[]))} pluginOptions
+ * @returns
+ */
+const plugin = function (pluginOptions) {
+  // pluginOptions = pluginOptions || [
   //   {
   //     scoped: true,
   //     global: true,
@@ -66,9 +78,11 @@ const plugin = function (opts) {
   //     id: 'v-99999999'
   //   }
   // ];
-  opts = opts || {};
+  pluginOptions = pluginOptions || {};
   return function (root, helpers) {
-    if (typeof opts === 'function') opts = opts(root);
+    let opts = typeof pluginOptions === 'function'
+      ? pluginOptions(root)
+      : pluginOptions;
     if (!opts) {
       return;
     }
@@ -200,7 +214,7 @@ const plugin = function (opts) {
       });
 
       if (opt.id && !opt.global) {
-        scopeTemplateList.push({ opt, result: root.toResult().css });
+        scopeTemplateList.push({ opt, result: root.toString() });
       }
     });
     if (scopeTemplateList.length > 1 && helpers && helpers.parse) {
