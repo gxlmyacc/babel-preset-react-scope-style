@@ -74,7 +74,7 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.scss$/,
+        test: /\.s[ac]ss$/,
         use: [
           'style-loader',
           'css-loader',
@@ -122,29 +122,12 @@ module.exports = {
       },
       // SCSS files
       {
-        test: /\.scss$/,
+        test: /\.s[ac]ss$/,
         use: [
           'style-loader',
           'css-loader',
           'babel-preset-react-scope-style/loader',
           'sass-loader'
-        ]
-      },
-      // SASS files
-      {
-        test: /\.sass$/,
-        use: [
-          'style-loader',
-          'css-loader',
-          'babel-preset-react-scope-style/loader',
-          {
-            loader: 'sass-loader',
-            options: {
-              sassOptions: {
-                indentedSyntax: true
-              }
-            }
-          }
         ]
       },
       // LESS files

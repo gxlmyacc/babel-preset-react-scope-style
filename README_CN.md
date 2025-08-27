@@ -72,14 +72,12 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.scss$/,
+        test: /\.s[ac]ss$/,
         use: [
           'style-loader',
           'css-loader',
           'babel-preset-react-scope-style/loader',
-          {
-            loader: 'sass-loader',
-          }
+          'sass-loader'
         ]
       }
     ]
@@ -122,29 +120,12 @@ module.exports = {
       },
       // SCSS文件
       {
-        test: /\.scss$/,
+        test: /\.s[ac]ss$/,
         use: [
           'style-loader',
           'css-loader',
           'babel-preset-react-scope-style/loader',
           'sass-loader'
-        ]
-      },
-      // SASS文件
-      {
-        test: /\.sass$/,
-        use: [
-          'style-loader',
-          'css-loader',
-          'babel-preset-react-scope-style/loader',
-          {
-            loader: 'sass-loader',
-            options: {
-              sassOptions: {
-                indentedSyntax: true
-              }
-            }
-          }
         ]
       },
       // LESS文件
