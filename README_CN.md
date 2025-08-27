@@ -262,10 +262,14 @@ Button/
 
 ### 带作用域选择器的CSS
 
-```css
+```scss
 /* 使用 :scope 进行组件级样式设置 */
 :scope .button {
   background: blue;
+}
+
+.container:scope .button {
+  background: red;
 }
 
 /* 使用 >>> 进行深度选择器（突破组件边界） */
@@ -282,13 +286,129 @@ Button/
 .btn {
   padding: 8px 16px;
   border-radius: 4px;
+  
+  &-primary {
+    background: #007bff;
+    color: white;
+  }
+  
+  &-secondary {
+    background: #6c757d;
+    color: white;
+  }
 }
 
-.btn-primary {
+/* SCSS嵌套和变量 */
+$primary-color: #007bff;
+$border-radius: 4px;
+
+.form-control {
+  border: 1px solid #ced4da;
+  border-radius: $border-radius;
+  
+  &:focus {
+    border-color: $primary-color;
+    box-shadow: 0 0 0 0.2rem rgba($primary-color, 0.25);
+  }
+}
+```
+
+### 转换后的CSS（构建后的CSS）
+
+**转换后的CSS（构建后）：**
+```css
+/* 使用 ?scoped 导入时的输出 */
+.v-abc123 .button {
+  background: blue;
+}
+.container.v-abc123 .button {
+  background: red;
+}
+
+.container.v-abc123 .deep-element {
+  color: red;
+}
+
+
+.global-class {
+  font-family: Arial;
+}
+
+.btn.v-abc123 {
+  padding: 8px 16px;
+  border-radius: 4px;
+}
+
+.btn-primary.v-abc123 {
   background: #007bff;
   color: white;
 }
+
+.btn-secondary.v-abc123 {
+  background: #6c757d;
+  color: white;
+}
+
+.form-control.v-abc123 {
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+}
+
+.form-control.v-abc123:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* 使用 ?global 导入时的输出 */
+[class*=v-] .button {
+  background: blue;
+}
+.container[class*=v-] .button {
+  background: red;
+}
+
+.container[class*=v-] .deep-element {
+  color: red;
+}
+
+.global-class {
+  font-family: Arial;
+}
+
+.btn[class*=v-] {
+  padding: 8px 16px;
+  border-radius: 4px;
+}
+
+.btn-primary[class*=v-] {
+  background: #007bff;
+  color: white;
+}
+
+.btn-secondary[class*=v-] {
+  background: #6c757d;
+  color: white;
+}
+
+.form-control[class*=v-] {
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+}
+
+.form-control[class*=v-]:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
 ```
+
+**关键转换说明：**
+
+1. **`:scope` 选择器**：转换为 `.v-abc123` 类选择器（`?scoped`）或 `[class*=v-]` 属性选择器（`?global`）
+2. **`>>>` 深度选择器**：父元素获得作用域ID，子元素保持原样
+3. **`:global` 选择器**：完全跳过作用域转换，保持原始选择器
+4. **常规选择器**：自动在末尾添加作用域ID
+5. **嵌套选择器**：每个嵌套层级都会获得作用域ID
+6. **SCSS变量**：在CSS输出中被实际值替换
 
 ### 理解 ?scoped 与 ?global
 

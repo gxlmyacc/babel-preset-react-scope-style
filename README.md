@@ -310,6 +310,102 @@ $border-radius: 4px;
 }
 ```
 
+### Transformed CSS (Built CSS)
+
+**Transformed CSS (after build):**
+```css
+/* Output when using ?scoped import */
+.v-abc123 .button {
+  background: blue;
+}
+.container.v-abc123 .button {
+  background: red;
+}
+
+.container.v-abc123 .deep-element {
+  color: red;
+}
+
+.global-class {
+  font-family: Arial;
+}
+
+.btn.v-abc123 {
+  padding: 8px 16px;
+  border-radius: 4px;
+}
+
+.btn-primary.v-abc123 {
+  background: #007bff;
+  color: white;
+}
+
+.btn-secondary.v-abc123 {
+  background: #6c757d;
+  color: white;
+}
+
+.form-control.v-abc123 {
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+}
+
+.form-control.v-abc123:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Output when using ?global import */
+[class*=v-] .button {
+  background: blue;
+}
+.container[class*=v-] .button {
+  background: red;
+}
+
+.container[class*=v-] .deep-element {
+  color: red;
+}
+
+.global-class {
+  font-family: Arial;
+}
+
+.btn[class*=v-] {
+  padding: 8px 16px;
+  border-radius: 4px;
+}
+
+.btn-primary[class*=v-] {
+  background: #007bff;
+  color: white;
+}
+
+.btn-secondary[class*=v-] {
+  background: #6c757d;
+  color: white;
+}
+
+.form-control[class*=v-] {
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+}
+
+.form-control[class*=v-]:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+```
+
+**Key transformation notes:**
+
+1. **`:scope` selector**: Transforms to `.v-abc123` class selector (`?scoped`) or `[class*=v-]` attribute selector (`?global`)
+2. **`>>>` deep selector**: Parent element gets scope ID, child elements remain unchanged
+3. **`:global` selector**: Completely skips scope transformation, keeps original selector
+4. **Regular selectors**: Automatically add scope ID at the end
+5. **Nested selectors**: Each nested level gets scope ID
+6. **SCSS variables**: Replaced with actual values in CSS output
+
 ### Understanding ?scoped vs ?global
 
 **`?scoped` (Component-specific scoping):**
