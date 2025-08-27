@@ -171,37 +171,24 @@ Button/
 
 ### 带作用域选择器的CSS
 
+理解作用域ID如何在CSS中生成和定位对于有效样式化至关重要。
+
+#### 1. 默认行为
+默认情况下，作用域ID自动添加到每个CSS规则的**最后一个选择器**：
+
+
 ```scss
-/* 使用 :scope 进行组件级样式设置 */
-:scope .button {
-  background: blue;
-}
-
-.container:scope .button {
-  background: red;
-}
-
-/* 使用 >>> 进行深度选择器（突破组件边界） */
-.container >>> .deep-element {
-  color: red;
-}
-
-/* 使用 :global 进行全局样式（不会被作用域化） */
-:global .global-class {
-  font-family: Arial;
-}
-
-/* 常规选择器（自动作用域化） */
+/* 输入的SCSS */
 .btn {
   padding: 8px 16px;
   border-radius: 4px;
   
-  &-primary {
+  .btn-primary {
     background: #007bff;
     color: white;
   }
   
-  &-secondary {
+  .btn-secondary {
     background: #6c757d;
     color: white;
   }
@@ -220,94 +207,113 @@ $border-radius: 4px;
     box-shadow: 0 0 0 0.2rem rgba($primary-color, 0.25);
   }
 }
-```
 
-### 转换后的CSS（构建后的CSS）
-
-**转换后的CSS（构建后）：**
-```css
-/* 使用 ?scoped 导入时的输出 */
-.v-abc123 .button {
-  background: blue;
-}
-.container.v-abc123 .button {
-  background: red;
-}
-
-.container.v-abc123 .deep-element {
-  color: red;
-}
-
-
-.global-class {
-  font-family: Arial;
-}
-
+/* 输出的CSS */
 .btn.v-abc123 {
   padding: 8px 16px;
   border-radius: 4px;
 }
-
-.btn-primary.v-abc123 {
+.btn .btn-primary.v-abc123 {
   background: #007bff;
   color: white;
 }
-
-.btn-secondary.v-abc123 {
+.btn .btn-secondary.v-abc123 {
   background: #6c757d;
   color: white;
 }
-
 .form-control.v-abc123 {
   border: 1px solid #ced4da;
   border-radius: 4px;
 }
-
 .form-control.v-abc123:focus {
   border-color: #007bff;
   box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
 }
 
-/* 使用 ?global 导入时的输出 */
-[class*=v-] .button {
-  background: blue;
-}
-.container[class*=v-] .button {
-  background: red;
-}
+```
 
-.container[class*=v-] .deep-element {
-  color: red;
-}
+#### 2. 使用:scope自定义位置
+使用`:scope`伪类来控制作用域ID的放置位置：
 
-.global-class {
-  font-family: Arial;
-}
+**⚠️ 重要：** `:scope`可以用两种方式使用，含义不同：
 
-.btn[class*=v-] {
-  padding: 8px 16px;
-  border-radius: 4px;
-}
+1. **附加到选择器**：`.container:scope` → `.container.v-abc123`（作用域ID附加到选择器上）
+2. **独立选择器**：`.container :scope` → `.container .v-abc123`（作用域ID作为独立的选择器）
 
-.btn-primary[class*=v-] {
-  background: #007bff;
-  color: white;
-}
+```scss
+/* 输入SCSS */
+.container:scope .button { color: blue; }  /* ✅ 作用域ID附加到.container上 */
+.container :scope .button { color: blue; } /* ✅ 作用域ID作为独立选择器 */
+:scope .header { font-size: 18px; }       /* ✅ 独立作用域选择器 */
 
-.btn-secondary[class*=v-] {
-  background: #6c757d;
-  color: white;
-}
+/* 生成的CSS（使用默认前缀 'v-'） */
+.container.v-abc123 .button { color: blue; } /* 作用域ID在.container上 */
+.container .v-abc123 .button { color: blue; } /* 作用域ID作为独立元素 */
+.v-abc123 .header { font-size: 18px; }       /* 作用域ID作为根元素 */
+```
 
-.form-control[class*=v-] {
-  border: 1px solid #ced4da;
-  border-radius: 4px;
-}
+#### 3. 使用:global的全局样式
+将样式包装在`:global`中以防止作用域化：
 
-.form-control[class*=v-]:focus {
-  border-color: #007bff;
-  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+```scss
+/* 输入SCSS */
+:global .reset { margin: 0; padding: 0; }
+
+/* 生成的CSS */
+.reset { margin: 0; padding: 0; }  /* 无作用域ID */
+```
+
+#### 4. 使用>>>的深度选择器
+使用`>>>`进行深度选择器：
+
+```scss
+/* 输入SCSS */
+.container >>> .deep-element { color: green; }
+.wrapper >>> .nested .deep { background: yellow; }
+
+/* 生成的CSS */
+.container.v-abc123 .deep-element { color: green; }
+.wrapper.v-abc123 .nested .deep { background: yellow; }
+```
+
+#### 5. 实际应用示例
+```scss
+/* 默认行为 - 作用域ID添加到最后一个选择器 */
+.button { color: red; }
+/* 输出: .button.v-abc123 { color: red; } */
+
+/* :scope - 组件级作用域（嵌套元素必需） */
+:scope .button { color: red; }
+/* 输出: .v-abc123 .button { color: red; } */
+
+/* 使用:scope自定义位置 - 两种不同方法 */
+.container:scope .button { color: blue; }
+/* 输出: .container.v-abc123 .button { color: blue; } */
+
+.container :scope .button { color: blue; }
+/* 输出: .container .v-abc123 .button { color: blue; } */
+
+/* :global - 防止作用域化 */
+:global .reset { margin: 0; }
+/* 输出: .reset { margin: 0; } (不添加作用域) */
+
+/* >>> - 深度选择器（谨慎使用） */
+.container >>> .deep { color: blue; }
+/* 输出: .container.v-abc123 .deep { color: blue; } */
+
+/* 错误 - 没有:scope这将无法工作 */
+.custom-modal .ant-modal-content { padding: 24px; }
+/* 输出: .custom-modal.v-abc123 .ant-modal-content { padding: 24px; } */
+/* 但选择器无法匹配，因为.ant-modal-content没有被作用域化！ */
+
+/* 正确 - 对嵌套元素使用:scope */
+.custom-modal {
+  :scope {
+    .ant-modal-content { padding: 24px; }
+  }
 }
+/* 输出: .custom-modal.v-abc123 .ant-modal-content { padding: 24px; } */
+/* 现在可以工作，因为:scope确保正确的作用域化 */
 ```
 
 **关键转换说明：**
@@ -718,70 +724,7 @@ PostCSS插件会根据您的导入语句（`?scoped`、`?global`）自动从load
 
 ## 高级功能
 
-### 作用域ID生成规则
 
-理解作用域ID如何在CSS中生成和定位对于有效样式化至关重要。
-
-#### 1. 默认行为
-默认情况下，作用域ID自动添加到每个CSS规则的**最后一个选择器**：
-
-```scss
-/* 输入SCSS */
-.button { color: red; }
-.container .item { background: blue; }
-.form input[type="text"] { border: 1px solid #ccc; }
-
-/* 生成的CSS（使用默认前缀 'v-'） */
-.button.v-abc123 { color: red; }
-.container .item.v-abc123 { background: blue; }
-.form input[type="text"].v-abc123 { border: 1px solid #ccc; }
-```
-
-#### 2. 使用:scope自定义位置
-使用`:scope`伪类来控制作用域ID的放置位置：
-
-**⚠️ 重要：** `:scope`可以用两种方式使用，含义不同：
-
-1. **附加到选择器**：`.container:scope` → `.container.v-abc123`（作用域ID附加到选择器上）
-2. **独立选择器**：`.container :scope` → `.container .v-abc123`（作用域ID作为独立的选择器）
-
-```scss
-/* 输入SCSS */
-.container:scope .button { color: blue; }  /* ✅ 作用域ID附加到.container上 */
-.container :scope .button { color: blue; } /* ✅ 作用域ID作为独立选择器 */
-:scope .header { font-size: 18px; }       /* ✅ 独立作用域选择器 */
-
-/* 生成的CSS（使用默认前缀 'v-'） */
-.container.v-abc123 .button { color: blue; } /* 作用域ID在.container上 */
-.container .v-abc123 .button { color: blue; } /* 作用域ID作为独立元素 */
-.v-abc123 .header { font-size: 18px; }       /* 作用域ID作为根元素 */
-```
-
-#### 3. 使用:global的全局样式
-将样式包装在`:global`中以防止作用域化：
-
-```scss
-/* 输入SCSS */
-:global .reset { margin: 0; padding: 0; }
-
-
-/* 生成的CSS */
-.reset { margin: 0; padding: 0; }  /* 无作用域ID */
-
-```
-
-#### 4. 使用>>>的深度选择器
-使用`>>>`进行深度选择器：
-
-```scss
-/* 输入SCSS */
-.container >>> .deep-element { color: green; }
-.wrapper >>> .nested .deep { background: yellow; }
-
-/* 生成的CSS */
-.container.v-abc123 .deep-element { color: green; }
-.wrapper.v-abc123 .nested .deep { background: yellow; }
-```
 
 ### 自定义作用域函数
 
@@ -1249,68 +1192,7 @@ shared/
 - **使用`:scope`来明确目标嵌套元素**
 - **没有`:scope`，子元素选择器将无法匹配**
 
-**样式文件中作用域ID生成规则：**
 
-1. **默认行为**：作用域ID自动添加到每个CSS规则的最后一个选择器
-2. **自定义位置**：使用`:scope`伪类或`>>>`来控制作用域ID的放置位置
-3. **全局样式**：将样式包装在`:global`伪类中以防止作用域化
-
-**示例：**
-```scss
-/* 默认：作用域ID添加到最后一个选择器 */
-.button { color: red; }
-/* 输出：.button.v-abc123 { color: red; } */
-
-/* 使用:scope自定义位置 */
-.container :scope .button { color: blue; }
-/* 输出：.container.v-abc123 .button { color: blue; } */
-
-/* 全局样式（不作用域化） */
-:global .reset { margin: 0; }
-/* 输出：.reset { margin: 0; }（不添加作用域ID） */
-```
-
-**选择器示例：**
-```scss
-/* 默认行为 - 作用域ID添加到最后一个选择器 */
-.button { color: red; }
-/* 输出: .button.v-abc123 { color: red; } */
-
-/* :scope - 组件级作用域（嵌套元素必需） */
-:scope .button { color: red; }
-/* 输出: .v-abc123 .button { color: red; } */
-
-/* 使用:scope自定义位置 - 两种不同方法 */
-.container:scope .button { color: blue; }
-/* 输出: .container.v-abc123 .button { color: blue; } */
-
-.container :scope .button { color: blue; }
-/* 输出: .container .v-abc123 .button { color: blue; } */
-
-/* :global - 防止作用域化 */
-:global .reset { margin: 0; }
-/* 输出: .reset { margin: 0; } (不添加作用域) */
-
-
-
-/* >>> - 深度选择器（谨慎使用） */
-.container >>> .deep { color: blue; }
-/* 输出: .container.v-abc123 .deep { color: blue; } */
-
-/* 错误 - 没有:scope这将无法工作 */
-.custom-modal .ant-modal-content { padding: 24px; }
-/* 输出: .custom-modal.v-abc123 .ant-modal-content { padding: 24px; } */
-/* 但选择器无法匹配，因为.ant-modal-content没有被作用域化！ */
-
-/* 正确 - 对嵌套元素使用:scope */
-.custom-modal {
-  :scope {
-    .ant-modal-content { padding: 24px; }
-  }
-}
-/* 输出: .custom-modal.v-abc123 .ant-modal-content { padding: 24px; } */
-/* 现在可以工作，因为:scope确保正确的作用域化 */
-```
 
 ### 4. 性能考虑
 - 仅对需要的样式进行作用域化

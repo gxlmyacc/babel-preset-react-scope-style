@@ -173,35 +173,25 @@ Button/
 └── Button.test.js
 ```
 
-### SCSS with Scope Selectors
+### CSS with Scope Selectors
+
+Understanding how scope IDs are generated and positioned in CSS is crucial for effective styling.
+
+#### 1. Default Behavior
+By default, scope IDs are automatically added to the **last selector** of each CSS rule:
 
 ```scss
-/* Use :scope for component-level styling */
-:scope .button {
-  background: blue;
-}
-
-/* Use >>> for deep selectors (escapes component boundary) */
-.container >>> .deep-element {
-  color: red;
-}
-
-/* Global styles with :global (won't be scoped) */
-:global .global-class {
-  font-family: Arial;
-}
-
-/* Regular selectors (automatically scoped) */
+/* Input SCSS */
 .btn {
   padding: 8px 16px;
   border-radius: 4px;
   
-  &-primary {
+  .btn-primary {
     background: #007bff;
     color: white;
   }
   
-  &-secondary {
+  .btn-secondary {
     background: #6c757d;
     color: white;
   }
@@ -220,96 +210,115 @@ $border-radius: 4px;
     box-shadow: 0 0 0 0.2rem rgba($primary-color, 0.25);
   }
 }
-```
 
-### Transformed CSS (Built CSS)
-
-**Transformed CSS (after build):**
-```css
-/* Output when using ?scoped import */
-.v-abc123 .button {
-  background: blue;
-}
-.container.v-abc123 .button {
-  background: red;
-}
-
-.container.v-abc123 .deep-element {
-  color: red;
-}
-
-.global-class {
-  font-family: Arial;
-}
-
+/* Output CSS */
 .btn.v-abc123 {
   padding: 8px 16px;
   border-radius: 4px;
 }
-
-.btn-primary.v-abc123 {
+.btn .btn-primary.v-abc123 {
   background: #007bff;
   color: white;
 }
-
-.btn-secondary.v-abc123 {
+.btn .btn-secondary.v-abc123 {
   background: #6c757d;
   color: white;
 }
-
 .form-control.v-abc123 {
   border: 1px solid #ced4da;
   border-radius: 4px;
 }
-
 .form-control.v-abc123:focus {
-  border-color: #007bff;
-  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-}
-
-/* Output when using ?global import */
-[class*=v-] .button {
-  background: blue;
-}
-.container[class*=v-] .button {
-  background: red;
-}
-
-.container[class*=v-] .deep-element {
-  color: red;
-}
-
-.global-class {
-  font-family: Arial;
-}
-
-.btn[class*=v-] {
-  padding: 8px 16px;
-  border-radius: 4px;
-}
-
-.btn-primary[class*=v-] {
-  background: #007bff;
-  color: white;
-}
-
-.btn-secondary[class*=v-] {
-  background: #6c757d;
-  color: white;
-}
-
-.form-control[class*=v-] {
-  border: 1px solid #ced4da;
-  border-radius: 4px;
-}
-
-.form-control[class*=v-]:focus {
   border-color: #007bff;
   box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
 }
 ```
 
-**Key transformation notes:**
+#### 2. Using :scope to Customize Position
+Use the `:scope` pseudo-class to control the placement of scope IDs:
+
+**⚠️ Important:** `:scope` can be used in two ways with different meanings:
+
+1. **Attached to selector**: `.container:scope` → `.container.v-abc123` (scope ID attached to selector)
+2. **Independent selector**: `.container :scope` → `.container .v-abc123` (scope ID as independent selector)
+
+```scss
+/* Input SCSS */
+.container:scope .button { color: blue; }  /* ✅ Scope ID attached to .container */
+.container :scope .button { color: blue; } /* ✅ Scope ID as independent selector */
+:scope .header { font-size: 18px; }       /* ✅ Independent scope selector */
+
+/* Generated CSS (using default prefix 'v-') */
+.container.v-abc123 .button { color: blue; } /* Scope ID on .container */
+.container .v-abc123 .button { color: blue; } /* Scope ID as independent element */
+.v-abc123 .header { font-size: 18px; }       /* Scope ID as root element */
+```
+
+#### 3. Using :global for Global Styles
+Wrap styles in `:global` to prevent scoping:
+
+```scss
+/* Input SCSS */
+:global .reset { margin: 0; padding: 0; }
+
+/* Generated CSS */
+.reset { margin: 0; padding: 0; }  /* No scope ID */
+```
+
+#### 4. Using >>> for Deep Selectors
+Use `>>>` for deep selectors:
+
+```scss
+/* Input SCSS */
+.container >>> .deep-element { color: green; }
+.wrapper >>> .nested .deep { background: yellow; }
+
+/* Generated CSS */
+.container.v-abc123 .deep-element { color: green; }
+.wrapper.v-abc123 .nested .deep { background: yellow; }
+```
+
+#### 5. Practical Application Examples
+```scss
+/* Default behavior - scope ID added to last selector */
+.button { color: red; }
+/* Output: .button.v-abc123 { color: red; } */
+
+/* :scope - component-level scope (required for nested elements) */
+:scope .button { color: red; }
+/* Output: .v-abc123 .button { color: red; } */
+
+/* Using :scope to customize position - two different methods */
+.container:scope .button { color: blue; }
+/* Output: .container.v-abc123 .button { color: blue; } */
+
+.container :scope .button { color: blue; }
+/* Output: .container .v-abc123 .button { color: blue; } */
+
+/* :global - prevent scoping */
+:global .reset { margin: 0; }
+/* Output: .reset { margin: 0; } (no scope added) */
+
+/* >>> - deep selector (use with caution) */
+.container >>> .deep { color: blue; }
+/* Output: .container.v-abc123 .deep { color: blue; } */
+
+/* Wrong - without :scope this won't work */
+.custom-modal .ant-modal-content { padding: 24px; }
+/* Output: .custom-modal.v-abc123 .ant-modal-content { padding: 24px; } */
+/* But selector can't match because .ant-modal-content isn't scoped! */
+
+/* Correct - use :scope for nested elements */
+.custom-modal {
+  :scope {
+    .ant-modal-content { padding: 24px; }
+  }
+}
+/* Output: .custom-modal.v-abc123 .ant-modal-content { padding: 24px; } */
+/* Now it works because :scope ensures proper scoping */
+```
+
+**Key Transformation Notes:**
 
 1. **`:scope` selector**: Transforms to `.v-abc123` class selector (`?scoped`) or `[class*=v-]` attribute selector (`?global`)
 2. **`>>>` deep selector**: Parent element gets scope ID, child elements remain unchanged
@@ -320,29 +329,25 @@ $border-radius: 4px;
 
 ### Understanding ?scoped vs ?global
 
-**`?scoped` (Component-specific scoping):**
-```scss
-/* Input SCSS */
-.button { 
-  color: red; 
-}
+**`?scoped` (Component-specific scope):**
+```css
+/* Input CSS */
+.button { color: red; }
 
-/* Output CSS (with .v-xxx class selector) */
+/* Output CSS (using .v-xxx class selector) */
 .button.v-abc123 { color: red; }
 ```
 
-**`?global` (Global scoping):**
-```scss
-/* Input SCSS */
-.button { 
-  color: blue; 
-}
+**`?global` (Global scope):**
+```css
+/* Input CSS */
+.button { color: blue; }
 
-/* Output CSS (with [class*=v-] attribute selector) */
+/* Output CSS (using [class*=v-] attribute selector) */
 .button[class*=v-] { color: blue; }
 ```
 
-**Why both create scoped styles?**
+**Why do both create scoped styles?**
 - `?scoped`: Isolates styles to specific components
 - `?global`: Creates shared styles that work across components but still maintain project-level isolation
 
@@ -719,130 +724,55 @@ classAttrs: ['className']  // Default: only className gets scoped
 
 The PostCSS plugin automatically receives these parameters from the loader based on your import statements (`?scoped`, `?global`).
 
-## Advanced Features
+## How It Works
 
-### Scope ID Generation Rules
+1. **Babel Plugin**: 
+   - Detects style imports with query parameters (`?scoped`, `?global`)
+   - Injects scope IDs into JSX elements' className attributes
+   - Transforms className expressions for proper scoping
 
-Understanding how scope IDs are generated and positioned in your CSS is crucial for effective styling.
+2. **PostCSS Plugin**:
+   - Processes CSS selectors with scope isolation
+   - Handles `:scope`, `>>>`, and `:global` selectors
+   - Generates unique scope IDs for components
+   - Applies different scoping strategies based on import types
 
-#### 1. Default Behavior
-By default, scope IDs are automatically added to the **last selector** in each CSS rule:
+3. **Webpack Loader**:
+   - Integrates with webpack build process
+   - Applies PostCSS transformations
+   - Maintains source map support
 
-```scss
-/* Input SCSS */
-.button { color: red; }
-.container .item { background: blue; }
-.form input[type="text"] { border: 1px solid #ccc; }
+### Scope ID Generation
 
-/* Generated CSS */
-.button.v-abc123 { color: red; }
-.container .item.v-abc123 { background: blue; }
-.form input[type="text"].v-abc123 { border: 1px solid #ccc; }
-```
-
-#### 2. Custom Position with :scope
-Use `:scope` pseudo-class to control where the scope ID is placed:
-
-**⚠️ Important:** `:scope` can be used in two ways with different meanings:
-
-1. **Attached to selector**: `.container:scope` → `.container.v-abc123` (scope ID attached to the selector)
-2. **Standalone selector**: `.container :scope` → `.container .v-abc123` (scope ID as a separate selector)
-
-```scss
-/* Input SCSS */
-.container:scope .button { color: blue; }  /* ✅ Scope ID attached to .container */
-.container :scope .button { color: blue; } /* ✅ Scope ID as separate selector */
-:scope .header { font-size: 18px; }       /* ✅ Standalone scope selector */
-
-/* Generated CSS */
-.container.v-abc123 .button { color: blue; } /* Scope ID on .container */
-.container .v-abc123 .button { color: blue; } /* Scope ID as separate element */
-.v-abc123 .header { font-size: 18px; }       /* Scope ID as root */
-```
-
-#### 3. Global Styles with :global
-Wrap styles in `:global` to prevent scoping:
-
-```scss
-/* Input SCSS */
-:global .reset { margin: 0; padding: 0; }
-
-/* Generated CSS */
-.reset { margin: 0; padding: 0; }  /* No scope ID */
-```
-
-#### 4. Deep Selector with >>>
-Use `>>>` for deep selectors:
-
-```scss
-/* Input SCSS */
-.container >>> .deep-element { color: green; }
-.wrapper >>> .nested .deep { background: yellow; }
-
-/* Generated CSS */
-.container.v-abc123 .deep-element { color: green; }
-.wrapper.v-abc123 .nested .deep { background: yellow; }
-```
-
-### Custom Scope Function
+The plugin generates scope IDs using a hash of the importing file's path and project name:
 
 ```javascript
-{
-  scopeFn: (filePath, query, context) => {
-    // Custom logic for file transformation
-    return filePath + query;
-  }
-}
+// For ?scoped imports
+scopeId = scopePrefix + hash(importingFilePath + projectName)
+// Default: scopePrefix = 'v-', generates like: v-abc123
+
+// For ?global imports  
+scopeId = scopePrefix + hash(importingFilePath + projectName)
+// Default: scopePrefix = 'v-', generates like: v-abc123
 ```
 
-**Real-world Example - Converting SCSS to CSS:**
-```javascript
-{
-  scopeFn: (filePath, query, context) => {
-    // Convert .scss files to .css during build
-    if (filePath.endsWith('.scss')) {
-      return filePath.replace('.scss', '.css') + query;
-    }
-    return filePath + query;
-  }
-}
-```
+**Important Note:** Scope IDs are generated based on the importing file's path, not the imported file's path. This means:
+- Component A importing `./shared/styles.scss?scoped` gets a scope ID based on Component A's path
+- Component B importing `./shared/styles.scss?scoped` gets a scope ID based on Component B's path
+- Result: The same shared file generates different scoped versions for each component
 
-### Multiple Scope Configurations (Internal Use Only)
+### CSS Transformation Strategy
 
-**⚠️ Important:** This is for reference only. The loader automatically handles multiple scopes based on your import statements.
+**Component Scope (`?scoped`):**
+- Adds `.{scopePrefix}xxx` class selectors to CSS rules (default: `.v-xxx`)
+- Creates tight component isolation
+- Example: `.button` → `.button.v-abc123` (default prefix)
 
-```javascript
-// This is how the loader internally processes multiple scopes
-// DO NOT configure manually in your PostCSS config
-[
-  {
-    scoped: true,
-    global: true,
-    id: 'v-ewp-'
-  },
-  {
-    scoped: true,
-    global: false,
-    id: 'v-component-123'
-  }
-]
-```
-
-**What happens internally:**
-1. **Input CSS file** is processed multiple times
-2. **First scope** creates the base scoped version
-3. **Additional scopes** generate extra copies with different IDs
-4. **Final output** contains all scoped versions in one file
-
-**Use case example:**
-- **Global scope** (`v-ewp-`): For shared component libraries
-- **Component scope** (`v-component-123`): For individual component styles
-- **Result**: One CSS file with styles that work in both global and component contexts
-
-**How it works:**
-- The loader automatically detects different import patterns (`?scoped`, `?global`)
-- Creates appropriate scope configurations internally
+**Global Scope (`?global`):**
+- Adds `[class*={scopePrefix}]` attribute selectors to CSS rules (default: `[class*=v-]`)
+- Allows styles to be shared across components
+- Example: `.button` → `.button[class*=v-]` (default prefix)
+- Maintains project-level isolation while enabling component sharing
 - Users only need to use `?scoped` or `?global` in their import statements
 
 **Multiple Scope Processing:**
@@ -913,7 +843,7 @@ module.exports = {
    - Processes CSS selectors with scope isolation
    - Handles `:scope`, `>>>`, and `:global` selectors
    - Generates unique scope IDs for components
-   - Applies different scoping strategies based on import type
+   - Applies different scoping strategies based on import types
 
 3. **Webpack Loader**:
    - Integrates with webpack build process
@@ -926,28 +856,30 @@ The plugin generates scope IDs using a hash of the importing file's path and pro
 
 ```javascript
 // For ?scoped imports
-scopeId = 'v-' + hash(importingFilePath + projectName)
+scopeId = scopePrefix + hash(importingFilePath + projectName)
+// Default: scopePrefix = 'v-', generates like: v-abc123
 
 // For ?global imports  
-scopeId = 'v-' + hash(importingFilePath + projectName)
+scopeId = scopePrefix + hash(importingFilePath + projectName)
+// Default: scopePrefix = 'v-', generates like: v-abc123
 ```
 
 **Important Note:** Scope IDs are generated based on the importing file's path, not the imported file's path. This means:
-- Component A importing `./shared/styles.scss?scoped` gets scope ID based on Component A's path
-- Component B importing `./shared/styles.scss?scoped` gets scope ID based on Component B's path
-- Result: Same shared file generates different scope IDs for different components
+- Component A importing `./shared/styles.scss?scoped` gets a scope ID based on Component A's path
+- Component B importing `./shared/styles.scss?scoped` gets a scope ID based on Component B's path
+- Result: The same shared file generates different scoped versions for each component
 
-### CSS Transformation Strategies
+### CSS Transformation Strategy
 
-**Component Scoping (`?scoped`):**
-- Adds `.v-xxx` class selectors to CSS rules
+**Component Scope (`?scoped`):**
+- Adds `.{scopePrefix}xxx` class selectors to CSS rules (default: `.v-xxx`)
 - Creates tight component isolation
-- Example: `.button` → `.button.v-abc123`
+- Example: `.button` → `.button.v-abc123` (default prefix)
 
-**Global Scoping (`?global`):**
-- Adds `[class*=v-]` attribute selectors to CSS rules
+**Global Scope (`?global`):**
+- Adds `[class*={scopePrefix}]` attribute selectors to CSS rules (default: `[class*=v-]`)
 - Allows styles to be shared across components
-- Example: `.button` → `.button[class*=v-]`
+- Example: `.button` → `.button[class*=v-]` (default prefix)
 - Maintains project-level isolation while enabling component sharing
 
 ## Examples
