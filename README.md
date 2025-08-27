@@ -469,8 +469,8 @@ classAttrs: ['className']  // Default: only className gets scoped
 **Other attributes (Conditional injection):**
 - ✅ **Conditional injection**: Scope ID is only injected if the attribute exists on the JSX element
 - ❌ **No auto-generation**: Elements without the attribute won't get it
-- ❌ **Value replacement**: The entire attribute value is replaced with scope ID
-- ❌ **Limited expression support**: Only works with simple string values
+- ✅ **Smart merging**: Existing attribute values are intelligently merged with scope ID
+- ✅ **Expression support**: Works with static strings, template literals, and expressions
 
 #### Custom classAttrs Configuration
 
