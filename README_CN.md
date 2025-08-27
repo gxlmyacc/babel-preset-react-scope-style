@@ -44,7 +44,7 @@ yarn add babel-preset-react-scope-style
 
 ### 2. Webpack配置
 
-在webpack配置中添加loader：
+在webpack配置中添加loader（将'babel-preset-react-scope-style/loader'放置在'css-loader'之后，其他loader之前）：
 
 > **注意：** 如果您想在非webpack环境中使用此插件，可以参考 [build-react-esm-project](https://github.com/gxlmyacc/build-react-esm-project) 构建工具，它为React项目提供了带作用域样式支持的综合构建解决方案。
 
@@ -58,12 +58,7 @@ module.exports = {
         use: [
           'style-loader',
           'css-loader',
-          {
-            loader: 'babel-preset-react-scope-style/loader',
-            options: {
-              sourceMap: true
-            }
-          },
+          'babel-preset-react-scope-style/loader',
         ]
       }
     ]
@@ -81,12 +76,7 @@ module.exports = {
         use: [
           'style-loader',
           'css-loader',
-          {
-            loader: 'babel-preset-react-scope-style/loader',
-            options: {
-              sourceMap: true
-            }
-          },
+          'babel-preset-react-scope-style/loader',
           {
             loader: 'sass-loader',
           }
@@ -107,12 +97,7 @@ module.exports = {
         use: [
           'style-loader',
           'css-loader',
-          {
-            loader: 'babel-preset-react-scope-style/loader',
-            options: {
-              sourceMap: true
-            }
-          },
+          'babel-preset-react-scope-style/loader',
           'less-loader'
         ]
       }

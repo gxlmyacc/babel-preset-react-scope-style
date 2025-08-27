@@ -46,7 +46,7 @@ Add the preset to your `.babelrc` or `babel.config.js`:
 
 ### 2. Webpack Configuration
 
-Add the loader to your webpack configuration:
+Add the loader to your webpack configuration (place 'babel-preset-react-scope-style/loader' after 'css-loader' and before other loaders):
 
 > **Note:** If you want to use this plugin in a non-webpack environment, you can refer to the [build-react-esm-project](https://github.com/gxlmyacc/build-react-esm-project) build tool, which provides a comprehensive build solution for React projects with scope style support.
 
@@ -60,12 +60,7 @@ module.exports = {
         use: [
           'style-loader',
           'css-loader',
-          {
-            loader: 'babel-preset-react-scope-style/loader',
-            options: {
-              sourceMap: true
-            }
-          },
+          'babel-preset-react-scope-style/loader',
         ]
       }
     ]
@@ -83,12 +78,7 @@ module.exports = {
         use: [
           'style-loader',
           'css-loader',
-          {
-            loader: 'babel-preset-react-scope-style/loader',
-            options: {
-              sourceMap: true
-            }
-          },
+          'babel-preset-react-scope-style/loader',
          'sass-loader'
         ]
       }
@@ -107,12 +97,7 @@ module.exports = {
         use: [
           'style-loader',
           'css-loader',
-          {
-            loader: 'babel-preset-react-scope-style/loader',
-            options: {
-              sourceMap: true
-            }
-          },
+          'babel-preset-react-scope-style/loader',
           'less-loader'
         ]
       }
