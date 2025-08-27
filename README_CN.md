@@ -48,63 +48,6 @@ yarn add babel-preset-react-scope-style
 
 > **注意：** 如果您想在非webpack环境中使用此插件，可以参考 [build-react-esm-project](https://github.com/gxlmyacc/build-react-esm-project) 构建工具，它为React项目提供了带作用域样式支持的综合构建解决方案。
 
-#### CSS文件
-```javascript
-module.exports = {
-  module: {
-    rules: [
-      {
-        test: /\.css$/,
-        use: [
-          'style-loader',
-          'css-loader',
-          'babel-preset-react-scope-style/loader',
-        ]
-      }
-    ]
-  }
-};
-```
-
-#### SCSS文件
-```javascript
-module.exports = {
-  module: {
-    rules: [
-      {
-        test: /\.s[ac]ss$/,
-        use: [
-          'style-loader',
-          'css-loader',
-          'babel-preset-react-scope-style/loader',
-          'sass-loader'
-        ]
-      }
-    ]
-  }
-};
-```
-
-#### LESS文件
-```javascript
-module.exports = {
-  module: {
-    rules: [
-      {
-        test: /\.less$/,
-        use: [
-          'style-loader',
-          'css-loader',
-          'babel-preset-react-scope-style/loader',
-          'less-loader'
-        ]
-      }
-    ]
-  }
-};
-```
-
-#### 完整的Webpack配置
 ```javascript
 module.exports = {
   module: {

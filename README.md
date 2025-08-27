@@ -50,63 +50,7 @@ Add the loader to your webpack configuration (place 'babel-preset-react-scope-st
 
 > **Note:** If you want to use this plugin in a non-webpack environment, you can refer to the [build-react-esm-project](https://github.com/gxlmyacc/build-react-esm-project) build tool, which provides a comprehensive build solution for React projects with scope style support.
 
-#### CSS Files
-```javascript
-module.exports = {
-  module: {
-    rules: [
-      {
-        test: /\.scss$/,
-        use: [
-          'style-loader',
-          'css-loader',
-          'babel-preset-react-scope-style/loader',
-        ]
-      }
-    ]
-  }
-};
-```
 
-#### SASS Files
-```javascript
-module.exports = {
-  module: {
-    rules: [
-      {
-        test: /\.s[ac]ss$/,
-        use: [
-          'style-loader',
-          'css-loader',
-          'babel-preset-react-scope-style/loader',
-         'sass-loader'
-        ]
-      }
-    ]
-  }
-};
-```
-
-#### LESS Files
-```javascript
-module.exports = {
-  module: {
-    rules: [
-      {
-        test: /\.less$/,
-        use: [
-          'style-loader',
-          'css-loader',
-          'babel-preset-react-scope-style/loader',
-          'less-loader'
-        ]
-      }
-    ]
-  }
-};
-```
-
-#### Complete Webpack Configuration
 ```javascript
 module.exports = {
   module: {
