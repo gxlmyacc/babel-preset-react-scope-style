@@ -50,7 +50,7 @@ Add the loader to your webpack configuration:
 
 > **Note:** If you want to use this plugin in a non-webpack environment, you can refer to the [build-react-esm-project](https://github.com/gxlmyacc/build-react-esm-project) build tool, which provides a comprehensive build solution for React projects with scope style support.
 
-#### SCSS Files
+#### CSS Files
 ```javascript
 module.exports = {
   module: {
@@ -66,7 +66,6 @@ module.exports = {
               sourceMap: true
             }
           },
-          'sass-loader'
         ]
       }
     ]
@@ -80,7 +79,7 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.sass$/,
+        test: /\.scss$/,
         use: [
           'style-loader',
           'css-loader',
@@ -90,14 +89,7 @@ module.exports = {
               sourceMap: true
             }
           },
-          {
-            loader: 'sass-loader',
-            options: {
-              sassOptions: {
-                indentedSyntax: true
-              }
-            }
-          }
+         'sass-loader'
         ]
       }
     ]
@@ -136,12 +128,11 @@ module.exports = {
     rules: [
       // CSS files
       {
-        test: /\.scss$/,
+        test: /\.css$/,
         use: [
           'style-loader',
           'css-loader',
-          'babel-preset-react-scope-style/loader',
-          'sass-loader'
+          'babel-preset-react-scope-style/loader'
         ]
       },
       // SCSS files
