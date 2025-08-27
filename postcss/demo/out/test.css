@@ -1,6 +1,14 @@
 .cc[class*=v-ewp-].v-123456678 {
   color: red;
 }
+
+#test[class*=v-ewp-] .test.v-123456678 {
+  color: blue;
+}
 .cc[class*=v-ewp-].v-99999999 {
   color: red;
+}
+
+#test[class*=v-ewp-] .test.v-99999999 {
+  color: blue;
 }

@@ -2,7 +2,7 @@ module.exports = {
   scopeRegx: /(\.(?:le|sc|sa|c)ss)(\?[a-z]+)?$/,
   scope: true,
   scopeFn: null,
-  scopePrefix: '',
+  scopePrefix: 'v-',
   scopeAttrs: true,
   scopeAll: false,
   scopeVersion: false,

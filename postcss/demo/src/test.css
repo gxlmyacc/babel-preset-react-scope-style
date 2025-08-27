@@ -1,3 +1,7 @@
 .cc {
   color: red;
 }
+
+#test:scope .test {
+  color: blue;
+}

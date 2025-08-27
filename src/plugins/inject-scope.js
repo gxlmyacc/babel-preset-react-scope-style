@@ -6,7 +6,8 @@ const {
 } = require('../utils');
 
 function createScopePrefix(scopeNamespace) {
-  return `v-${scopeNamespace ? `${scopeNamespace}-` : ''}`;
+  const { scopePrefix = 'v-' } = options;
+  return `${scopePrefix}${scopeNamespace ? `${scopeNamespace}-` : ''}`;
 }
 
 const scopeIds = {};
