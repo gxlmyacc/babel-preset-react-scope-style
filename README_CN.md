@@ -1171,6 +1171,8 @@ className={classNames('btn', variant && `btn-${variant}`) + ' v-abc123'}
 ### Q: 我应该在实际文件名中包含?scoped或?global吗？
 **A:** 不应该！`?scoped`和`?global`是loader的查询参数，不是文件名的一部分。使用标准文件名如`Button.scss`，并在导入语句中添加参数：`import './Button.scss?scoped'`。
 
+**重要说明：** 默认情况下，仅存在`?scoped`后缀的文件中的jsx的className才会生成作用域id。即使某个文件中的jsx不需要配置样式，但如果你希望也为它们生成作用域id（或者让通过`?global`引用的全局作用域样式生效），你可以添加个空白的样式文件然后通过`?scoped`后缀进行引用。
+
 ### Q: 我可以在没有webpack的情况下使用此插件吗？
 **A:** 可以！虽然此插件设计用于webpack，但您可以使用 [build-react-esm-project](https://github.com/gxlmyacc/build-react-esm-project) 构建工具用于非webpack环境。它通过基于gulp的构建提供作用域样式支持。
 

@@ -1188,6 +1188,8 @@ Both create scoped styles, but `?global` allows styles to be shared between comp
 ### Q: Should I include ?scoped or ?global in my actual file names?
 **A:** No! The `?scoped` and `?global` are query parameters for the loader, not part of the filename. Use standard file names like `Button.scss` and add the parameters in your import statements: `import './Button.scss?scoped'`.
 
+**Important Note:** By default, only JSX elements in files that import styles with the `?scoped` suffix will generate scope IDs. Even if JSX elements in a file don't need styling, if you want to generate scope IDs for them (or make global scope styles referenced via `?global` take effect), you can add an empty style file and reference it with the `?scoped` suffix.
+
 ### Q: Can I use this plugin without webpack?
 **A:** Yes! While this plugin is designed to work with webpack, you can use the [build-react-esm-project](https://github.com/gxlmyacc/build-react-esm-project) build tool for non-webpack environments. It provides scope style support through gulp-based builds.
 
