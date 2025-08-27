@@ -608,7 +608,6 @@ classAttrs: ['className']  // Default: only className gets scoped
 **⚠️ Important:** 
 - `className` gets universal injection (all elements get it)
 - Other attributes get conditional injection (only if they exist)
-- Non-`className` attributes have their entire values replaced with scope ID
 ```
 
 ### Common Configuration Examples

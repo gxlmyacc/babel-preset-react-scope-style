@@ -605,7 +605,6 @@ classAttrs: ['className']  // 默认：只有className被作用域化
 **⚠️ 重要：** 
 - `className`获得全局注入（所有元素都获得）
 - 其他属性获得条件注入（仅当它们存在时）
-- 非`className`属性的整个值被作用域ID替换
 ```
 
 ### 常用配置示例
