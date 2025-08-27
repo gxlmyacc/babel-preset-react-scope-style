@@ -12,15 +12,11 @@ A comprehensive solution for scoping styles in React components, providing Babel
 - **Babel Plugin**: Automatically injects scope IDs into JSX elements and transforms className expressions
 - **PostCSS Plugin**: Processes CSS files with scope isolation and supports global/local scoping
 - **Webpack Loader**: Integrates with webpack build process for seamless style scoping
-- **Non-Webpack Support**: Compatible with build-react-esm-project for non-webpack environments
 - **Flexible Configuration**: Customizable scope prefixes, attributes, and scoping strategies
 - **React Component Support**: Optimized for React components with automatic className handling
 - **CSS-in-JS Support**: Works with classnames, clsx, and other utility libraries
 - **Deep Selector Support**: Handles `>>>` and `:scope` selectors for component styling
 - **Global Style Support**: Allows global styles while maintaining component isolation
-- **Multi-Build Environment**: Supports both webpack and non-webpack build tools
-
-
 
 ## Installation
 
@@ -49,7 +45,6 @@ Add the preset to your `.babelrc` or `babel.config.js`:
 Add the loader to your webpack configuration (place 'babel-preset-react-scope-style/loader' after 'css-loader' and before other loaders):
 
 > **Note:** If you want to use this plugin in a non-webpack environment, you can refer to the [build-react-esm-project](https://github.com/gxlmyacc/build-react-esm-project) build tool, which provides a comprehensive build solution for React projects with scope style support.
-
 
 ```javascript
 module.exports = {
@@ -94,7 +89,6 @@ module.exports = {
 ### Import Styles with Scoping
 
 ```javascript
-import React from 'react';
 import './Button.scss?scoped';       // Component-specific styles
 import './global.scss?global';       // Shared styles across components
 ```
@@ -351,7 +345,7 @@ Use `>>>` for deep selectors:
 - `?scoped`: Isolates styles to specific components
 - `?global`: Creates shared styles that work across components but still maintain project-level isolation
 
-## Configuration Options
+## Configuration
 
 ### Babel Plugin Options
 
@@ -374,11 +368,11 @@ Use `>>>` for deep selectors:
 }
 ```
 
-### Understanding scopeAll
+#### Understanding scopeAll
 
 The `scopeAll` option controls whether scope IDs are generated for ALL JSX elements in the project, regardless of whether the file imports any style files with `?scoped` suffix.
 
-#### Default Behavior: `false`
+##### Default Behavior: `false`
 ```javascript
 scopeAll: false  // Default: only JSX in files with scoped style imports get scope IDs
 ```
@@ -393,7 +387,7 @@ scopeAll: false  // Default: only JSX in files with scoped style imports get sco
 - **File-independent**: Scope IDs are generated regardless of style file imports
 - **Consistent**: Every JSX element has a scope ID for consistent styling
 
-#### Example Scenarios
+##### Example Scenarios
 
 **With `scopeAll: false` (default):**
 ```jsx
@@ -425,7 +419,7 @@ function ComponentB() {
 }
 ```
 
-#### Use Cases
+##### Use Cases
 
 **When to use `scopeAll: false` (default):**
 - **Performance-focused**: Only scope JSX that actually needs styling
@@ -438,11 +432,11 @@ function ComponentB() {
 - **Debugging**: Easier to identify components in browser dev tools
 - **Team consistency**: Ensure all developers follow the same pattern
 
-### Understanding classAttrs
+#### Understanding classAttrs
 
 The `classAttrs` option controls which JSX attributes will receive automatic scope ID injection. This is crucial for understanding how the plugin works with different attribute types.
 
-#### Default Behavior: `['className']`
+##### Default Behavior: `['className']`
 ```javascript
 classAttrs: ['className']  // Default: only className gets scoped
 ```
@@ -463,7 +457,7 @@ classAttrs: ['className']  // Default: only className gets scoped
 <div className={`button ${isActive ? 'active' : ''} v-abc123`}>Toggle</div>
 ```
 
-#### Other Attributes vs className
+##### Other Attributes vs className
 
 **`className` (Special behavior):**
 - ✅ **Universal injection**: Scope ID is injected into ALL JSX elements
@@ -477,7 +471,7 @@ classAttrs: ['className']  // Default: only className gets scoped
 - ✅ **Smart merging**: Existing attribute values are intelligently merged with scope ID
 - ✅ **Expression support**: Works with static strings, template literals, and expressions
 
-#### Custom classAttrs Configuration
+##### Custom classAttrs Configuration
 
 **Add multiple attributes:**
 ```javascript
@@ -613,7 +607,6 @@ classAttrs: ['className']  // Default: only className gets scoped
 **⚠️ Important:** 
 - `className` gets universal injection (all elements get it)
 - Other attributes get conditional injection (only if they exist)
-```
 
 ### Common Configuration Examples
 
@@ -702,15 +695,11 @@ classAttrs: ['className']  // Default: only className gets scoped
 }
 ```
 
-### PostCSS Plugin Configuration
+### PostCSS Plugin
 
 **⚠️ Important:** This plugin is for internal loader use only. Users do not need to configure it. PostCSS plugin parameters (`scoped`, `global`, `id`, etc.) are used internally by the loader, and the plugin will automatically receive the correct parameters based on your import statements.
 
 **Users do not need to perform any PostCSS configuration. All configuration is automatically handled by the webpack loader.**
-
-### PostCSS Plugin Options (Internal Use Only)
-
-**⚠️ Important:** These options are used internally by the loader and should NOT be configured by users.
 
 ```javascript
 // This is for reference only - DO NOT configure manually
@@ -724,62 +713,68 @@ classAttrs: ['className']  // Default: only className gets scoped
 
 The PostCSS plugin automatically receives these parameters from the loader based on your import statements (`?scoped`, `?global`).
 
-## How It Works
+## Advanced Features
 
-1. **Babel Plugin**: 
-   - Detects style imports with query parameters (`?scoped`, `?global`)
-   - Injects scope IDs into JSX elements' className attributes
-   - Transforms className expressions for proper scoping
-
-2. **PostCSS Plugin**:
-   - Processes CSS selectors with scope isolation
-   - Handles `:scope`, `>>>`, and `:global` selectors
-   - Generates unique scope IDs for components
-   - Applies different scoping strategies based on import types
-
-3. **Webpack Loader**:
-   - Integrates with webpack build process
-   - Applies PostCSS transformations
-   - Maintains source map support
-
-### Scope ID Generation
-
-The plugin generates scope IDs using a hash of the importing file's path and project name:
+### Custom Scope Function
 
 ```javascript
-// For ?scoped imports
-scopeId = scopePrefix + hash(importingFilePath + projectName)
-// Default: scopePrefix = 'v-', generates like: v-abc123
-
-// For ?global imports  
-scopeId = scopePrefix + hash(importingFilePath + projectName)
-// Default: scopePrefix = 'v-', generates like: v-abc123
+{
+  scopeFn: (filePath, query, context) => {
+    // Custom logic for file transformation
+    return filePath + query;
+  }
+}
 ```
 
-**Important Note:** Scope IDs are generated based on the importing file's path, not the imported file's path. This means:
-- Component A importing `./shared/styles.scss?scoped` gets a scope ID based on Component A's path
-- Component B importing `./shared/styles.scss?scoped` gets a scope ID based on Component B's path
-- Result: The same shared file generates different scoped versions for each component
+**Real-world Application Example - Converting SCSS to CSS:**
+```javascript
+{
+  scopeFn: (filePath, query, context) => {
+    // Convert .scss files to .css during build process
+    if (filePath.endsWith('.scss')) {
+      return filePath.replace('.scss', '.css') + query;
+    }
+    return filePath + query;
+  }
+}
+```
 
-### CSS Transformation Strategy
+### Multiple Scope Configuration (Internal Use Only)
 
-**Component Scope (`?scoped`):**
-- Adds `.{scopePrefix}xxx` class selectors to CSS rules (default: `.v-xxx`)
-- Creates tight component isolation
-- Example: `.button` → `.button.v-abc123` (default prefix)
+**⚠️ Important:** This is for reference only. The loader automatically handles multiple scopes based on your import statements.
 
-**Global Scope (`?global`):**
-- Adds `[class*={scopePrefix}]` attribute selectors to CSS rules (default: `[class*=v-]`)
-- Allows styles to be shared across components
-- Example: `.button` → `.button[class*=v-]` (default prefix)
-- Maintains project-level isolation while enabling component sharing
+```javascript
+// This is how the loader internally handles multiple scopes
+// DO NOT manually configure in PostCSS config
+[
+  {
+    scoped: true,
+    global: false,
+    id: 'v-ewp-'
+  },
+  {
+    scoped: true,
+    global: false,
+    id: 'v-component-123'
+  }
+]
+```
+
+**Internal Processing:**
+1. **Input CSS file** is processed multiple times
+2. **First scope** creates the base scoped version
+3. **Additional scopes** generate additional copies with different IDs
+4. **Final output** contains all scoped versions in one file
+
+**Usage Example:**
+- **Global scope** (`v-ewp-`): For shared component libraries
+- **Component scope** (`v-component-123`): For individual component styles
+- **Result**: One CSS file containing styles that work in both global and component contexts
+
+**How It Works:**
+- The loader automatically detects different import patterns (`?scoped`, `?global`)
+- Internally creates appropriate scope configurations
 - Users only need to use `?scoped` or `?global` in their import statements
-
-**Multiple Scope Processing:**
-When the PostCSS plugin receives an array of scope configurations, it processes the input CSS file multiple times:
-1. **First scope**: Generates the first scoped version
-2. **Additional scopes**: Creates additional copies with different scope IDs
-3. **Result**: The output CSS file contains multiple scoped versions of the same styles
 
 **Example Output:**
 ```css
@@ -790,46 +785,6 @@ When the PostCSS plugin receives an array of scope configurations, it processes 
 .button.v-ewp- { color: red; }        /* First scope */
 .button.v-component-123 { color: red; } /* Second scope */
 .button.v-component-456 { color: red; } /* Third scope */
-```
-
-### Multiple Scope Configurations
-
-```javascript
-// PostCSS configuration with multiple scopes
-module.exports = {
-  plugins: [
-    require('babel-preset-react-scope-style/postcss')([
-      {
-        scoped: true,
-        global: true,
-        id: 'v-ewp-'
-      },
-      {
-        scoped: true,
-        global: false,
-        id: 'v-component-123'
-      }
-    ])
-  ]
-};
-```
-
-### Webpack Loader with Source Maps
-
-```javascript
-{
-  test: /\.css$/,
-  use: [
-    'style-loader',
-    'css-loader',
-    {
-      loader: 'babel-preset-react-scope-style/loader',
-      options: {
-        sourceMap: true,
-      }
-    }
-  ]
-}
 ```
 
 ## How It Works
@@ -884,9 +839,9 @@ scopeId = scopePrefix + hash(importingFilePath + projectName)
 
 ## Examples
 
-### CSS-in-JS Examples
+### Using classnames
 
-**Input JSX with classnames:**
+**Input JSX:**
 ```jsx
 import classNames from 'classnames';
 
@@ -924,7 +879,9 @@ function Button({ isActive, variant, disabled }) {
 }
 ```
 
-**Input JSX with clsx:**
+### Using clsx
+
+**Input JSX:**
 ```jsx
 import clsx from 'clsx';
 
@@ -1006,39 +963,17 @@ function Component() {
 }
 ```
 
-### SCSS to CSS Transformation
-
-```scss
-/* Input SCSS */
-.header {
-  color: blue;
-  
-  &__title {
-    font-size: 24px;
-    font-weight: bold;
-  }
-  
-  &__subtitle {
-    color: #666;
-    font-size: 16px;
-  }
-}
-```
+### CSS Transformation
 
 ```css
-/* Output CSS */
-.header.v-abc123 {
+/* Input */
+.header {
   color: blue;
 }
 
-.header.v-abc123__title {
-  font-size: 24px;
-  font-weight: bold;
-}
-
-.header.v-abc123__subtitle {
-  color: #666;
-  font-size: 16px;
+/* Output */
+.header.v-abc123 {
+  color: blue;
 }
 ```
 
@@ -1068,6 +1003,10 @@ className={classNames('btn', variant && `btn-${variant}`) + ' v-abc123'}
 - `?global`: Creates global scoping with `[class*=v-]` attribute selectors for shared styles across components
 
 Both create scoped styles, but `?global` allows styles to be shared between components while maintaining project-level isolation.
+
+**Actual Effect Example:**
+- `?scoped`: `.button` → `.button.v-abc123`
+- `?global`: `.button` → `.button[class*=v-]`
 
 ### Q: How do I handle third-party component styles?
 **A:** There are two main approaches for styling third-party components:
@@ -1183,7 +1122,7 @@ shared/
 - **Configuration example**: `classAttrs: ['className', 'overlayClassName', 'wrapClassName', 'dropdownClassName']`
 - **Benefit**: Custom styles applied to third-party components will be properly scoped
 
-### 3. CSS Selectors
+### 4. CSS Selectors
 - Prefer `:scope` over `>>>` when possible
 - Use `:global` sparingly for truly global styles
 - Leverage CSS custom properties for theming
@@ -1198,99 +1137,10 @@ shared/
 - **Use `:scope` to explicitly target nested elements**
 - **Without `:scope`, child element selectors won't match**
 
-**Scope ID Generation Rules in Style Files:**
-
-1. **Default Behavior**: Scope IDs are automatically added to the last selector in each CSS rule
-2. **Custom Position**: Use `:scope` pseudo-class or `>>>` to control where the scope ID is placed
-3. **Global Styles**: Wrap styles in `:global` pseudo-class to prevent scoping
-
-**Examples:**
-```scss
-/* Default: scope ID added to last selector */
-.button { color: red; }
-/* Output: .button.v-abc123 { color: red; } */
-
-/* Custom position with :scope */
-.container :scope .button { color: blue; }
-/* Output: .container.v-abc123 .button { color: blue; } */
-
-/* Global styles (no scoping) */
-:global .reset { margin: 0; }
-/* Output: .reset { margin: 0; } (no scope ID added) */
-```
-
-**Selector Examples:**
-```scss
-/* Default behavior - scope ID added to last selector */
-.button { color: red; }
-/* Output: .button.v-abc123 { color: red; } */
-
-/* :scope - Component-level scoping (REQUIRED for nested elements) */
-:scope .button { color: red; }
-/* Output: .v-abc123 .button { color: red; } */
-
-/* :scope with custom positioning - two different approaches */
-.container:scope .button { color: blue; }
-/* Output: .container.v-abc123 .button { color: blue; } */
-
-.container :scope .button { color: blue; }
-/* Output: .container .v-abc123 .button { color: blue; } */
-
-/* :global - Prevent scoping */
-:global .reset { margin: 0; }
-/* Output: .reset { margin: 0; } (no scope added) */
-
-
-
-/* >>> - Deep selector (use sparingly) */
-.container >>> .deep { color: blue; }
-/* Output: .container.v-abc123 .deep { color: blue; } */
-
-/* WRONG - This won't work without :scope */
-.custom-modal .ant-modal-content { padding: 24px; }
-/* Output: .custom-modal.v-abc123 .ant-modal-content { padding: 24px; } */
-/* But the selector won't match because .ant-modal-content is not scoped! */
-
-/* CORRECT - Use :scope for nested elements */
-.custom-modal {
-  :scope {
-    .ant-modal-content { padding: 24px; }
-  }
-}
-/* Output: .custom-modal.v-abc123 .ant-modal-content { padding: 24px; } */
-/* Now it works because :scope ensures proper scoping */
-```
-
-### 4. Performance Considerations
+### 5. Performance Considerations
 - Scope only the styles you need
 - Avoid excessive use of `:global` selectors
 - Use meaningful class names for better debugging
-
-### After Transformation
-
-```javascript
-import './styles.scss?scope-style&scoped=true&id=v-abc123';
-
-function Component() {
-  return <div className="v-abc123 header">Hello</div>;
-}
-```
-
-### CSS Transformation
-
-```css
-/* Input */
-.header {
-  color: blue;
-}
-
-/* Output */
-.header.v-abc123 {
-  color: blue;
-}
-```
-
-
 
 ## Development
 

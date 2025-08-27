@@ -372,11 +372,11 @@ $border-radius: 4px;
 }
 ```
 
-### 理解scopeAll
+#### 理解scopeAll
 
 `scopeAll`选项控制是否为项目中的所有JSX元素生成作用域ID，无论文件是否导入了带有`?scoped`后缀的样式文件。
 
-#### 默认行为：`false`
+##### 默认行为：`false`
 ```javascript
 scopeAll: false  // 默认：只有导入作用域样式的文件中的JSX才获得作用域ID
 ```
@@ -391,7 +391,7 @@ scopeAll: false  // 默认：只有导入作用域样式的文件中的JSX才获
 - **文件无关**：无论是否导入样式文件，都会生成作用域ID
 - **一致性**：每个JSX元素都有作用域ID，确保样式一致性
 
-#### 示例场景
+##### 示例场景
 
 **使用`scopeAll: false`（默认）：**
 ```jsx
@@ -423,7 +423,7 @@ function ComponentB() {
 }
 ```
 
-#### 使用场景
+##### 使用场景
 
 **何时使用`scopeAll: false`（默认）：**
 - **注重性能**：只对实际需要样式的JSX进行作用域化
@@ -436,11 +436,11 @@ function ComponentB() {
 - **调试友好**：在浏览器开发工具中更容易识别组件
 - **团队一致性**：确保所有开发者遵循相同的模式
 
-### 理解classAttrs
+#### 理解classAttrs
 
 `classAttrs`选项控制哪些JSX属性将接收自动作用域ID注入。这对于理解插件如何与不同属性类型配合工作至关重要。
 
-#### 默认行为：`['className']`
+##### 默认行为：`['className']`
 ```javascript
 classAttrs: ['className']  // 默认：只有className被作用域化
 ```
@@ -461,7 +461,7 @@ classAttrs: ['className']  // 默认：只有className被作用域化
 <div className={`button ${isActive ? 'active' : ''} v-abc123`}>切换</div>
 ```
 
-#### 其他属性与className的区别
+##### 其他属性与className的区别
 
 **`className`（特殊行为）：**
 - ✅ **全局注入**：作用域ID被注入到所有JSX元素中
@@ -475,7 +475,7 @@ classAttrs: ['className']  // 默认：只有className被作用域化
 - ✅ **智能合并**：现有的属性值与作用域ID智能合并
 - ✅ **表达式支持**：适用于静态字符串、模板字面量和表达式
 
-#### 自定义classAttrs配置
+##### 自定义classAttrs配置
 
 **添加多个属性：**
 ```javascript
@@ -706,10 +706,6 @@ classAttrs: ['className']  // 默认：只有className被作用域化
 
 **用户无需进行任何PostCSS配置，所有配置都由webpack loader自动处理。**
 
-### PostCSS插件选项（仅内部使用）
-
-**⚠️ 重要：** 这些选项被loader内部使用，用户不应该配置。
-
 ```javascript
 // 仅供参考 - 请勿手动配置
 {
@@ -723,7 +719,6 @@ classAttrs: ['className']  // 默认：只有className被作用域化
 PostCSS插件会根据您的导入语句（`?scoped`、`?global`）自动从loader接收这些参数。
 
 ## 高级功能
-
 
 
 ### 自定义作用域函数
@@ -787,11 +782,6 @@ PostCSS插件会根据您的导入语句（`?scoped`、`?global`）自动从load
 - 内部创建适当的作用域配置
 - 用户只需要在导入语句中使用`?scoped`或`?global`
 
-**多作用域处理：**
-当PostCSS插件接收到作用域配置数组时，它会多次处理输入的CSS文件：
-1. **第一个作用域**：生成第一个作用域版本
-2. **额外作用域**：创建具有不同作用域ID的额外副本
-3. **结果**：输出的CSS文件包含相同样式的多个作用域版本
 
 **示例输出：**
 ```css
@@ -824,24 +814,6 @@ module.exports = {
     ])
   ]
 };
-```
-
-### 带源码映射的Webpack Loader
-
-```javascript
-{
-  test: /\.css$/,
-  use: [
-    'style-loader',
-    'css-loader',
-    {
-      loader: 'babel-preset-react-scope-style/loader',
-      options: {
-        sourceMap: true,
-      }
-    }
-  ]
-}
 ```
 
 ## 工作原理
@@ -895,8 +867,6 @@ scopeId = scopePrefix + hash(importingFilePath + projectName)
 - 在启用组件共享的同时保持项目级隔离
 
 ## 示例
-
-### CSS-in-JS示例
 
 **使用classnames的输入JSX:**
 ```jsx
@@ -1193,36 +1163,10 @@ shared/
 - **没有`:scope`，子元素选择器将无法匹配**
 
 
-
 ### 4. 性能考虑
 - 仅对需要的样式进行作用域化
 - 避免过度使用`:global`选择器
 - 使用有意义的类名以便更好地调试
-
-### 转换后
-
-```javascript
-import './styles.scss?scope-style&scoped=true&id=v-abc123';
-
-function Component() {
-  return <div className="v-abc123 header">Hello</div>;
-}
-```
-
-### CSS转换
-
-```css
-/* 输入 */
-.header {
-  color: blue;
-}
-
-/* 输出 */
-.header.v-abc123 {
-  color: blue;
-}
-```
-
 
 
 ## 开发
