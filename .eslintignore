@@ -5,3 +5,5 @@ dist/
 temp/
 demo/
 demo*/
+types/
+**/*.d.ts

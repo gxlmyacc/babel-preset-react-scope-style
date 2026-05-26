@@ -12,6 +12,8 @@
 - **Babel插件**: 自动向JSX元素注入作用域ID，并转换className表达式
 - **PostCSS插件**: 处理CSS文件的作用域隔离，支持全局/局部作用域
 - **Webpack Loader**: 与webpack构建流程集成，实现无缝的样式作用域化
+- **Vite 插件**: 开箱即用的 Vite 集成，处理 JSX 与作用域 CSS
+- **Rspack 支持**: 兼容 Webpack 的 loader 与配置辅助函数
 - **灵活配置**: 可自定义作用域前缀、属性和作用域策略
 - **React组件支持**: 针对React组件优化，自动处理className属性
 - **CSS-in-JS支持**: 兼容classnames、clsx等工具库
@@ -24,6 +26,8 @@
 
 ```bash
 npm install babel-preset-react-scope-style
+# peer：@babel/core（必需）
+# 可选：classnames 或 clsx（动态 className）、webpack（仅 loader 需要）
 # 或者
 yarn add babel-preset-react-scope-style
 ```
@@ -44,9 +48,9 @@ yarn add babel-preset-react-scope-style
 
 ### 2. Webpack配置
 
-在webpack配置中添加loader（将'babel-preset-react-scope-style/loader'放置在'css-loader'之后，其他loader之前）：
+在 webpack 配置中添加 loader（将 `babel-preset-react-scope-style/loader` 放在 `css-loader` 之后、 `sass-loader` 等预处理器之前）：
 
-> **注意：** 如果您想在非webpack环境中使用此插件，可以参考 [build-react-esm-project](https://github.com/gxlmyacc/build-react-esm-project) 构建工具，它为React项目提供了带作用域样式支持的综合构建解决方案。
+> **注意：** 若使用 **Vite**、**Rspack** 或 **纯 PostCSS**，请参阅下文 [Vite / Rspack / PostCSS](#vite--rspack--postcss非-webpack-场景)。
 
 ```javascript
 module.exports = {
@@ -85,6 +89,140 @@ module.exports = {
   }
 };
 ```
+
+## Vite / Rspack / PostCSS（非 Webpack 场景）
+
+各工具链使用相同的导入语法（`?scoped`、`?global`）和 Babel 配置项，区别仅在于 **CSS 处理链路**。
+
+| 工具 | Babel / JSX | CSS 作用域化 |
+|------|-------------|--------------|
+| **Webpack** | `babel.config.js` 中的 preset | `css-loader` 之后的 `.../loader` |
+| **Vite** | `babel-preset-react-scope-style/vite` 插件 | 由 Vite 插件内部调用 PostCSS |
+| **Rspack** | `babel.config.js` 中的 preset | 与 Webpack 相同的 loader |
+| **自定义** | preset 或 `@babel/core` API | `babel-preset-react-scope-style/postcss` 并手动传参 |
+
+### 子路径导出
+
+| 导入路径 | 用途 |
+|----------|------|
+| `babel-preset-react-scope-style` | Babel preset（JSX + import 改写） |
+| `babel-preset-react-scope-style/loader` | Webpack / Rspack loader |
+| `babel-preset-react-scope-style/postcss` | PostCSS 8 插件 |
+| `babel-preset-react-scope-style/vite` | Vite 插件 |
+| `babel-preset-react-scope-style/rspack` | Rspack 配置辅助 |
+
+### Vite
+
+需安装 peer：`@babel/core`；若使用动态 `className` 表达式，还需安装 `classnames` 或 `clsx` 之一。
+
+```javascript
+// vite.config.js
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import reactScopeStyle from 'babel-preset-react-scope-style/vite';
+
+export default defineConfig({
+  plugins: [
+    // 建议放在 @vitejs/plugin-react 之前，先完成 JSX 作用域转换
+    reactScopeStyle({
+      scopePrefix: 'v-',
+      classNameLibrary: 'auto', // 优先 classnames，其次 clsx；均未 import 时默认注入 classnames
+    }),
+    react(),
+  ],
+});
+```
+
+**工作流程**
+
+1. Vite 插件对 `.js` / `.jsx` / `.ts` / `.tsx` 执行与本 preset 相同的 Babel 转换。
+2. `import './Button.scss?scoped'` 会被改写为带 `scope-style&scoped=true&id=v-xxx` 的 URL。
+3. 当 Vite 处理 URL 中包含上述 query 的 CSS/SCSS/Less/Sass 时，插件执行 PostCSS 作用域转换。
+
+**组件中的写法**（与 Webpack 一致）：
+
+```javascript
+import './Button.scss?scoped';
+import './theme.scss?global';
+```
+
+SCSS/Less 仍按 Vite 常规方式配置预处理器（`css.preprocessorOptions`），**无需**为作用域单独配置 PostCSS。
+
+### Rspack
+
+Rspack 支持 Webpack 风格 loader，**顺序与 Webpack 相同**：`style-loader` → `css-loader` → **`babel-preset-react-scope-style/loader`** → `sass-loader`（如有）。
+
+```javascript
+// rspack.config.js
+const scopeLoader = require.resolve('babel-preset-react-scope-style/loader');
+
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.s[ac]ss$/,
+        use: [
+          'style-loader',
+          'css-loader',
+          { loader: scopeLoader },
+          'sass-loader',
+        ],
+      },
+      {
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader', { loader: scopeLoader }],
+      },
+    ],
+  },
+};
+```
+
+可选辅助函数（追加 loader 规则，需与现有 `module.rules` 合并）：
+
+```javascript
+const { withReactScopeStyle } = require('babel-preset-react-scope-style/rspack');
+
+module.exports = withReactScopeStyle({
+  // 你的 rspack 配置 — 仍需在 babel.config.js 中配置 preset
+});
+```
+
+仅在使用 loader 时需安装可选 peer `webpack`（Webpack 或 Rspack 场景）。
+
+### 纯 PostCSS（独立使用）
+
+在不使用 Webpack loader 或 Vite 插件、自行处理 CSS 时使用（自定义脚本、Gulp、其他打包工具等）。
+
+```javascript
+// postcss.config.js
+module.exports = {
+  plugins: [
+    require('babel-preset-react-scope-style/postcss')({
+      scoped: true,
+      global: false,
+      id: 'v-your-scope-id', // 须与 JSX 注入的 scope class 一致
+    }),
+  ],
+};
+```
+
+**说明**
+
+- **Webpack / Vite**：Babel 改写 import 并注入 scope id；loader/插件会把 `scoped`、`global`、`id` 传给 PostCSS，**不要**在 `postcss.config.js` 里再配本插件。
+- **独立 PostCSS**：须自行设置 `scoped`、`global`、`id`，并与组件上的 scope class 保持一致。
+
+插件参数（参考）：
+
+```javascript
+{
+  scoped: true,       // 启用作用域
+  global: false,      // true 时使用 [class*=id] 属性选择器
+  id: 'v-abc123',     // 作用域 id（与 JSX 注入的 class 相同）
+  globalSelector: '', // :global 的替换内容
+}
+```
+
+更多示例见 [docs/integrations.md](docs/integrations.md)。
 
 ## 使用方法
 
@@ -252,15 +390,26 @@ $border-radius: 4px;
 .v-abc123 .header { font-size: 18px; }       /* 作用域ID作为根元素 */
 ```
 
-#### 3. 使用:global的全局样式
-将样式包装在`:global`中以防止作用域化：
+#### 3. 使用 :global（嵌套分界，非 CSS Modules 语法）
+
+本库**不支持** CSS Modules 的 `:global(.class)`，仅支持：
+
+| 写法 | 含义 |
+|------|------|
+| 规则开头的 `:global .reset` | 整条规则不作用域化，去掉 `:global` |
+| 中间的 `.container :global .ant-btn`（SCSS/Less 嵌套展开） | 作用域加在 **`:global` 之前**；之后片段不作用域化，并去掉 `:global` |
+| `:scope` | 显式指定作用域位置（优先于中间的 `:global`） |
 
 ```scss
-/* 输入SCSS */
+/* 行首 :global — 本条规则不加 scope */
 :global .reset { margin: 0; padding: 0; }
+/* 输出: .reset { margin: 0; padding: 0; } */
 
-/* 生成的CSS */
-.reset { margin: 0; padding: 0; }  /* 无作用域ID */
+/* 嵌套产生的中间 :global（如覆盖第三方子节点） */
+.container {
+  :global .ant-btn { color: red; }
+}
+/* 输出: .container.v-abc123 .ant-btn { color: red; } */
 ```
 
 #### 4. 使用>>>的深度选择器
@@ -320,7 +469,7 @@ $border-radius: 4px;
 
 1. **`:scope` 选择器**：转换为 `.v-abc123` 类选择器（`?scoped`）或 `[class*=v-]` 属性选择器（`?global`）
 2. **`>>>` 深度选择器**：父元素获得作用域ID，子元素保持原样
-3. **`:global` 选择器**：完全跳过作用域转换，保持原始选择器
+3. **行首 `:global`**：整条规则不作用域化；**中间 `:global`**（嵌套展开）：仅 `:global` 前的选择器加 scope，后面保持全局
 4. **常规选择器**：自动在末尾添加作用域ID
 5. **嵌套选择器**：每个嵌套层级都会获得作用域ID
 6. **SCSS变量**：在CSS输出中被实际值替换
@@ -702,9 +851,13 @@ classAttrs: ['className']  // 默认：只有className被作用域化
 
 ### PostCSS插件
 
-**⚠️ 重要：** 该插件仅供内部的loader使用，用户无需配置。PostCSS插件参数（`scoped`、`global`、`id`等）被loader内部使用，插件会根据您的导入语句自动接收正确的参数。
+| 构建方式 | 是否需要配置 `postcss.config.js` |
+|----------|----------------------------------|
+| Webpack + loader | **否** — loader 根据 import query 传入 `scoped` / `global` / `id` |
+| Vite 插件 | **否** — Vite 插件内部调用 PostCSS |
+| 独立 / 自定义流水线 | **是** — 使用 `babel-preset-react-scope-style/postcss` 并手动传参 |
 
-**用户无需进行任何PostCSS配置，所有配置都由webpack loader自动处理。**
+通常 PostCSS 参数由 Babel 改写后的 `?scoped` / `?global` 导入自动推导。未使用 loader 或 Vite 插件时，请参阅 [纯 PostCSS](#纯-postcss独立使用)。
 
 ```javascript
 // 仅供参考 - 请勿手动配置
@@ -1072,8 +1225,8 @@ className={classNames('btn', variant && `btn-${variant}`) + ' v-abc123'}
 
 ### Q: CSS中:scope和:global有什么区别？
 **A:** 
-- **`:scope`**：表示当前组件的作用域，会被替换为组件的作用域ID
-- **`:global`**：防止特定选择器被作用域化，保持原样不变
+- **`:scope`**：控制 scope id 的插入位置（替换为 `.v-xxx` 或 `[class*=v-]`）
+- **`:global`**：不是 CSS Modules 的 `:global(...)`。**行首** `:global` 表示整条规则不作用域化；**中间** `:global`（嵌套展开）表示仅 **`:global` 之前** 的选择器加 scope，后面片段保持全局
 
 ### Q: scopeAttrs是如何工作的？
 **A:** 
@@ -1086,13 +1239,13 @@ className={classNames('btn', variant && `btn-${variant}`) + ' v-abc123'}
 **重要说明：** 默认情况下，仅存在`?scoped`后缀的文件中的jsx的className才会生成作用域id。即使某个文件中的jsx不需要配置样式，但如果你希望也为它们生成作用域id（或者让通过`?global`引用的全局作用域样式生效），你可以添加个空白的样式文件然后通过`?scoped`后缀进行引用。
 
 ### Q: 我可以在没有webpack的情况下使用此插件吗？
-**A:** 可以！虽然此插件设计用于webpack，但您可以使用 [build-react-esm-project](https://github.com/gxlmyacc/build-react-esm-project) 构建工具用于非webpack环境。它通过基于gulp的构建提供作用域样式支持。
+**A:** 可以。请使用 **[Vite 插件](#vite)**（`babel-preset-react-scope-style/vite`）、**[Rspack loader](#rspack)**（与 Webpack 相同），或 **[独立 PostCSS](#纯-postcss独立使用)**。也可使用 [build-react-esm-project](https://github.com/gxlmyacc/build-react-esm-project) 做基于 Gulp 的 React ESM 构建。
 
 ### Q: 插件如何处理多个作用域配置？
 **A:** 当提供多个作用域配置时，PostCSS插件会多次处理输入的CSS文件，生成一个包含所有作用域版本的单一输出文件。这允许相同的样式在不同的上下文中工作（全局、组件特定等），而不会产生冲突。
 
 ### Q: 我需要配置PostCSS插件吗？
-**A:** 是的，您需要在`postcss.config.js`中添加PostCSS插件，但不需要配置其参数。插件会根据您的导入语句从webpack loader自动接收正确的参数。
+**A:** **Webpack / Vite：** 无需手动配置 PostCSS，loader 或 Vite 插件会自动处理。**独立 PostCSS：** 需要在 `postcss.config.js` 中添加 `babel-preset-react-scope-style/postcss`，并自行设置 `scoped`、`global`、`id`（见 [纯 PostCSS](#纯-postcss独立使用)）。
 
 ### Q: className和classAttrs中其他属性有什么区别？
 **A:** `className`属性获得全局注入 - 它被添加到所有JSX元素中（即使那些没有className的元素），而其他属性（如`class`或`data-class`）只有在JSX元素上已经存在时才会获得作用域ID注入。这就是为什么`className`是全面样式的默认且推荐选择。

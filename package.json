@@ -1,29 +1,50 @@
 {
   "name": "babel-preset-react-scope-style",
-  "version": "0.1.0",
+  "version": "0.1.0-alpha.1",
   "description": "A babel plugin that scope style for style files in react component",
   "keywords": [
     "babel",
     "plugin",
     "scope-style",
-    "README_CN.md",
-    "README.md"
+    "react",
+    "postcss",
+    "vite",
+    "rspack"
   ],
   "sideEffects": false,
   "main": "esm/index.js",
   "module": "esm/index.js",
+  "typings": "types/index.d.ts",
   "engines": {
-    "node": "> 6.9.1"
+    "node": ">=18"
   },
   "files": [
     "src",
     "esm",
     "postcss",
-    "loader"
+    "loader",
+    "lib",
+    "vite",
+    "rspack",
+    "types"
   ],
+  "exports": {
+    ".": {
+      "types": "./types/index.d.ts",
+      "default": "./esm/index.js"
+    },
+    "./loader": "./loader/index.js",
+    "./postcss": "./postcss/postcss8.js",
+    "./vite": "./vite/index.js",
+    "./rspack": "./rspack/index.js",
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "build": "babel src -d esm",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "test": "node scripts/run-tests.js",
+    "test:coverage": "c8 node scripts/run-tests.js",
+    "test:coverage:report": "c8 report --reporter=text"
   },
   "repository": {
     "type": "git",
@@ -33,12 +54,29 @@
   "dependencies": {
     "@babel/helper-plugin-utils": "^7.10.4",
     "@babel/plugin-syntax-jsx": "^7.12.1",
-    "classnames": "^2.2.6",
     "hash-sum": "^2.0.0",
+    "loader-utils": "^2.0.4",
     "postcss": "^8",
-    "postcss-selector-parser": "^6.0.6"
+    "postcss-selector-parser": "^6.0.6",
+    "qs": "^6.11.0"
   },
-  "peerDependencies": {},
+  "peerDependencies": {
+    "@babel/core": "^7.0.0",
+    "classnames": "^2.2.6",
+    "clsx": ">=1.0.0",
+    "webpack": "^4.0.0 || ^5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "classnames": {
+      "optional": true
+    },
+    "clsx": {
+      "optional": true
+    },
+    "webpack": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@babel/cli": "^7.2.3",
     "@babel/core": "^7.5.4",
@@ -60,7 +98,10 @@
     "@babel/preset-env": "7.4.5",
     "@babel/preset-react": "^7.0.0",
     "babel-eslint": "^10.0.2",
+    "c8": "^11.0.0",
     "camelcase": "^5.3.1",
+    "classnames": "^2.2.6",
+    "clsx": "^2.1.0",
     "cross-env": "^5.2.0",
     "eslint": "^6.0.1",
     "eslint-config-airbnb-base": "^13.2.0",

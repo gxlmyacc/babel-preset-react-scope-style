@@ -1,7 +1,7 @@
 const hash = require('hash-sum');
 const options = require('../options');
 const {
-  ClassNames, createScopeQuery, getImportSpecifier, LibraryClassNames,
+  createScopeQuery, resolveClassNameLibrary,
   expr2str, isFunction, existClassAttrName,
 } = require('../utils');
 
@@ -21,7 +21,7 @@ function createScopeId(filename, scopeNamespace, scopeVersion) {
   return scopeId;
 }
 
-const excluedTags = ['template', 'slot'];
+const excludedTags = ['template', 'slot'];
 
 module.exports = function ({ types: t, template }) {
   const scope = Boolean(options.scope);
@@ -50,7 +50,7 @@ module.exports = function ({ types: t, template }) {
             filename,
             regx: options.scopeRegx,
             handled: [],
-            ClassNames: ''
+            classNameCallee: ''
           };
 
           path.traverse({
@@ -76,6 +76,7 @@ module.exports = function ({ types: t, template }) {
                 return;
               }
 
+              /* c8 ignore next 3 — scope 为 false 时不会进入带 scopeId 的分支 */
               if (!scope) {
                 return;
               }
@@ -97,7 +98,8 @@ module.exports = function ({ types: t, template }) {
           }, ctx);
 
           function traverseClassAttrs(path, classAttrName, tagName) {
-            const classAttr = path.node.openingElement.attributes.find(attr => {
+            const classAttr = path.node.openingElement.attributes.find((attr) => {
+              /* c8 ignore next — JSX 属性在合法 AST 中总有 name */
               if (!attr.name) return;
               return existClassAttrName(classAttrName, expr2str(attr.name), tagName);
             });
@@ -106,18 +108,18 @@ module.exports = function ({ types: t, template }) {
                 classAttr.value = t.stringLiteral(`${this.scopeId} ${classAttr.value.value}`);
               } else if (t.isJSXExpressionContainer(classAttr.value)) {
                 let expr = classAttr.value.expression;
-                let updator = v => classAttr.value.expression = v;
+                let updater = (v) => classAttr.value.expression = v;
                 if (t.isCallExpression(expr)) {
-                  if (!this.ClassNames) {
-                    let libraryVarSpecifier = getImportSpecifier(path, LibraryClassNames);
-                    this.ClassNames = libraryVarSpecifier ? expr2str(libraryVarSpecifier.imported || libraryVarSpecifier.local) : ClassNames;
+                  if (!this.classNameCallee) {
+                    const lib = resolveClassNameLibrary(path, options.classNameLibrary);
+                    this.classNameCallee = lib.calleeName;
                   }
-                  if (expr2str(expr.callee) === this.ClassNames) {
+                  if (expr2str(expr.callee) === this.classNameCallee) {
                     expr = classAttr.value.expression.arguments[0];
-                    updator = v => classAttr.value.expression.arguments[0] = v;
+                    updater = (v) => classAttr.value.expression.arguments[0] = v;
                   }
                 }
-                updator(template('[$SCOPEID$,$SOURCE$]')({
+                updater(template('[$SCOPEID$,$SOURCE$]')({
                   $SCOPEID$: t.stringLiteral(this.scopeId),
                   $SOURCE$: expr
                 }).expression);
@@ -133,8 +135,8 @@ module.exports = function ({ types: t, template }) {
             path.traverse({
               JSXElement(path) {
                 let tagName = expr2str(path.node.openingElement.name);
-                if (!tagName || excluedTags.includes(tagName)) return;
-                classAttrs.forEach(classAttrName => traverseClassAttrs.call(this, path, classAttrName, tagName));
+                if (!tagName || excludedTags.includes(tagName)) return;
+                classAttrs.forEach((classAttrName) => traverseClassAttrs.call(this, path, classAttrName, tagName));
               }
             }, ctx);
           }

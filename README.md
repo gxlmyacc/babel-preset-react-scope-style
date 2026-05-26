@@ -12,6 +12,8 @@ A comprehensive solution for scoping styles in React components, providing Babel
 - **Babel Plugin**: Automatically injects scope IDs into JSX elements and transforms className expressions
 - **PostCSS Plugin**: Processes CSS files with scope isolation and supports global/local scoping
 - **Webpack Loader**: Integrates with webpack build process for seamless style scoping
+- **Vite Plugin**: First-class Vite integration for JSX and scoped CSS
+- **Rspack Support**: Webpack-compatible loader and config helper
 - **Flexible Configuration**: Customizable scope prefixes, attributes, and scoping strategies
 - **React Component Support**: Optimized for React components with automatic className handling
 - **CSS-in-JS Support**: Works with classnames, clsx, and other utility libraries
@@ -22,6 +24,8 @@ A comprehensive solution for scoping styles in React components, providing Babel
 
 ```bash
 npm install babel-preset-react-scope-style
+# peers: @babel/core (required)
+# optional: classnames or clsx (dynamic className), webpack (loader only)
 # or
 yarn add babel-preset-react-scope-style
 ```
@@ -42,9 +46,9 @@ Add the preset to your `.babelrc` or `babel.config.js`:
 
 ### 2. Webpack Configuration
 
-Add the loader to your webpack configuration (place 'babel-preset-react-scope-style/loader' after 'css-loader' and before other loaders):
+Add the loader to your webpack configuration (place `babel-preset-react-scope-style/loader` after `css-loader` and before other preprocessors such as `sass-loader`):
 
-> **Note:** If you want to use this plugin in a non-webpack environment, you can refer to the [build-react-esm-project](https://github.com/gxlmyacc/build-react-esm-project) build tool, which provides a comprehensive build solution for React projects with scope style support.
+> **Note:** For **Vite**, **Rspack**, or **standalone PostCSS**, see [Vite / Rspack / PostCSS](#vite--rspack--postcss-without-webpack) below.
 
 ```javascript
 module.exports = {
@@ -83,6 +87,140 @@ module.exports = {
   }
 };
 ```
+
+## Vite / Rspack / PostCSS (without Webpack)
+
+The same import syntax (`?scoped`, `?global`) and Babel options apply across toolchains. Only the **CSS pipeline** differs.
+
+| Tool | Babel / JSX | CSS scoping |
+|------|-------------|-------------|
+| **Webpack** | preset in `babel.config.js` | `babel-preset-react-scope-style/loader` after `css-loader` |
+| **Vite** | `babel-preset-react-scope-style/vite` plugin | handled by the Vite plugin (PostCSS internally) |
+| **Rspack** | preset in `babel.config.js` | same loader as Webpack (Rspack-compatible) |
+| **Custom** | preset or `@babel/core` API | `babel-preset-react-scope-style/postcss` with explicit options |
+
+### Package entry points
+
+| Import path | Purpose |
+|-------------|---------|
+| `babel-preset-react-scope-style` | Babel preset (JSX + import rewriting) |
+| `babel-preset-react-scope-style/loader` | Webpack / Rspack loader |
+| `babel-preset-react-scope-style/postcss` | PostCSS 8 plugin |
+| `babel-preset-react-scope-style/vite` | Vite plugin |
+| `babel-preset-react-scope-style/rspack` | Rspack config helper |
+
+### Vite
+
+Install peers: `@babel/core`, and `classnames` or `clsx` if you use dynamic `className` expressions.
+
+```javascript
+// vite.config.js
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import reactScopeStyle from 'babel-preset-react-scope-style/vite';
+
+export default defineConfig({
+  plugins: [
+    // Run before @vitejs/plugin-react so JSX/TSX is scoped first
+    reactScopeStyle({
+      scopePrefix: 'v-',
+      classNameLibrary: 'auto', // prefer classnames, then clsx if imported; default inject classnames
+    }),
+    react(),
+  ],
+});
+```
+
+**How it works**
+
+1. The Vite plugin runs Babel with this preset on `.js` / `.jsx` / `.ts` / `.tsx` (same as Webpack).
+2. Style imports like `import './Button.scss?scoped'` are rewritten to include `scope-style&scoped=true&id=v-xxx`.
+3. When Vite processes CSS/SCSS/Less/Sass modules whose URL contains that query, the plugin runs the PostCSS scope transform.
+
+**Usage in components** (unchanged):
+
+```javascript
+import './Button.scss?scoped';
+import './theme.scss?global';
+```
+
+SCSS/Less still use Vite’s normal preprocessor settings (`css.preprocessorOptions`); no extra PostCSS config is required for scoping.
+
+### Rspack
+
+Rspack supports Webpack-style loaders. Use the **same loader order** as Webpack: `style-loader` → `css-loader` → **`babel-preset-react-scope-style/loader`** → `sass-loader` (if any).
+
+```javascript
+// rspack.config.js
+const scopeLoader = require.resolve('babel-preset-react-scope-style/loader');
+
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.s[ac]ss$/,
+        use: [
+          'style-loader',
+          'css-loader',
+          { loader: scopeLoader },
+          'sass-loader',
+        ],
+      },
+      {
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader', { loader: scopeLoader }],
+      },
+    ],
+  },
+};
+```
+
+Optional helper (appends a loader rule; merge with your existing `module.rules` as needed):
+
+```javascript
+const { withReactScopeStyle } = require('babel-preset-react-scope-style/rspack');
+
+module.exports = withReactScopeStyle({
+  // your rspack config — still add Babel preset in babel.config.js
+});
+```
+
+`webpack` is an optional peer dependency; install it only when using the loader (Webpack or Rspack).
+
+### Pure PostCSS (standalone)
+
+Use this when you process CSS yourself (custom scripts, Gulp, other bundlers) **without** the Webpack loader or Vite plugin.
+
+```javascript
+// postcss.config.js
+module.exports = {
+  plugins: [
+    require('babel-preset-react-scope-style/postcss')({
+      scoped: true,
+      global: false,
+      id: 'v-your-scope-id', // must match the scope class injected into JSX
+    }),
+  ],
+};
+```
+
+**Important**
+
+- With **Webpack / Vite**, the Babel preset rewrites imports and injects scope IDs; the loader/plugin passes `scoped`, `global`, and `id` to PostCSS **automatically** — you do **not** add this plugin to `postcss.config.js`.
+- With **standalone PostCSS**, you must set `scoped`, `global`, and `id` yourself and keep `id` in sync with the Babel-generated scope class on your components.
+
+Plugin options (reference):
+
+```javascript
+{
+  scoped: true,       // enable scoping
+  global: false,      // true → [class*=id] attribute selectors
+  id: 'v-abc123',     // scope id (same as injected JSX class)
+  globalSelector: '', // replacement for :global
+}
+```
+
+More examples: [docs/integrations.md](docs/integrations.md).
 
 ## Usage
 
@@ -248,15 +386,26 @@ Use the `:scope` pseudo-class to control the placement of scope IDs:
 .v-abc123 .header { font-size: 18px; }       /* Scope ID as root element */
 ```
 
-#### 3. Using :global for Global Styles
-Wrap styles in `:global` to prevent scoping:
+#### 3. Using :global (nesting boundary, not CSS Modules syntax)
+
+This library does **not** support CSS Modules-style `:global(.class)`. Only these forms are supported:
+
+| Form | Meaning |
+|------|---------|
+| `:global .reset` at rule start | Entire rule is unscoped; `:global` is stripped |
+| `.container :global .ant-btn` (middle, from SCSS/Less nesting) | Scope is added to the part **before** `:global`; the part after stays unscoped; `:global` is removed |
+| `:scope` | Explicit scope position (takes priority over middle `:global`) |
 
 ```scss
-/* Input SCSS */
+/* Leading :global — no scope on this rule */
 :global .reset { margin: 0; padding: 0; }
+/* Output: .reset { margin: 0; padding: 0; } */
 
-/* Generated CSS */
-.reset { margin: 0; padding: 0; }  /* No scope ID */
+/* Middle :global after nesting (e.g. styling third-party children) */
+.container {
+  :global .ant-btn { color: red; }
+}
+/* Output: .container.v-abc123 .ant-btn { color: red; } */
 ```
 
 #### 4. Using >>> for Deep Selectors
@@ -316,7 +465,7 @@ Use `>>>` for deep selectors:
 
 1. **`:scope` selector**: Transforms to `.v-abc123` class selector (`?scoped`) or `[class*=v-]` attribute selector (`?global`)
 2. **`>>>` deep selector**: Parent element gets scope ID, child elements remain unchanged
-3. **`:global` selector**: Completely skips scope transformation, keeps original selector
+3. **Leading `:global`**: Entire rule unscoped; **middle `:global`** (from nesting): scope on the selector before `:global`, suffix unchanged
 4. **Regular selectors**: Automatically add scope ID at the end
 5. **Nested selectors**: Each nested level gets scope ID
 6. **SCSS variables**: Replaced with actual values in CSS output
@@ -697,9 +846,13 @@ classAttrs: ['className']  // Default: only className gets scoped
 
 ### PostCSS Plugin
 
-**⚠️ Important:** This plugin is for internal loader use only. Users do not need to configure it. PostCSS plugin parameters (`scoped`, `global`, `id`, etc.) are used internally by the loader, and the plugin will automatically receive the correct parameters based on your import statements.
+| Build setup | Do you configure `postcss.config.js`? |
+|-------------|----------------------------------------|
+| Webpack + loader | **No** — loader passes `scoped` / `global` / `id` from import queries |
+| Vite plugin | **No** — Vite plugin runs PostCSS internally |
+| Standalone / custom pipeline | **Yes** — use `babel-preset-react-scope-style/postcss` and set options explicitly |
 
-**Users do not need to perform any PostCSS configuration. All configuration is automatically handled by the webpack loader.**
+PostCSS parameters (`scoped`, `global`, `id`, etc.) are normally derived from your `?scoped` / `?global` imports after Babel rewriting. See [Pure PostCSS](#pure-postcss-standalone) when you are not using the loader or Vite plugin.
 
 ```javascript
 // This is for reference only - DO NOT configure manually
@@ -1047,8 +1200,8 @@ Both create scoped styles, but `?global` allows styles to be shared between comp
 
 ### Q: What's the difference between :scope and :global in CSS?
 **A:** 
-- **`:scope`**: Represents the current component's scope, gets replaced with the component's scope ID
-- **`:global`**: Prevents scoping for specific selectors, keeps them as-is without scope transformation
+- **`:scope`**: Controls where the scope ID is inserted (replaces `:scope` with `.v-xxx` or `[class*=v-]`)
+- **`:global`**: Not CSS Modules `:global(...)`. Use **leading** `:global` to skip scoping for a whole rule, or **middle** `:global` (after SCSS/Less nesting) so only the selector **before** `:global` gets the scope class; the suffix stays global
 
 ### Q: How does scopeAttrs work?
 **A:** 
@@ -1061,13 +1214,13 @@ Both create scoped styles, but `?global` allows styles to be shared between comp
 **Important Note:** By default, only JSX elements in files that import styles with the `?scoped` suffix will generate scope IDs. Even if JSX elements in a file don't need styling, if you want to generate scope IDs for them (or make global scope styles referenced via `?global` take effect), you can add an empty style file and reference it with the `?scoped` suffix.
 
 ### Q: Can I use this plugin without webpack?
-**A:** Yes! While this plugin is designed to work with webpack, you can use the [build-react-esm-project](https://github.com/gxlmyacc/build-react-esm-project) build tool for non-webpack environments. It provides scope style support through gulp-based builds.
+**A:** Yes. Use the **[Vite plugin](#vite)** (`babel-preset-react-scope-style/vite`), **[Rspack loader](#rspack)** (same as Webpack), or **[standalone PostCSS](#pure-postcss-standalone)**. You can also use [build-react-esm-project](https://github.com/gxlmyacc/build-react-esm-project) for Gulp-based React ESM builds.
 
 ### Q: How does the plugin handle multiple scope configurations?
 **A:** When multiple scope configurations are provided, the PostCSS plugin processes the input CSS file multiple times, generating a single output file that contains all scoped versions. This allows the same styles to work in different contexts (global, component-specific, etc.) without conflicts.
 
 ### Q: Do I need to configure the PostCSS plugin?
-**A:** Yes, you need to add the PostCSS plugin to your `postcss.config.js`, but you don't need to configure its parameters. The plugin will automatically receive the correct parameters from the webpack loader based on your import statements.
+**A:** **Webpack / Vite:** No manual PostCSS setup — the loader or Vite plugin applies scoping automatically. **Standalone PostCSS:** Yes — add `babel-preset-react-scope-style/postcss` to `postcss.config.js` and set `scoped`, `global`, and `id` yourself (see [Pure PostCSS](#pure-postcss-standalone)).
 
 ### Q: What's the difference between className and other attributes in classAttrs?
 **A:** The `className` attribute gets universal injection - it's added to ALL JSX elements (even those without a className), while other attributes (like `class` or `data-class`) only get scope ID injection if they already exist on the JSX element. This is why `className` is the default and recommended choice for comprehensive styling.

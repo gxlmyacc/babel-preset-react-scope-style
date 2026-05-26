@@ -14,5 +14,7 @@ plugin/
 esm/
 .history/
 */demo/out/
+coverage/
+.nyc_output/
 
 

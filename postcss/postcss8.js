@@ -1,14 +1,4 @@
-const plugin = require('./plugin');
-
-module.exports = opts => {
-  const _plugin = plugin(opts);
-  return Object.assign(
-    () => ({
-      postcssPlugin: plugin.id,
-      Once(root, helpers) {
-        return _plugin(root, helpers);
-      }
-    }),
-    { postcss: true }
-  );
-};
+/**
+ * @deprecated 请使用 `require('babel-preset-react-scope-style/postcss')`，会自动适配 PostCSS 版本。
+ */
+module.exports = require('./index');

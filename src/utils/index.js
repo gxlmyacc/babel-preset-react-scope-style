@@ -5,6 +5,9 @@ const template = require('@babel/template').default;
 const ScopeName = 'scope-style';
 const ClassNames = 'classNames';
 const LibraryClassNames = 'classnames';
+const LibraryClsx = 'clsx';
+/** @type {readonly string[]} */
+const ClassNameLibraryNames = [LibraryClassNames, LibraryClsx];
 
 function fileExists(path) {
   try {
@@ -15,12 +18,12 @@ function fileExists(path) {
 }
 
 function getImportDeclarations(path) {
-  let program = path.isProgram() ? path : path.findParent(p => p.isProgram());
-  return program.node.body.filter(node => t.isImportDeclaration(node));
+  let program = path.isProgram() ? path : path.findParent((p) => p.isProgram());
+  return program.node.body.filter((node) => t.isImportDeclaration(node));
 }
 
 function isImportLibrary(path, libraryName) {
-  let declaration = getImportDeclarations(path).find(node => node.source.value === libraryName);
+  let declaration = getImportDeclarations(path).find((node) => node.source.value === libraryName);
   return declaration;
 }
 
@@ -39,7 +42,7 @@ function arr2Expression(arr, parent) {
 }
 
 function obj2Expression(obj, parent) {
-  let props = Object.keys(obj).map(k => {
+  let props = Object.keys(obj).map((k) => {
     let v = obj[k];
     // eslint-disable-next-line no-use-before-define
     let expr = var2Expression(v, obj);
@@ -122,13 +125,13 @@ function expr2str(expr) {
     case 'ConditionalExpression':
       return `${expr2str(expr.test)} ? ${expr2str(expr.consequent)} : ${expr2str(expr.alternate)}`;
     case 'CallExpression':
-      return `${expr2str(expr.callee)}(${expr.arguments.map(a => expr2str(a)).join(',')})`;
+      return `${expr2str(expr.callee)}(${expr.arguments.map((a) => expr2str(a)).join(',')})`;
     case 'NewExpression':
-      return `new ${expr2str(expr.callee)}(${expr.arguments.map(a => expr2str(a)).join(',')})`;
+      return `new ${expr2str(expr.callee)}(${expr.arguments.map((a) => expr2str(a)).join(',')})`;
     case 'VariableDeclarator':
       return `${expr.id}${expr.init ? ` = ${expr2str(expr.init)}` : ''}`;
     case 'VariableDeclaration':
-      return `${expr.kind} ${expr.declarations.map(d => expr2str(d))};`;
+      return `${expr.kind} ${expr.declarations.map((d) => expr2str(d))};`;
     case 'BlockStatement':
       return `{${expr2str(expr.body)}}`;
     case 'TemplateLiteral':
@@ -137,12 +140,12 @@ function expr2str(expr) {
     case 'TaggedTemplateExpression':
       return `${expr2str(expr2str(expr.tag))}${expr2str(expr.quasi)}`;
     case 'FunctionExpression':
-      return `function ${expr2str(expr.id)}(${expr.params.map(a => expr2str(a)).join(',')})${expr2str(expr.body)}`;
+      return `function ${expr2str(expr.id)}(${expr.params.map((a) => expr2str(a)).join(',')})${expr2str(expr.body)}`;
     case 'AssignmentPattern':
       return `${expr2str(expr.left)} = ${expr2str(expr.right)}`;
     case 'ArrayExpression':
     case 'ArrayPattern':
-      return `[${expr.elements.map(v => expr2str(v)).join(', ')}]`;
+      return `[${expr.elements.map((v) => expr2str(v)).join(', ')}]`;
     case 'ObjectProperty':
       return `${expr.computed ? `[${expr2str(expr.key)}]` : expr2str(expr.key)}: ${expr2str(expr.value)}`;
     case 'ObjectMethod':
@@ -150,7 +153,7 @@ function expr2str(expr) {
       return `${expr.kind !== 'method' ? `${expr.kind} ` : ''}${expr2str(expr.key)}(${expr.params.map(a => expr2str(a)).join(', ')})${expr2str(expr.body)}`;
     case 'ObjectPattern':
     case 'ObjectExpression':
-      return `{${expr.properties.map(v => expr2str(v)).join(', ')}}`;
+      return `{${expr.properties.map((v) => expr2str(v)).join(', ')}}`;
     default: return '';
   }
 }
@@ -158,7 +161,7 @@ function expr2str(expr) {
 function temp2var(expr) {
   let arr = [...expr.expressions, ...expr.quasis].sort((a, b) => a.start - b.start);
   let ret = '';
-  arr.forEach(v => {
+  arr.forEach((v) => {
     if (v.type === 'TemplateElement') ret += v.value.raw;
     else ret += '${' + expr2str(v) + '}';
   });
@@ -211,7 +214,7 @@ function isImportSpecifier(path, specifierName, declaration, libraryName) {
   }
   if (declaration) declarations = [declaration];
   let ret;
-  declarations && declarations.some(item => ret = item.specifiers.find(v => {
+  declarations && declarations.some((item) => ret = item.specifiers.find((v) => {
     if (imported) {
       if (imported === 'default') {
         if (v.type !== 'ImportDefaultSpecifier') return;
@@ -236,7 +239,7 @@ function importSpecifier(path, specifierName, libraryName) {
       declaration.specifiers.push(specifier);
     }
   } else {
-    let program = path.isProgram() ? path : path.findParent(p => p.isProgram());
+    let program = path.isProgram() ? path : path.findParent((p) => p.isProgram());
     program.unshiftContainer('body',  t.importDeclaration(
       [specifier],
       t.stringLiteral(libraryName),
@@ -260,25 +263,75 @@ function createScopeQuery(scopeId, isGlobal) {
   return `?${ScopeName}&scoped=true${isGlobal ? '&global=true' : ''}&id=${scopeId}`;
 }
 
+/**
+ * 在 import 声明中查找指定导出形式的 specifier。
+ * @param {import('@babel/core').NodePath} path - 当前 AST 路径
+ * @param {import('@babel/core').types.ImportDeclaration} declaration - import 声明节点
+ * @param {string} exportType - 导出形式，默认 `default`
+ * @returns {import('@babel/core').types.ImportSpecifier|import('@babel/core').types.ImportDefaultSpecifier|null}
+ */
+function findSpecifierInDeclaration(declaration, exportType = 'default') {
+  return declaration.specifiers.find((s) => {
+    if (exportType === 'default') {
+      return s.type === 'ImportDefaultSpecifier';
+    }
+    return expr2str(s.local) === exportType;
+  }) || null;
+}
+
+/**
+ * 获取指定 npm 包的 import specifier。
+ * @param {import('@babel/core').NodePath} path - 当前 AST 路径
+ * @param {string} libraryName - 包名，如 `classnames`、`clsx`
+ * @param {string} [exportType='default'] - 导出形式
+ * @returns {import('@babel/core').types.ImportSpecifier|import('@babel/core').types.ImportDefaultSpecifier|null}
+ */
 function getImportSpecifier(path, libraryName, exportType = 'default') {
-  let specifier = null;
-  let declaration = isImportLibrary(path, LibraryClassNames);
-  if (declaration) {
-    specifier = declaration.specifiers.find(s => {
-      if (exportType === 'default') {
-        return s.type === 'ImportDefaultSpecifier';
-      }
-      return expr2str(s.local) === exportType;
-    });
-    // if (specifier) ret = expr2str(specifier.imported || specifier.local);
+  const declaration = isImportLibrary(path, libraryName);
+  if (!declaration) return null;
+  return findSpecifierInDeclaration(declaration, exportType);
+}
+
+/**
+ * 解析当前文件应使用的 className 工具库（clsx / classnames）。
+ * @param {import('@babel/core').NodePath} path - 当前 AST 路径
+ * @param {'auto'|'clsx'|'classnames'} [prefer='auto'] - 偏好；`auto` 时优先 classnames，其次 clsx；均未 import 时默认 classnames
+ * @returns {{
+ *   libraryName: string,
+ *   declaration: import('@babel/core').types.ImportDeclaration|null,
+ *   specifier: import('@babel/core').types.ImportSpecifier|import('@babel/core').types.ImportDefaultSpecifier|null,
+ *   calleeName: string
+ * }}
+ */
+function resolveClassNameLibrary(path, prefer = 'auto') {
+  const pick = (libraryName) => {
+    const declaration = isImportLibrary(path, libraryName);
+    const specifier = declaration ? findSpecifierInDeclaration(declaration, 'default') : null;
+    const calleeName = specifier
+      ? expr2str(specifier.imported || specifier.local)
+      : (libraryName === LibraryClsx ? 'clsx' : ClassNames);
+    return { libraryName, declaration, specifier, calleeName };
+  };
+
+  if (prefer === LibraryClsx || prefer === LibraryClassNames) {
+    return pick(prefer);
   }
-  return specifier;
+
+  for (let i = 0; i < ClassNameLibraryNames.length; i++) {
+    const name = ClassNameLibraryNames[i];
+    const declaration = isImportLibrary(path, name);
+    if (declaration) return pick(name);
+  }
+
+  return pick(LibraryClassNames);
 }
 
 module.exports = {
   ScopeName,
   ClassNames,
   LibraryClassNames,
+  LibraryClsx,
+  ClassNameLibraryNames,
 
   fileExists,
 
@@ -287,6 +340,7 @@ module.exports = {
   isReactComponent,
   isImportLibrary,
   getImportSpecifier,
+  resolveClassNameLibrary,
 
   var2Expression,
   arr2Expression,

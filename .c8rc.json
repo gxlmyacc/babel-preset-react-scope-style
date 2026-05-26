@@ -1,0 +1,20 @@
+{
+  "include": [
+    "src/**/*.js",
+    "postcss/**/*.js",
+    "loader/**/*.js",
+    "lib/**/*.js",
+    "vite/**/*.js",
+    "rspack/**/*.js"
+  ],
+  "exclude": [
+    "postcss/postcss8.js",
+    "src/options-default.js"
+  ],
+  "reporter": ["text", "html", "lcov"],
+  "check-coverage": true,
+  "lines": 100,
+  "functions": 100,
+  "branches": 95,
+  "statements": 100
+}

@@ -29,7 +29,7 @@ module.exports = {
     // 强制数组方法的回调函数中有 return 语句
     'array-callback-return': 0,
     // 要求箭头函数的参数使用圆括号
-    'arrow-parens': [2, 'as-needed'],
+    'arrow-parens': [2, 'always'],
     // 如果一个类方法没有使用this，那么必须将该方法转换为静态函数
     'class-methods-use-this': 0,
     // 数组和对象键值对最后一个逗号，never参数：不能带末尾的逗号, always参数：必须带末尾的逗号，always-multiline：多行模式必须带逗号，单行模式不能带逗号

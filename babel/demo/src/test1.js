@@ -4,22 +4,10 @@ import classnames from 'classnames';
 import './test.scss';
 import './index.scss?scoped';
 
-class App extends Rainbow.Component {
+class App extends React.Component {
 
-  constructor(props) {
-    super(props);
-
-  }
-
-  static data() {
-    return {
-    };
-  }
-
-  static methods = {
-    dd() {
-      return <div className="test"></div>
-    }
+  dd() {
+    return <div className="test"></div>
   }
 
   cc() {
