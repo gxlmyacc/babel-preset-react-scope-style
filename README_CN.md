@@ -1,6 +1,6 @@
 # babel-preset-react-scope-style
 
-一个为React组件提供样式作用域化的综合解决方案，包含Babel插件、PostCSS插件和webpack loader支持。
+一个为 React 组件提供样式作用域化的综合解决方案，包含 Babel 插件、PostCSS 插件，以及 Webpack / Rspack loader 与 Vite 插件等构建集成。
 
 [![NPM version](https://img.shields.io/npm/v/babel-preset-react-scope-style.svg?style=flat)](https://npmjs.com/package/babel-preset-react-scope-style)
 [![NPM downloads](https://img.shields.io/npm/dm/babel-preset-react-scope-style.svg?style=flat)](https://npmjs.com/package/babel-preset-react-scope-style)

@@ -1,6 +1,6 @@
 # babel-preset-react-scope-style
 
-A comprehensive solution for scoping styles in React components, providing Babel plugin, PostCSS plugin, and webpack loader support.
+A comprehensive solution for scoping styles in React components, with Babel and PostCSS plugins plus build integrations for Webpack, Rspack (loader), and Vite.
 
 [![NPM version](https://img.shields.io/npm/v/babel-preset-react-scope-style.svg?style=flat)](https://npmjs.com/package/babel-preset-react-scope-style)
 [![NPM downloads](https://img.shields.io/npm/dm/babel-preset-react-scope-style.svg?style=flat)](https://npmjs.com/package/babel-preset-react-scope-style)
