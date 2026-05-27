@@ -2,8 +2,8 @@ const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const { transformWithPreset } = require('./helpers');
 
-describe('inject-scope', () => {
-  it('rewrites ?scoped style import and injects scope class into JSX', () => {
+describe('inject-scope 插件', () => {
+  it('改写 ?scoped 样式 import 并向 JSX 注入 scope class', () => {
     const code = transformWithPreset(`
 import React from 'react';
 import './button.scss?scoped';
@@ -16,7 +16,7 @@ export function Button() {
     assert.match(code, /className="v-[^"]+ btn"/);
   });
 
-  it('rewrites ?global style import with global scope prefix', () => {
+  it('改写 ?global 样式 import 并带 global 前缀', () => {
     const code = transformWithPreset(`
 import React from 'react';
 import './theme.scss?global';
@@ -28,7 +28,7 @@ export function App() {
     assert.match(code, /scope-style&scoped=true&global=true&id=v-/);
   });
 
-  it('merges scope id into classnames() call', () => {
+  it('将 scope id 合并进 classnames() 调用', () => {
     const code = transformWithPreset(`
 import React from 'react';
 import classnames from 'classnames';
@@ -42,7 +42,7 @@ export function Box({ on }) {
     assert.match(code, /"v-/);
   });
 
-  it('merges scope id into clsx() call when clsx is imported', () => {
+  it('已 import clsx 时将 scope id 合并进 clsx()', () => {
     const code = transformWithPreset(`
 import React from 'react';
 import clsx from 'clsx';

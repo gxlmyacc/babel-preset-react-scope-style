@@ -26,8 +26,8 @@ ${jsx}
   return code;
 }
 
-describe('classAttrs — className', () => {
-  it('creates className on elements that have no class attribute', () => {
+describe('classAttrs — className 属性', () => {
+  it('为无 class 属性的元素创建 className', () => {
     const code = transformScopedJsx(`
       <>
         <div />
@@ -38,17 +38,17 @@ describe('classAttrs — className', () => {
     assert.match(code, /<span className="v-[^"]+"/);
   });
 
-  it('prepends scope id to existing string className', () => {
+  it('在已有字符串 className 前追加 scope id', () => {
     const code = transformScopedJsx('<div className="btn primary" />');
     assert.match(code, /className="v-[^"]+ btn primary"/);
   });
 
-  it('merges scope id into existing className expression', () => {
+  it('将 scope id 合并进已有 className 表达式', () => {
     const code = transformScopedJsx('<div className={active ? "on" : "off"} />');
     assert.match(code, /className=\{classNames\(\["v-[^"]+",\s*active \? "on" : "off"\]\)\}/);
   });
 
-  it('injects className on every non-excluded element in the tree', () => {
+  it('为树中每个未排除元素注入 className', () => {
     const code = transformScopedJsx(`
       <section>
         <header className="hd" />
@@ -60,13 +60,13 @@ describe('classAttrs — className', () => {
     assert.match(code, /<p className="v-[^"]+"/);
   });
 
-  it('merges scope into template literal className via classNames wrapper', () => {
+  it('通过 classNames 包装合并模板字符串 className', () => {
     // eslint-disable-next-line no-template-curly-in-string
     const code = transformScopedJsx('<div className={`btn-${kind}`} />');
     assert.match(code, /className=\{classNames\(\["v-[^"]+",\s*`btn-\$\{kind\}`\]\)\}/);
   });
 
-  it('merges scope into array expression className', () => {
+  it('将 scope 合并进数组表达式 className', () => {
     const code = transformScopedJsx("<div className={['base', isActive && 'on']} />");
     assert.match(
       code,
@@ -74,7 +74,7 @@ describe('classAttrs — className', () => {
     );
   });
 
-  it('prepends scope to the first argument of existing classNames() call', () => {
+  it('在已有 classNames() 首参前追加 scope', () => {
     const code = transformScopedJsx(
       "<div className={classNames('size', { active: on })} />",
       {},
@@ -87,7 +87,7 @@ describe('classAttrs — className', () => {
     assert.doesNotMatch(code, /classNames\(\["v-[^"]+",\s*classNames/);
   });
 
-  it('prepends scope to the first argument of existing clsx() when only clsx is imported', () => {
+  it('仅 import clsx 时在 clsx() 首参前追加 scope', () => {
     const code = transformScopedJsx(
       "<div className={clsx('a', cond && 'b')} />",
       { classNameLibrary: 'clsx' },
@@ -100,7 +100,7 @@ describe('classAttrs — className', () => {
     assert.doesNotMatch(code, /from ['"]classnames['"]/);
   });
 
-  it('prepends scope to clsx() first argument when only clsx is imported (auto)', () => {
+  it('auto 且仅 clsx 时在 clsx() 首参前追加 scope', () => {
     const code = transformScopedJsx(
       "<div className={clsx('only-clsx')} />",
       { classNameLibrary: 'auto' },
@@ -110,7 +110,7 @@ describe('classAttrs — className', () => {
     assert.doesNotMatch(code, /from ['"]classnames['"]/);
   });
 
-  it('wraps clsx() in classNames when both libraries are imported (auto prefers classnames)', () => {
+  it('auto 且同时 import 两库时用 classNames 包装 clsx', () => {
     const code = transformScopedJsx(
       "<div className={clsx('x')} />",
       { classNameLibrary: 'auto' },
@@ -122,7 +122,7 @@ describe('classAttrs — className', () => {
     );
   });
 
-  it('does not double-wrap classNames() call', () => {
+  it('不重复包装 classNames() 调用', () => {
     const code = transformScopedJsx(
       "<div className={classNames(['inner'])} />",
       {},
@@ -132,7 +132,7 @@ describe('classAttrs — className', () => {
     assert.equal((code.match(/classNames\(/g) || []).length, 1);
   });
 
-  it('does not inject className on template or slot', () => {
+  it('不向 template 或 slot 注入 className', () => {
     const code = transformScopedJsx(`
       <>
         <template><div className="inner" /></template>
@@ -145,12 +145,12 @@ describe('classAttrs — className', () => {
   });
 });
 
-describe('classAttrs — non-className attributes', () => {
+describe('classAttrs — 非 className 属性', () => {
   const dataClassOnly = {
     classAttrs: ['className', 'data-class'],
   };
 
-  it('updates data-class only when the element already has data-class', () => {
+  it('仅当元素已有 data-class 时更新 data-class', () => {
     const code = transformScopedJsx(
       '<div data-class="badge" />',
       dataClassOnly
@@ -159,19 +159,19 @@ describe('classAttrs — non-className attributes', () => {
     assert.match(code, /<div className="v-[^"]+"/);
   });
 
-  it('does not create data-class when the element lacks it', () => {
+  it('元素无 data-class 时不创建', () => {
     const code = transformScopedJsx('<div className="only" />', dataClassOnly);
     assert.match(code, /className="v-[^"]+ only"/);
     assert.doesNotMatch(code, /data-class=/);
   });
 
-  it('still creates className on elements with only data-class and no className', () => {
+  it('仅有 data-class 无 className 时仍创建 className', () => {
     const code = transformScopedJsx('<label data-class="lbl" />', dataClassOnly);
     assert.match(code, /data-class="v-[^"]+ lbl"/);
     assert.match(code, /<label className="v-[^"]+"/);
   });
 
-  it('leaves sibling without data-class unchanged except for className', () => {
+  it('无 data-class 的兄弟节点除 className 外不变', () => {
     const code = transformScopedJsx(`
       <>
         <span data-class="a" />
@@ -186,7 +186,7 @@ describe('classAttrs — non-className attributes', () => {
     assert.ok(plainSpan && plainSpan.length >= 1);
   });
 
-  it('supports custom attribute name via classAttrs list', () => {
+  it('通过 classAttrs 列表支持自定义属性名', () => {
     const code = transformScopedJsx(
       '<button custom-class="cta" />',
       { classAttrs: ['className', 'custom-class'] }
@@ -195,7 +195,7 @@ describe('classAttrs — non-className attributes', () => {
     assert.match(code, /<button className="v-[^"]+"/);
   });
 
-  it('does not create custom-class when attribute is absent', () => {
+  it('属性不存在时不创建 custom-class', () => {
     const code = transformScopedJsx('<button />', {
       classAttrs: ['className', 'custom-class'],
     });
@@ -204,8 +204,8 @@ describe('classAttrs — non-className attributes', () => {
   });
 });
 
-describe('classAttrs — function matcher', () => {
-  it('applies scope only when matcher returns true for attr and tag', () => {
+describe('classAttrs — 函数 matcher', () => {
+  it('仅当 matcher 对 attr 与 tag 返回 true 时应用 scope', () => {
     const code = transformScopedJsx(
       `
       <>
@@ -228,8 +228,8 @@ describe('classAttrs — function matcher', () => {
   });
 });
 
-describe('classAttrs — default options', () => {
-  it('uses only className when classAttrs is not customized', () => {
+describe('classAttrs — 默认配置', () => {
+  it('未自定义 classAttrs 时仅使用 className', () => {
     const code = transformScopedJsx('<div data-class="x" />');
     assert.match(code, /<div className="v-[^"]+"/);
     assert.equal(code.includes('data-class='), true);

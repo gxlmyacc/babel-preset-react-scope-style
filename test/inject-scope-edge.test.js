@@ -2,8 +2,8 @@ const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const { transformWithPreset } = require('./helpers');
 
-describe('inject-scope edge cases', () => {
-  it('scopeAll injects scope without style import', () => {
+describe('inject-scope 边界情况', () => {
+  it('scopeAll 在无样式 import 时仍注入 scope', () => {
     const code = transformWithPreset(`
 import React from 'react';
 export function Box() {
@@ -14,7 +14,7 @@ export function Box() {
     assert.doesNotMatch(code, /scope-style/);
   });
 
-  it('scopeVersion includes package name in scope id', () => {
+  it('scopeVersion 在 scope id 中包含包名', () => {
     const code = transformWithPreset(`
 import React from 'react';
 import './a.scss?scoped';
@@ -27,7 +27,7 @@ export function A() { return <div />; }
     assert.ok(id);
   });
 
-  it('scopeFn can rewrite import without scoped query', () => {
+  it('scopeFn 可改写无 scoped query 的 import', () => {
     const code = transformWithPreset(`
 import React from 'react';
 import './plain.scss';
@@ -40,7 +40,7 @@ export function A() { return <div />; }
     assert.match(code, /plain\.scss\?scoped/);
   });
 
-  it('scopeFn receives scopeId when scoped import', () => {
+  it('scoped import 时 scopeFn 收到 scopeId', () => {
     let captured;
     transformWithPreset(`
 import React from 'react';
@@ -58,7 +58,7 @@ export function A() { return <div className="a" />; }
     assert.equal(captured.global, false);
   });
 
-  it('does not rewrite when scope is disabled', () => {
+  it('scope 关闭时不改写', () => {
     const code = transformWithPreset(`
 import React from 'react';
 import './x.scss?scoped';
@@ -68,7 +68,7 @@ export function A() { return <div className="a" />; }
     assert.doesNotMatch(code, /scope-style/);
   });
 
-  it('injects className on elements without class attr', () => {
+  it('为无 class 属性的元素注入 className', () => {
     const code = transformWithPreset(`
 import React from 'react';
 import './x.scss?scoped';
@@ -77,7 +77,7 @@ export function A() { return <div />; }
     assert.match(code, /<div className="v-[^"]+"/);
   });
 
-  it('skips template and slot tags', () => {
+  it('跳过 template 与 slot 标签', () => {
     const code = transformWithPreset(`
 import React from 'react';
 import './x.scss?scoped';
@@ -94,7 +94,7 @@ export function A() {
     assert.doesNotMatch(code, /<slot className=/);
   });
 
-  it('supports .less and .sass imports', () => {
+  it('支持 .less 与 .sass import', () => {
     const less = transformWithPreset(`
 import React from 'react';
 import './a.less?scoped';
@@ -109,7 +109,7 @@ export function B() { return <div />; }
     assert.match(sass, /\.sass\?scope-style/);
   });
 
-  it('scopeFn without scope still rewrites import when matched', () => {
+  it('scope 关闭但匹配时 scopeFn 仍改写 import', () => {
     const code = transformWithPreset(`
 import React from 'react';
 import './plain.scss';
@@ -123,7 +123,7 @@ export function A() { return <div />; }
     assert.match(code, /plain\.scss\?from-fn/);
   });
 
-  it('rewrites ?global style import with scope prefix id', () => {
+  it('改写 ?global 样式 import 并带 scope 前缀 id', () => {
     const code = transformWithPreset(`
 import React from 'react';
 import './global.scss?global';
@@ -133,7 +133,7 @@ export function A() { return <div className="a" />; }
     assert.match(code, /global\.scss\?scope-style/);
   });
 
-  it('treats options.scope function as scopeFn', () => {
+  it('将 options.scope 函数视为 scopeFn', () => {
     const code = transformWithPreset(`
 import React from 'react';
 import './fn.scss?scoped';
@@ -146,7 +146,7 @@ export function A() { return <div />; }
     assert.match(code, /fn\.scss\?scope-style/);
   });
 
-  it('uses scope string as namespace in scope id', () => {
+  it('将 scope 字符串用作 scope id 的命名空间', () => {
     const code = transformWithPreset(`
 import React from 'react';
 import './x.scss?scoped';
@@ -158,7 +158,7 @@ export function A() { return <div />; }
     assert.match(code, /id=v-pkg-/);
   });
 
-  it('wraps existing classnames call when injecting scope', () => {
+  it('注入 scope 时包装已有 classnames 调用', () => {
     const code = transformWithPreset(`
 import React from 'react';
 import classNames from 'classnames';

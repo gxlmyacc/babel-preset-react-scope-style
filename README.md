@@ -1161,6 +1161,24 @@ Both create scoped styles, but `?global` allows styles to be shared between comp
 - `?scoped`: `.button` → `.button.v-abc123`
 - `?global`: `.button` → `.button[class*=v-]`
 
+### Q: Does `?scoped` in a stylesheet `@import` work the same as in JS? Why is `?global` not supported there?
+**A:** **No.** Inside **CSS/SCSS/Less** files, only the **`?scoped` suffix** in `@import url(...)` is recognized and rewritten (e.g. `@import url("./partial.scss?scoped");`). There, `?scoped` means **reuse the scope of the stylesheet currently being processed**, not “create a new JS hash scope id” for that child file.
+
+| How the parent stylesheet is scoped (from the JS `import` `?scoped` / `?global`) | Child `@import` with `?scoped` behaves like |
+| --- | --- |
+| Component scope (JS `?scoped`, `.v-xxx` class) | Same **component** scope |
+| Shared global scope (JS `?global`, `[class*=v-]`) | Same **global** scope |
+
+The child URL is rewritten to include `scope-style&scoped=true&id=...` (and `&global=true` when the parent is global), consistent with JS import rewriting.
+
+**Why not `?global` on `@import` URLs?**
+
+1. **Scope mode is defined by who imports the CSS in JS** — component vs shared project scope is already chosen via `import './x.scss?scoped'` or `import './x.scss?global'`. PostCSS receives `scoped`, `global`, and `id` for the parent file; nested imports only need a marker meaning “follow the parent”.
+2. **Stylesheets cannot mint their own JS scope ids** — the hash comes from the importing component’s path. Nested sheets can only **inherit** the parent’s id and mode, not pick global vs scoped independently like JS imports.
+3. **Clearer semantics** — allowing `?global` on `@import` would collide with JS `?global` and with the `:global` selector pseudo-class. URLs without `?scoped` (including `?global` or plain paths) are left unchanged and do not get `scope-style` injected.
+
+To opt a **rule** out of scoping, use a **leading** `:global` in that file’s selectors (see `:global` above), not `?global` on the `@import` URL.
+
 ### Q: How do I handle third-party component styles?
 **A:** There are two main approaches for styling third-party components:
 

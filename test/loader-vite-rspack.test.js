@@ -55,14 +55,14 @@ function runWebpackLoader(
   });
 }
 
-describe('webpack loader', () => {
-  it('passes through when query has no scope-style', async () => {
+describe('Webpack loader', () => {
+  it('无 scope-style query 时原样透传', async () => {
     const input = '.a { color: red; }';
     const { css } = await runWebpackLoader(input, 'a.css?other=1');
     assert.equal(css, input);
   });
 
-  it('passes through when scope regex matches but parse fails', async () => {
+  it('正则匹配但解析失败时原样透传', async () => {
     const input = '.dup { margin: 0; }';
     const ambiguous = '?scope-style&scoped=true&id=a&id=b';
     const { css } = await runWebpackLoader(input, 'dup.css?other=1', {}, null, null, {
@@ -71,14 +71,14 @@ describe('webpack loader', () => {
     assert.equal(css, input);
   });
 
-  it('transforms css when scope-style query present', async () => {
+  it('存在 scope-style query 时转换 CSS', async () => {
     const query = 'scope-style&scoped=true&id=v-loader';
     const { css, meta } = await runWebpackLoader('.box { margin: 0; }', `box.css?${query}`);
     assert.match(css, /\.box\.v-loader/);
     assert.equal(meta.ast.type, 'react-scope-style/loader');
   });
 
-  it('uses postcss ast root when meta provides matching version', async () => {
+  it('meta 中 PostCSS 版本匹配时复用 AST root', async () => {
     const postcssPkg = require('postcss/package.json');
     const postcss = require('postcss');
     const root = postcss.parse('.x { color: blue; }');
@@ -89,7 +89,7 @@ describe('webpack loader', () => {
     assert.match(css, /\.x\.v-ast/);
   });
 
-  it('runs with sourceMap option and normalizes map', async () => {
+  it('启用 sourceMap 选项并规范化 map', async () => {
     const query = 'scope-style&scoped=true&id=v-map';
     const prevMap = {
       version: 3,
@@ -111,21 +111,21 @@ describe('webpack loader', () => {
     assert.equal(map, undefined);
   });
 
-  it('processes without sourceMap option', async () => {
+  it('未启用 sourceMap 时正常处理', async () => {
     const query = 'scope-style&scoped=true&id=v-nomap';
     const { css, map } = await runWebpackLoader('.p { }', `p.css?${query}`, {});
     assert.match(css, /\.p\.v-nomap/);
     assert.equal(map, undefined);
   });
 
-  it('scopes css with global=true in resourceQuery', async () => {
+  it('resourceQuery 含 global=true 时按 global 作用域', async () => {
     const query = 'scope-style&scoped=true&global=true&id=v-';
     const { css } = await runWebpackLoader('.g { color: green; }', `g.css?${query}`);
     assert.match(css, /\[class\*=v-\]/);
     assert.doesNotMatch(css, /\.g\.v-/);
   });
 
-  it('uses resourceQuery when request query differs', async () => {
+  it('request query 不同时优先使用 resourceQuery', async () => {
     const scopeQuery = '?scope-style&scoped=true&id=v-rqonly';
     const { css } = await runWebpackLoader(
       '.rq { padding: 0; }',
@@ -138,7 +138,7 @@ describe('webpack loader', () => {
     assert.match(css, /\.rq\.v-rqonly/);
   });
 
-  it('accepts postcss 7 ast meta without using root as content', async () => {
+  it('接受 PostCSS 7 的 ast meta 但不复用 root 为内容', async () => {
     const postcss = require('postcss');
     const root = postcss.parse('.y { color: yellow; }');
     const query = 'scope-style&scoped=true&id=v-p7';
@@ -152,8 +152,8 @@ describe('webpack loader', () => {
   });
 });
 
-describe('vite plugin', () => {
-  it('transforms jsx and scoped css modules', async () => {
+describe('Vite 插件', () => {
+  it('转换 JSX 与 scoped CSS 模块', async () => {
     const reactScopeStyle = require('../vite/index');
     const plugin = reactScopeStyle({ scopePrefix: 'v-' });
     const jsx = `
@@ -181,14 +181,14 @@ export function C() { return <div className="c" />; }
     assert.equal(scopedNoQuery, null);
   });
 
-  it('exports default alias', () => {
+  it('导出 default 别名', () => {
     const vite = require('../vite/index');
     assert.equal(vite, vite.default);
   });
 });
 
-describe('rspack helper', () => {
-  it('withReactScopeStyle appends loader rule', () => {
+describe('Rspack 辅助函数', () => {
+  it('withReactScopeStyle 追加 loader 规则', () => {
     const rspack = require('../rspack/index');
     const withReactScopeStyle = rspack.default || rspack;
     const config = withReactScopeStyle({});
@@ -201,8 +201,8 @@ describe('rspack helper', () => {
   });
 });
 
-describe('lib/process-scope-css', () => {
-  it('processScopeStyleCss handles query string', async () => {
+describe('lib/process-scope-css 处理', () => {
+  it('processScopeStyleCss 处理 query 字符串', async () => {
     const {
       processScopeStyleCss,
       SCOPE_STYLE_QUERY_RE,
@@ -221,7 +221,7 @@ describe('lib/process-scope-css', () => {
     assert.match(out, /\.lib\.v-lib/);
   });
 
-  it('processScopeStyleCss throws on invalid query', async () => {
+  it('无效 query 时 processScopeStyleCss 抛错', async () => {
     const { processScopeStyleCss } = require('../lib/process-scope-css');
     await assert.rejects(
       () => processScopeStyleCss('.x { }', '?scope-style&scoped=true'),
@@ -230,8 +230,8 @@ describe('lib/process-scope-css', () => {
   });
 });
 
-describe('transform-class edge', () => {
-  it('skips transform when react is not imported', async () => {
+describe('transform-class 边界情况', () => {
+  it('未 import React 时跳过 transform-class', async () => {
     const { transformWithPreset } = require('./helpers');
     const code = transformWithPreset(`
 import './x.scss?scoped';

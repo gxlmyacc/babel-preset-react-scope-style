@@ -6,8 +6,8 @@ const {
   splitScopedCssBlocks,
 } = require('./helpers');
 
-describe('postcss scope plugin', () => {
-  it('appends component scope class to selector', async () => {
+describe('PostCSS 作用域插件', () => {
+  it('为选择器追加组件 scope class', async () => {
     const css = await runPostcssScope('.btn { color: red; }', {
       scoped: true,
       id: 'v-test123',
@@ -15,7 +15,7 @@ describe('postcss scope plugin', () => {
     assert.equal(css, '.btn.v-test123 { color: red; }');
   });
 
-  it('scopes comma-separated selectors', async () => {
+  it('处理逗号分隔的多选择器', async () => {
     const css = await runPostcssScope('.a, .b { color: red; }', {
       scoped: true,
       id: 'v-x',
@@ -23,7 +23,7 @@ describe('postcss scope plugin', () => {
     assert.equal(css, '.a.v-x, .b.v-x { color: red; }');
   });
 
-  it('uses attribute selector for global scope', async () => {
+  it('global 作用域使用 attribute 选择器', async () => {
     const css = await runPostcssScope('.btn { color: blue; }', {
       scoped: true,
       global: true,
@@ -32,7 +32,7 @@ describe('postcss scope plugin', () => {
     assert.match(css, /\[class\*=/);
   });
 
-  it('replaces :scope with scope class', async () => {
+  it('将 :scope 替换为 scope class', async () => {
     const css = await runPostcssScope(':scope .inner { margin: 0; }', {
       scoped: true,
       id: 'v-abc',
@@ -41,7 +41,7 @@ describe('postcss scope plugin', () => {
     assert.doesNotMatch(css, /:scope/);
   });
 
-  it('replaces attached :scope pseudo', async () => {
+  it('将附着式 :scope 伪类替换为 scope class', async () => {
     const css = await runPostcssScope('.container:scope .btn { color: red; }', {
       scoped: true,
       id: 'v-abc',
@@ -50,7 +50,7 @@ describe('postcss scope plugin', () => {
     assert.doesNotMatch(css, /:scope/);
   });
 
-  it('scopes rules inside @media', async () => {
+  it('为 @media 内规则加作用域', async () => {
     const css = await runPostcssScope('@media (min-width: 768px) { .panel { display: block; } }', {
       scoped: true,
       id: 'v-m',
@@ -58,7 +58,7 @@ describe('postcss scope plugin', () => {
     assert.match(css, /\.panel\.v-m/);
   });
 
-  it('scopes rules inside @supports', async () => {
+  it('为 @supports 内规则加作用域', async () => {
     const css = await runPostcssScope('@supports (display: grid) { .grid { display: grid; } }', {
       scoped: true,
       id: 'v-g',
@@ -66,7 +66,7 @@ describe('postcss scope plugin', () => {
     assert.match(css, /\.grid\.v-g/);
   });
 
-  it('does not scope @keyframes steps', async () => {
+  it('不对 @keyframes 关键帧步骤加作用域', async () => {
     const css = await runPostcssScope('@keyframes fade { from { opacity: 0; } to { opacity: 1; } }', {
       scoped: true,
       id: 'v-k',
@@ -75,7 +75,7 @@ describe('postcss scope plugin', () => {
     assert.doesNotMatch(css, /\.v-k/);
   });
 
-  it('strips leading :global so the rule is not scoped', async () => {
+  it('去掉行首 :global 后规则不参与作用域', async () => {
     const css = await runPostcssScope(':global .utility { margin: 0; }', {
       scoped: true,
       id: 'v-z',
@@ -83,7 +83,7 @@ describe('postcss scope plugin', () => {
     assert.equal(css, '.utility { margin: 0; }');
   });
 
-  it('does not treat :global(...) as supported syntax', async () => {
+  it('不支持 :global(...) 语法', async () => {
     const css = await runPostcssScope(':global(.reset) { margin: 0; }', {
       scoped: true,
       id: 'v-z',
@@ -91,7 +91,7 @@ describe('postcss scope plugin', () => {
     assert.equal(css, ':global(.reset) { margin: 0; }');
   });
 
-  it('scopes the part before middle :global from nesting', async () => {
+  it('嵌套中仅对第一个 :global 前的部分加作用域', async () => {
     const css = await runPostcssScope('.container :global .ant-btn { color: red; }', {
       scoped: true,
       id: 'v-n',
@@ -99,7 +99,7 @@ describe('postcss scope plugin', () => {
     assert.equal(css, '.container.v-n .ant-btn { color: red; }');
   });
 
-  it('uses :scope instead of middle :global when both appear', async () => {
+  it('同时存在 :scope 与 :global 时以 :scope 为准', async () => {
     const css = await runPostcssScope('.wrap:scope :global .ext { color: blue; }', {
       scoped: true,
       id: 'v-s',
@@ -109,8 +109,8 @@ describe('postcss scope plugin', () => {
     assert.match(css, /\.ext/);
   });
 
-  describe('multiple :scope / :global in one selector (nested flatten)', () => {
-    it('replaces every :scope in the same compound selector', async () => {
+  describe('单选择器内多个 :scope / :global（嵌套扁平化）', () => {
+    it('同一复合选择器内替换所有 :scope', async () => {
       const css = await runPostcssScope('.a:scope .b:scope .c { color: red; }', {
         scoped: true,
         id: 'v-multi-scope',
@@ -119,7 +119,7 @@ describe('postcss scope plugin', () => {
       assert.doesNotMatch(css, /:scope/);
     });
 
-    it('scopes only prefix before first :global and strips the rest', async () => {
+    it('仅作用域第一个 :global 前前缀并去掉其余 :global', async () => {
       const css = await runPostcssScope('.outer :global .mid :global .inner { color: red; }', {
         scoped: true,
         id: 'v-multi-global',
@@ -128,7 +128,7 @@ describe('postcss scope plugin', () => {
       assert.doesNotMatch(css, /:global/);
     });
 
-    it('with :scope present, strips all middle :global markers', async () => {
+    it('存在 :scope 时去掉所有中间 :global', async () => {
       const css = await runPostcssScope('.wrap:scope :global .x :global .y { color: blue; }', {
         scoped: true,
         id: 'v-both',
@@ -137,7 +137,7 @@ describe('postcss scope plugin', () => {
       assert.doesNotMatch(css, /:scope|:global/);
     });
 
-    it(':scope marks scope position; :global only strips (suffix stays unscoped)', async () => {
+    it(':scope 标记作用域位置，:global 仅剥离后缀', async () => {
       const css = await runPostcssScope('.a :scope .b :global .c { color: green; }', {
         scoped: true,
         id: 'v-mix',
@@ -146,7 +146,7 @@ describe('postcss scope plugin', () => {
       assert.doesNotMatch(css, /:scope|:global/);
     });
 
-    it('scopes prefix before first :global in combinator chains', async () => {
+    it('组合符链中在第一个 :global 前加作用域', async () => {
       const css = await runPostcssScope('.a + .b :global .c { color: navy; }', {
         scoped: true,
         id: 'v-seg',
@@ -154,7 +154,7 @@ describe('postcss scope plugin', () => {
       assert.equal(css, '.a + .b.v-seg .c { color: navy; }');
     });
 
-    it('scopes a multi-class segment before :global', async () => {
+    it('对 :global 前的多 class 片段加作用域', async () => {
       const css = await runPostcssScope('.card.cell :global .inner { color: teal; }', {
         scoped: true,
         id: 'v-cell',
@@ -162,7 +162,7 @@ describe('postcss scope plugin', () => {
       assert.equal(css, '.card.cell.v-cell .inner { color: teal; }');
     });
 
-    it('applies :scope independently per comma-separated selector', async () => {
+    it('逗号分隔的每个选择器独立应用 :scope', async () => {
       const css = await runPostcssScope(
         '.x:scope .y, .p:scope .q { margin: 0; }',
         { scoped: true, id: 'v-comma' }
@@ -171,7 +171,7 @@ describe('postcss scope plugin', () => {
     });
   });
 
-  it('handles >>> deep combinator', async () => {
+  it('处理 >>> 深度组合符', async () => {
     const css = await runPostcssScope('.wrap >>> .deep { color: green; }', {
       scoped: true,
       id: 'v-d',
@@ -179,14 +179,14 @@ describe('postcss scope plugin', () => {
     assert.match(css, /\.wrap\.v-d\s+\.deep/);
   });
 
-  it('exports postcss 8 compatible plugin shape', () => {
+  it('导出 PostCSS 8 兼容的插件形态', () => {
     const pluginFactory = require('../postcss');
     const instance = pluginFactory({ scoped: true, id: 'v-1' });
     assert.equal(instance.postcss, true);
     assert.equal(instance().postcssPlugin, 'postcss-scope-style-add-id');
   });
 
-  describe('multi-scope (shared stylesheet, multiple importers)', () => {
+  describe('多 scope（共享样式表、多引用方）', () => {
     const sharedCss = [
       '.btn { color: red; }',
       '.title { font-size: 14px; }',
@@ -199,7 +199,7 @@ describe('postcss scope plugin', () => {
     const importerA = 'v-7f3a9c2e';
     const importerB = 'v-1b8d4e60';
 
-    it('emits one scoped copy per importer in the same output file', async () => {
+    it('同一输出文件为每个引用方生成一份 scoped 副本', async () => {
       const css = await runPostcssScope(sharedCss, multiScopeContexts([importerA, importerB]));
       const blocks = splitScopedCssBlocks(css);
 
@@ -219,7 +219,7 @@ describe('postcss scope plugin', () => {
       );
     });
 
-    it('supports three importers referencing the same css', async () => {
+    it('支持三个引用方引用同一 CSS', async () => {
       const ids = ['v-aaa111', 'v-bbb222', 'v-ccc333'];
       const css = await runPostcssScope('.chip { padding: 4px; }', multiScopeContexts(ids));
 
@@ -229,7 +229,7 @@ describe('postcss scope plugin', () => {
       assert.equal(splitScopedCssBlocks(css).length, 3);
     });
 
-    it('duplicates @media rules for each scope context', async () => {
+    it('为每个 scope 上下文复制 @media 规则', async () => {
       const input = '@media (min-width: 768px) { .panel { display: flex; } }';
       const css = await runPostcssScope(input, multiScopeContexts([importerA, importerB]));
 
@@ -238,7 +238,7 @@ describe('postcss scope plugin', () => {
       assert.match(css, new RegExp(`\\.panel\\.${importerB}`));
     });
 
-    it('deduplicates identical scope ids from repeated imports', async () => {
+    it('对重复 import 的相同 scope id 去重', async () => {
       const css = await runPostcssScope(
         '.box { margin: 0; }',
         multiScopeContexts([importerA, importerA])
@@ -249,7 +249,7 @@ describe('postcss scope plugin', () => {
       assert.equal((css.match(new RegExp(`\\.box\\.${importerA}`, 'g')) || []).length, 1);
     });
 
-    it('keeps first scoped block in root and appends clones (template replaceAll)', async () => {
+    it('首份 scoped 块留在根节点并追加克隆块', async () => {
       const css = await runPostcssScope('.only { opacity: 1; }', multiScopeContexts([importerA, importerB]));
       const idxA = css.indexOf(`.only.${importerA}`);
       const idxB = css.indexOf(`.only.${importerB}`);
@@ -257,7 +257,7 @@ describe('postcss scope plugin', () => {
       assert.ok(idxA >= 0 && idxB > idxA, 'importer B block should follow importer A');
     });
 
-    it('places @import at file head once when merging multi-scope copies', async () => {
+    it('合并多 scope 时 @import 仅保留在文件头部一份', async () => {
       const input = [
         '@import \'./vars.css\';',
         '@import \'./theme.css\';',

@@ -10,8 +10,8 @@ const {
   pickPostcssResultCss,
 } = require('../lib/webpack-source-map');
 
-describe('lib/webpack-source-map', () => {
-  it('classifies URL types', () => {
+describe('lib/webpack-source-map 源映射', () => {
+  it('分类 URL 类型', () => {
     assert.equal(getURLType('//cdn.example.com/a.css'), 'scheme-relative');
     assert.equal(getURLType('/absolute/path.css'), 'path-absolute');
     assert.equal(getURLType('e:\\win\\path.css'), 'path-absolute');
@@ -19,7 +19,7 @@ describe('lib/webpack-source-map', () => {
     assert.equal(getURLType('./relative.css'), 'path-relative');
   });
 
-  it('normalizes postcss source map sources', () => {
+  it('规范化 PostCSS source map 的 sources', () => {
     const ctx = path.join(process.cwd(), 'fixtures');
     const map = normalizeSourceMapAfterPostcss({
       version: 3,
@@ -41,11 +41,11 @@ describe('lib/webpack-source-map', () => {
     assert.equal(map.sources[2], 'https://example.com/a.css');
   });
 
-  it('resolvePostcssMapOption returns null when disabled', () => {
+  it('禁用时 resolvePostcssMapOption 返回 null', () => {
     assert.equal(resolvePostcssMapOption(false, { version: 3 }), null);
   });
 
-  it('resolvePostcssMapOption returns webpack-compatible map config', () => {
+  it('resolvePostcssMapOption 返回 webpack 兼容的 map 配置', () => {
     const prev = { version: 3 };
     const opt = resolvePostcssMapOption(true, prev);
     assert.equal(opt.prev, prev);
@@ -53,7 +53,7 @@ describe('lib/webpack-source-map', () => {
     assert.equal(opt.annotation, false);
   });
 
-  it('resolveLoaderSourceMap normalizes when map present', () => {
+  it('存在 map 时 resolveLoaderSourceMap 做规范化', () => {
     const ctx = path.join(process.cwd(), 'fixtures');
     const json = {
       version: 3,
@@ -70,19 +70,19 @@ describe('lib/webpack-source-map', () => {
     assert.equal(out.sources[0], path.resolve(ctx, './rel.css'));
   });
 
-  it('resolveLoaderSourceMap returns undefined without result map', () => {
+  it('无 result map 时 resolveLoaderSourceMap 返回 undefined', () => {
     assert.equal(
       resolveLoaderSourceMap({ map: null }, { sourceMap: true }, '/ctx'),
       undefined
     );
   });
 
-  it('pickPostcssResultCss falls back to content', () => {
+  it('pickPostcssResultCss 回退到 content', () => {
     assert.equal(pickPostcssResultCss({ content: '.x{}' }), '.x{}');
     assert.equal(pickPostcssResultCss({ css: '.y{}', content: '.z{}' }), '.y{}');
   });
 
-  it('emitPostcssWarnings forwards each warning', () => {
+  it('emitPostcssWarnings 转发每条警告', () => {
     const collected = [];
     const warn = { text: 'test-warn' };
     emitPostcssWarnings({

@@ -93,6 +93,9 @@ function stripImportAtRules(cssText) {
 
 /**
  * 在 @import 的 url() 中改写带 ?scoped 的样式路径。
+ * 样式内的 ?scoped 表示沿用当前文件的作用域（非 JS import 的 ?scoped 字面含义）：
+ * 父文件为组件 scoped 时注入 local scope-style；父文件为 global 时注入带 global=true 的 query。
+ * 仅识别 ?scoped 后缀；?global 等其它 query 不在此处理。
  * @param {import('postcss').Root} root - CSS 根节点
  * @param {object} ctx - 改写上下文
  * @param {string} ctx.id - 作用域 id
@@ -128,7 +131,9 @@ function rewriteImportUrls(root, ctx) {
 
       const query = createScopeQuery(id, isGlobal);
       const newUrl = url.replace(scopeRegx, (match, p1) => {
-        if (!scopeFn) return p1 + query;
+        if (!scopeFn) {
+          return p1 + query;
+        }
         return scopeFn(p1, query, {
           filename: getNodePathFile(rule),
           source: url,

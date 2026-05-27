@@ -8,10 +8,10 @@ const {
   splitScopedCssBlocks,
 } = require('./helpers');
 
-describe('inject-scope multi-file (shared stylesheet)', () => {
+describe('inject-scope 多文件（共享样式表）', () => {
   const styleImport = './styles/shared.scss?scoped';
 
-  it('assigns different scope ids per importer file path', () => {
+  it('按引用方文件路径分配不同 scope id', () => {
     const button = transformImporterFile({
       filename: '/project/src/Button.jsx',
       styleImport,
@@ -31,7 +31,7 @@ describe('inject-scope multi-file (shared stylesheet)', () => {
     assert.match(card, new RegExp(`shared\\.scss\\?scope-style&scoped=true&id=${idCard}`));
   });
 
-  it('injects scope class on JSX matching each file scope id', () => {
+  it('向 JSX 注入与各文件 scope id 匹配的 class', () => {
     const button = transformImporterFile({
       filename: '/project/src/Button.jsx',
       styleImport,
@@ -52,7 +52,7 @@ describe('inject-scope multi-file (shared stylesheet)', () => {
     assert.doesNotMatch(card, new RegExp(idButton));
   });
 
-  it('reuses the same scope id when transforming the same importer twice', () => {
+  it('同一引用方重复编译时复用相同 scope id', () => {
     const opts = { filename: '/project/src/Page.tsx', styleImport };
     const first = extractScopeIdFromCode(transformImporterFile(opts));
     const second = extractScopeIdFromCode(transformImporterFile(opts));
@@ -64,7 +64,7 @@ describe('inject-scope multi-file (shared stylesheet)', () => {
     );
   });
 
-  it('feeds babel-derived scope ids into postcss multi-scope for shared css', async () => {
+  it('共享 CSS 时将 Babel 生成的 scope id 传入 PostCSS 多 scope', async () => {
     const sharedCss = '@import \'./vars.css\';\n.panel { display: block; }';
     const { css, scopeIds } = await postcssForSharedCssFromImporters(sharedCss, [
       '/project/src/Button.jsx',

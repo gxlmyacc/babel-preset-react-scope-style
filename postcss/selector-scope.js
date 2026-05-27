@@ -303,4 +303,9 @@ module.exports = {
   scopeSelector,
   isLeadingGlobalRule,
   stripLeadingGlobal,
+  /** @internal 供单测覆盖内部分支 */
+  appendScopeToSelector,
+  selectorAlreadyScoped,
+  stripMiddleGlobalPseudo,
+  scopeSelectorBeforeMiddleGlobal,
 };

@@ -2,8 +2,8 @@ const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const { transformWithPreset } = require('./helpers');
 
-describe('transform-class', () => {
-  it('wraps array className expression with classnames', () => {
+describe('transform-class 插件', () => {
+  it('用 classnames 包装数组 className 表达式', () => {
     const code = transformWithPreset(`
 import React from 'react';
 import './x.scss?scoped';
@@ -16,7 +16,7 @@ export function Card() {
     assert.match(code, /\['a', 'b'\]/);
   });
 
-  it('wraps array className with clsx when classNameLibrary is clsx', () => {
+  it('classNameLibrary 为 clsx 时用 clsx 包装数组 className', () => {
     const code = transformWithPreset(`
 import React from 'react';
 import './x.scss?scoped';
@@ -29,7 +29,7 @@ export function Card() {
     assert.doesNotMatch(code, /from ['"]classnames['"]/);
   });
 
-  it('does not wrap template literal className when scope is off', () => {
+  it('scope 关闭时不包装模板字符串 className', () => {
     const code = transformWithPreset(`
 import React from 'react';
 
@@ -41,7 +41,7 @@ export function Card() {
     assert.match(code, /className=\{`static-\$\{1\}`\}/);
   });
 
-  it('does not wrap string literal className', () => {
+  it('不包装字符串字面量 className', () => {
     const code = transformWithPreset(`
 import React from 'react';
 import './x.scss?scoped';

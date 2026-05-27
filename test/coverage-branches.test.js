@@ -54,8 +54,8 @@ function runLoader(content, request, opts = {}, meta = null, getOptions) {
   });
 }
 
-describe('coverage branches — loader', () => {
-  it('uses empty options when getOptions returns undefined', async () => {
+describe('分支覆盖 — loader', () => {
+  it('getOptions 返回 undefined 时使用空 options', async () => {
     const query = 'scope-style&scoped=true&id=v-noopt';
     const { css } = await runLoader(
       '.z { zoom: 1; }',
@@ -67,19 +67,19 @@ describe('coverage branches — loader', () => {
     assert.match(css, /\.z\.v-noopt/);
   });
 
-  it('passes through when scope-style query lacks id', async () => {
+  it('scope-style query 缺少 id 时透传', async () => {
     const input = '.a { color: red; }';
     const { css } = await runLoader(input, 'a.css?scope-style&scoped=true');
     assert.equal(css, input);
   });
 
-  it('runs when meta is present without ast', async () => {
+  it('有 meta 但无 ast 时正常运行', async () => {
     const query = 'scope-style&scoped=true&id=v-noast';
     const { css } = await runLoader('.n { }', `n.css?${query}`, {}, {});
     assert.match(css, /\.n\.v-noast/);
   });
 
-  it('ignores meta.ast when type is not postcss', async () => {
+  it('meta.ast 类型非 postcss 时忽略', async () => {
     const query = 'scope-style&scoped=true&id=v-meta';
     const { css } = await runLoader(
       '.m { margin: 0; }',
@@ -91,8 +91,8 @@ describe('coverage branches — loader', () => {
   });
 });
 
-describe('coverage branches — postcss plugin', () => {
-  it('accepts null pluginOptions without throwing', () => {
+describe('分支覆盖 — PostCSS 插件', () => {
+  it('pluginOptions 为 null 时不抛错', () => {
     const pluginCore = require('../postcss/plugin');
     const runner = pluginCore(null);
     const root = postcss.parse('.d { display: block; }');
@@ -100,7 +100,7 @@ describe('coverage branches — postcss plugin', () => {
     assert.match(root.toString(), /\.d\s*\{/);
   });
 
-  it('leaves @import without url() unchanged', async () => {
+  it('无 url() 的 @import 保持不变', async () => {
     const css = await runPostcssScope(
       '@import "./plain.css";\n.btn { color: red; }',
       { scoped: true, id: 'v-plain' }
@@ -109,7 +109,7 @@ describe('coverage branches — postcss plugin', () => {
     assert.match(css, /\.btn\.v-plain/);
   });
 
-  it('uses helpers.parse when appending multi-scope blocks', async () => {
+  it('追加多 scope 块时使用 helpers.parse', async () => {
     const pluginCore = require('../postcss/plugin');
     const root = postcss.parse('.chip { padding: 2px; }');
     let customParseUsed = false;
@@ -126,7 +126,7 @@ describe('coverage branches — postcss plugin', () => {
     assert.match(out, /\.chip\.v-p2/);
   });
 
-  it('keeps import url when scoped suffix is absent and scopeFn missing', async () => {
+  it('无 ?scoped 且无 scopeFn 时保留 import url', async () => {
     resetScopeOptions();
     const css = await runPostcssScope(
       '@import url("./lib.css?global");\n.x { }',
@@ -137,8 +137,8 @@ describe('coverage branches — postcss plugin', () => {
   });
 });
 
-describe('coverage branches — utils', () => {
-  it('expr2str handles postfix update and get object method', () => {
+describe('分支覆盖 — utils', () => {
+  it('expr2str 处理后缀自增与 getter 对象方法', () => {
     assert.equal(
       utils.expr2str(t.updateExpression('++', t.identifier('i'), false)),
       'i++'
@@ -152,7 +152,7 @@ describe('coverage branches — utils', () => {
     assert.match(utils.expr2str(getter), /get value/);
   });
 
-  it('isRequired ignores non-string import sources', () => {
+  it('isRequired 忽略非字符串 import 源', () => {
     const ast = parse("import React from 'react';", { babelrc: false, configFile: false });
     ast.program.body[0].source.type = 'NumericLiteral';
     ast.program.body[0].source.value = 1;
@@ -167,7 +167,7 @@ describe('coverage branches — utils', () => {
     assert.equal(found, false);
   });
 
-  it('importSpecifier adds named import to existing declaration', () => {
+  it('importSpecifier 向已有声明追加命名 import', () => {
     const ast = parse("import { cn } from 'classnames';", { babelrc: false, configFile: false });
     const programPath = {
       node: ast.program,
@@ -180,7 +180,7 @@ describe('coverage branches — utils', () => {
     assert.equal(spec.local.name, 'alias');
   });
 
-  it('getImportSpecifier resolves named export', () => {
+  it('getImportSpecifier 解析命名导出', () => {
     const ast = parse("import { cn } from 'classnames';", { babelrc: false, configFile: false });
     const programPath = {
       node: ast.program,
@@ -192,12 +192,12 @@ describe('coverage branches — utils', () => {
     assert.equal(spec.local.name, 'cn');
   });
 
-  it('var2Expression returns existing AST nodes as-is', () => {
+  it('var2Expression 对已有 AST 节点原样返回', () => {
     const id = t.identifier('keep');
     assert.equal(utils.var2Expression(id), id);
   });
 
-  it('importSpecifier creates new import when package missing', () => {
+  it('包未 import 时 importSpecifier 新建 import', () => {
     const ast = parse("import React from 'react';", { babelrc: false, configFile: false });
     const programPath = {
       node: ast.program,
@@ -212,7 +212,7 @@ describe('coverage branches — utils', () => {
     ));
   });
 
-  it('getImportSpecifier returns null when package not imported', () => {
+  it('包未 import 时 getImportSpecifier 返回 null', () => {
     const ast = parse("import React from 'react';", { babelrc: false, configFile: false });
     const programPath = {
       node: ast.program,

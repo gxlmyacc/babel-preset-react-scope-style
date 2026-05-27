@@ -1186,6 +1186,24 @@ className={classNames('btn', variant && `btn-${variant}`) + ' v-abc123'}
 - `?scoped`：`.button` → `.button.v-abc123`
 - `?global`：`.button` → `.button[class*=v-]`
 
+### Q: 样式文件里 `@import` 的 `?scoped` 和 JS 里的 `?scoped` 一样吗？为什么不支持 `?global`？
+**A:** **不一样。** 在 **CSS/SCSS/Less 样式文件** 的 `@import url(...)` 中，本库**只识别并改写 `?scoped` 这一种后缀**（例如 `@import url("./partial.scss?scoped");`）。这里的 `?scoped` 表示：**沿用当前正在被处理的这份样式文件的作用域**，而不是在样式侧再生成一套新的 JS hash 作用域 id。
+
+| 当前样式文件在构建侧的作用域（由 JS `import` 的 `?scoped` / `?global` 决定） | `@import` 里写 `?scoped` 时，等价于 |
+| --- | --- |
+| 组件作用域（JS `?scoped`，类选择器 `.v-xxx`） | 子文件也按**同一组件**作用域处理 |
+| 全局共享作用域（JS `?global`，`[class*=v-]`） | 子文件按**同一全局**作用域处理 |
+
+构建时会把子文件路径改写为带 `scope-style&scoped=true&id=...`（若父文件为 global 则还会带 `&global=true`）的 URL，与 JS 侧改写 import 的规则一致。
+
+**为什么不支持在 `@import` 里写 `?global`？**
+
+1. **作用域模式应由「谁引用了这份 CSS」决定**：组件级还是项目级共享，已经在 **JS** 里通过 `import './x.scss?scoped'` 或 `import './x.scss?global'` 定好了；PostCSS 处理父样式时会把 `scoped` / `global` / `id` 一并传入，子 `@import` 只需一个标记说明「跟着父文件走」即可。
+2. **样式文件无法单独生成 JS 侧的 scope id**：hash 来自引用该样式的组件文件路径；嵌套样式不能像在 JS 里那样再声明「我要 global 还是 scoped」，只能**复用父文件已有的 id 与模式**。
+3. **避免语义冲突**：若在 `@import` 里再允许 `?global`，容易与 JS 的 `?global`、以及 CSS 选择器里的 `:global` 伪类混淆；实现上也会对无 `?scoped` 的 URL（含 `?global` 或裸路径）保持原样，不注入 `scope-style`。
+
+若子文件需要「整条规则不参与作用域」，请在**该子文件的选择器**中使用行首 `:global`（见上文 `:global` 说明），而不是在 `@import` URL 上写 `?global`。
+
 ### Q: 如何处理第三方组件样式？
 **A:** 有两种主要方法来处理第三方组件样式：
 
