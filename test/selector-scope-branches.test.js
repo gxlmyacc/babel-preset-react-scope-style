@@ -39,8 +39,7 @@ describe('selector-scope 分支覆盖', () => {
 
   it('isGlobal 时将 :scope 替换为 global attribute', () => {
     const out = scopeSelector(':scope .inner', { id: 'v-', isGlobal: true });
-    assert.match(out, /\[class\*=v-\]/);
-    assert.doesNotMatch(out, /:scope/);
+    assert.equal(out, '[class*=v-] .inner');
   });
 
   it('选择器已有 scope class 时跳过追加', () => {
@@ -60,8 +59,7 @@ describe('selector-scope 分支覆盖', () => {
 
   it('为无空格的相邻兄弟组合符加作用域', () => {
     const out = scopeSelector('.a+.b :global .c', { id: 'v-adj', isGlobal: false });
-    assert.match(out, /\.b\.v-adj/);
-    assert.doesNotMatch(out, /:global/);
+    assert.equal(out, '.a+.b.v-adj .c');
   });
 
   it('不对 @-moz-keyframes 内规则加作用域', async () => {
@@ -69,7 +67,7 @@ describe('selector-scope 分支覆盖', () => {
       '@-moz-keyframes fade { from { opacity: 0; } to { opacity: 1; } }',
       { scoped: true, id: 'v-moz' }
     );
-    assert.doesNotMatch(css, /\.v-moz/);
+    assert.equal(css, '@-moz-keyframes fade { from { opacity: 0; } to { opacity: 1; } }');
   });
 
   it('global 模式跳过重复的 attribute scope', async () => {
@@ -86,14 +84,12 @@ describe('selector-scope 分支覆盖', () => {
       id: 'v-raw',
       isGlobal: true,
     });
-    assert.match(out, /\[class\*=v-raw\]/);
-    assert.equal((out.match(/\[class\*=v-raw\]/g) || []).length, 1);
+    assert.equal(out, '.x[class*=v-raw] { }');
   });
 
   it('去掉无后缀节点的尾部 :global', () => {
     const out = scopeSelector('.panel :global', { id: 'v-tail', isGlobal: false });
     assert.equal(out, '.panel.v-tail');
-    assert.doesNotMatch(out, /:global/);
   });
 
   it('global 模式 attribute value 与 id 一致时判定已作用域', () => {
@@ -110,42 +106,30 @@ describe('selector-scope 分支覆盖', () => {
 
   it('+ 组合符链上插入 scope 时在非空格 combinator 后补空格', () => {
     const out = scopeSelector('.a+.b', { id: 'v-adj-space', isGlobal: false });
-    assert.match(out, /\.a\+\s*\.b\.v-adj-space/);
-  });
-
-  it('>>> 深度选择符在深度符前一侧插入 scope', () => {
-    const sel = parseSelector('.wrap >>> .deep');
-    appendScopeToSelector(sel, 'v-deep', false);
-    assert.match(sel.toString(), /\.wrap\.v-deep/);
-    assert.match(sel.toString(), /\.deep/);
+    assert.equal(out, '.a+.b.v-adj-space');
   });
 
   it('首个 :global 前仅有组合符时 scopeSelectorBeforeMiddleGlobal 不追加 scope', () => {
     const sel = parseSelector('+ :global .inner');
     scopeSelectorBeforeMiddleGlobal(sel, 'v-nopre', false);
-    assert.doesNotMatch(sel.toString(), /v-nopre/);
-    assert.match(sel.toString(), /:global/);
+    assert.equal(sel.toString(), '+ :global .inner');
   });
 
   it('通过 scopeSelector 处理「+ :global」前缀为空时不注入 scope', () => {
     const out = scopeSelector('+ :global .inner', { id: 'v-nopre2', isGlobal: false });
-    assert.match(out, /\.inner/);
-    assert.doesNotMatch(out, /v-nopre2/);
-    assert.doesNotMatch(out, /:global/);
+    assert.equal(out, ' .inner');
   });
 
   it('stripMiddleGlobalPseudo 在 :global 位于首位时直接返回', () => {
     const sel = parseSelector(':global .x');
     stripMiddleGlobalPseudo(sel);
-    assert.match(sel.toString(), /:global/);
-    assert.match(sel.toString(), /\.x/);
+    assert.equal(sel.toString(), ':global .x');
   });
 
   it('stripMiddleGlobalPseudo 去掉中间 :global 并合并前后片段', () => {
     const sel = parseSelector('.a :global .b');
     stripMiddleGlobalPseudo(sel);
     assert.equal(sel.toString(), '.a .b');
-    assert.doesNotMatch(sel.toString(), /:global/);
   });
 
   it('global 模式 node.value 命中时判定已作用域（raws 不一致）', () => {
@@ -172,18 +156,17 @@ describe('selector-scope 分支覆盖', () => {
       ],
     });
     appendScopeToSelector(sel, 'v-ns', false);
-    assert.match(sel.toString(), /a\.v-ns/);
+    assert.equal(sel.toString(), 'U|a.v-ns');
   });
 
   it('scopeSelectorBeforeMiddleGlobal 在 :global 位于首位时不处理', () => {
     const sel = parseSelector(':global .y');
     scopeSelectorBeforeMiddleGlobal(sel, 'v-y', false);
-    assert.match(sel.toString(), /:global/);
-    assert.match(sel.toString(), /\.y/);
+    assert.equal(sel.toString(), ':global .y');
   });
 
   it('属性选择器含 string 值时插入 scope 可补空格', () => {
     const out = scopeSelector('[data-foo="x"]+.target', { id: 'v-attr', isGlobal: false });
-    assert.match(out, /\[data-foo="x"\]\s*\+\s*\.target\.v-attr/);
+    assert.equal(out, '[data-foo="x"]+.target.v-attr');
   });
 });

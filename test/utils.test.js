@@ -161,7 +161,7 @@ describe('utils 工具函数', () => {
       [t.identifier('x')],
       t.blockStatement([])
     );
-    assert.match(utils.expr2str(method), /fn\(x\)/);
+    assert.equal(utils.expr2str(method), 'fn(x){}');
   });
 
   it('isImportSpecifier 匹配命名 import', () => {
@@ -365,58 +365,58 @@ describe('utils 工具函数', () => {
       utils.expr2str(t.spreadElement(t.identifier('rest'))),
       '...rest'
     );
-    assert.match(
+    assert.equal(
       utils.expr2str(t.taggedTemplateExpression(
         t.identifier('tag'),
         t.templateLiteral([t.templateElement({ raw: '', cooked: '' }, true)], [])
       )),
-      /tag`/
+      'tag``'
     );
-    assert.match(
+    assert.equal(
       utils.expr2str(t.functionExpression(t.identifier('fn'), [], t.blockStatement([]))),
-      /function fn/
+      'function fn(){}'
     );
-    assert.match(
+    assert.equal(
       utils.expr2str(t.variableDeclarator(t.identifier('x'), t.numericLiteral(1))),
-      /= 1$/
+      '[object Object] = 1'
     );
     assert.equal(
       utils.expr2str(t.variableDeclarator(t.identifier('y'))),
       '[object Object]'
     );
-    assert.match(
+    assert.equal(
       utils.expr2str(t.variableDeclaration('const', [
         t.variableDeclarator(t.identifier('z'), t.numericLiteral(0)),
       ])),
-      /const .+ = 0;/
+      'const [object Object] = 0;'
     );
-    assert.match(
+    assert.equal(
       utils.expr2str(t.arrayExpression([t.numericLiteral(1), t.numericLiteral(2)])),
-      /\[1, 2\]/
+      '[1, 2]'
     );
-    assert.match(
+    assert.equal(
       utils.expr2str(t.objectExpression([
         t.objectProperty(t.identifier('k'), t.stringLiteral('v')),
       ])),
-      /k: v/
+      '{k: v}'
     );
-    assert.match(
+    assert.equal(
       utils.expr2str(t.objectProperty(
         t.stringLiteral('key'),
         t.numericLiteral(1),
         true
       )),
-      /\[key\]: 1/
+      '[key]: 1'
     );
-    assert.match(
+    assert.equal(
       utils.expr2str(t.arrayPattern([t.identifier('a')])),
-      /\[a\]/
+      '[a]'
     );
-    assert.match(
+    assert.equal(
       utils.expr2str(t.objectPattern([
         t.objectProperty(t.identifier('p'), t.identifier('q')),
       ])),
-      /p: q/
+      '{p: q}'
     );
     assert.equal(utils.expr2str(t.blockStatement([])), '{}');
     assert.equal(

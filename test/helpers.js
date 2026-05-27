@@ -1,3 +1,4 @@
+const assert = require('node:assert/strict');
 const { transformSync } = require('@babel/core');
 const postcss = require('postcss');
 const options = require('../src/options');
@@ -83,13 +84,52 @@ function splitScopedCssBlocks(css) {
 }
 
 /**
- * 从 Babel 转换结果中提取 scope-style 的 id 参数。
+ * 从 Babel 转换结果中提取 scope id（import query 或 JSX className）。
  * @param {string} code - 转换后的 JS 代码
- * @returns {string|null} scope id，如 `v-abc123`
+ * @returns {string|null} scope id，如 `v-abc123` 或 global 模式下的 `v-`
  */
 function extractScopeIdFromCode(code) {
-  const matched = code.match(/scope-style&scoped=true(?:&global=true)?&id=(v-[a-z0-9-]+)/);
-  return matched ? matched[1] : null;
+  const fromImport = code.match(
+    /scope-style&scoped=true(?:&global=true)?&id=(v-[a-z0-9-]*)/
+  );
+  if (fromImport) return fromImport[1];
+  const fromClass = code.match(/className="(v-[a-z0-9]+)/);
+  if (fromClass) return fromClass[1];
+  const fromArray = code.match(/\["(v-[a-z0-9]+)"/);
+  if (fromArray) return fromArray[1];
+  return null;
+}
+
+/** @type {string|undefined} */
+let defaultTestScopeId;
+
+/**
+ * 返回默认测试虚拟路径 `/project/src/Component.jsx` 对应的 scope id。
+ * @returns {string}
+ */
+function getDefaultTestScopeId() {
+  if (!defaultTestScopeId) {
+    const code = transformWithPreset(
+      "import React from 'react';\nimport './__probe.scss?scoped';\nexport function P() { return <span />; }"
+    );
+    defaultTestScopeId = extractScopeIdFromCode(code);
+    if (!defaultTestScopeId) {
+      throw new Error('getDefaultTestScopeId: probe transform produced no scope id');
+    }
+  }
+  return defaultTestScopeId;
+}
+
+/**
+ * 将 actual 与 expected 做严格相等比对；expected 中 `{scopeId}` 替换为从 actual 解析的 scope id。
+ * @param {string} actual - 实际输出
+ * @param {string} expected - 期望输出（可含 `{scopeId}` 占位符）
+ * @returns {void}
+ */
+function assertScopedEqual(actual, expected) {
+  const scopeId = extractScopeIdFromCode(actual);
+  assert.ok(scopeId, 'expected scope id in actual output');
+  assert.equal(actual, expected.replace(/\{scopeId\}/g, scopeId));
 }
 
 /**
@@ -137,6 +177,8 @@ module.exports = {
   runPostcssScope,
   splitScopedCssBlocks,
   extractScopeIdFromCode,
+  getDefaultTestScopeId,
+  assertScopedEqual,
   transformImporterFile,
   postcssForSharedCssFromImporters,
 };

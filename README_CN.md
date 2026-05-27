@@ -17,7 +17,8 @@
 - **灵活配置**: 可自定义作用域前缀、属性和作用域策略
 - **React组件支持**: 针对React组件优化，自动处理className属性
 - **CSS-in-JS支持**: 兼容classnames、clsx等工具库
-- **深度选择器支持**: 处理`>>>`和`:scope`选择器，实现组件样式控制
+- **:scope / :global 选择器**：控制作用域位置与全局片段
+- **原生 CSS 嵌套**：支持 PostCSS 保留的嵌套 Rule 树，展平后与扁平选择器规则一致
 - **全局样式支持**: 在保持组件隔离的同时支持全局样式
 
 
@@ -412,18 +413,27 @@ $border-radius: 4px;
 /* 输出: .container.v-abc123 .ant-btn { color: red; } */
 ```
 
-#### 4. 使用>>>的深度选择器
-使用`>>>`进行深度选择器：
+#### 4. 原生 CSS 嵌套（PostCSS 8+）
 
-```scss
-/* 输入SCSS */
-.container >>> .deep-element { color: green; }
-.wrapper >>> .nested .deep { background: yellow; }
+当样式以**嵌套 Rule 树**进入插件（原生 `.css` 嵌套语法）时：
 
-/* 生成的CSS */
-.container.v-abc123 .deep-element { color: green; }
-.wrapper.v-abc123 .nested .deep { background: yellow; }
+- **平坦链原则**：嵌套展开后的有效选择器，与手写扁平 CSS 使用同一套规则——默认在**选择器链最后一节**挂 scope（如 `.card .title.v-abc123`）。
+- **Rule 树叶子才 scope**：外层 block（如 `.card { .title {} }` 中的 `.card`）**不会**再挂一层 scope，避免 `.card.v-xxx .title.v-xxx`。
+- **声明 + 子 rule 并存**：自动将块级声明包入 `&:scope { }`（编译后常为 `&.v-abc123 { }`，展开为 `.card.v-abc123`）。
+- **`:global` 段**：`:global` 内普通子选择器不挂 scope；内层冗余 `:global` 包装会被移除；内层 `:scope` 仍正常 scope。
+- **伪类**：`&:hover` 等输出 `&.v-abc123:hover` 可接受，有效链为 `.card.v-abc123:hover`。
+- **扁平 SCSS/Less**（已展平为单条 selector）行为与改造前一致。
+
+```css
+/* 输入 */
+.card { .title { color: red; } }
+
+/* 输出（概念） */
+.card { .title.v-abc123 { color: red; } }
+/* 展开后: .card .title.v-abc123 */
 ```
+
+**跨文件子组件**：嵌套时仍须在**最后一节**体现本文件 scope（`.title.v-abc123`），不能只在祖先 `.card` 上挂 scope。
 
 #### 5. 实际应用示例
 ```scss
@@ -446,10 +456,6 @@ $border-radius: 4px;
 :global .reset { margin: 0; }
 /* 输出: .reset { margin: 0; } (不添加作用域) */
 
-/* >>> - 深度选择器（谨慎使用） */
-.container >>> .deep { color: blue; }
-/* 输出: .container.v-abc123 .deep { color: blue; } */
-
 /* 错误 - 没有:scope这将无法工作 */
 .custom-modal .ant-modal-content { padding: 24px; }
 /* 输出: .custom-modal.v-abc123 .ant-modal-content { padding: 24px; } */
@@ -468,11 +474,10 @@ $border-radius: 4px;
 **关键转换说明：**
 
 1. **`:scope` 选择器**：转换为 `.v-abc123` 类选择器（`?scoped`）或 `[class*=v-]` 属性选择器（`?global`）
-2. **`>>>` 深度选择器**：父元素获得作用域ID，子元素保持原样
-3. **行首 `:global`**：整条规则不作用域化；**中间 `:global`**（嵌套展开）：仅 `:global` 前的选择器加 scope，后面保持全局
-4. **常规选择器**：自动在末尾添加作用域ID
-5. **嵌套选择器**：每个嵌套层级都会获得作用域ID
-6. **SCSS变量**：在CSS输出中被实际值替换
+2. **行首 `:global`**：整条规则不作用域化；**中间 `:global`**（嵌套展开）：仅 `:global` 前的选择器加 scope，后面保持全局
+3. **常规 / 扁平选择器**：在最后一节添加作用域 ID（伪类之前，如 `.card.v-abc123:hover`）
+4. **原生嵌套 Rule 树**：仅 **Rule 树叶子**（或显式 `:scope` / `:global`）进入 scope；展平后与扁平规则一致
+5. **SCSS 变量**：在 CSS 输出中被实际值替换
 
 ### 理解 ?scoped 与 ?global
 
@@ -978,7 +983,7 @@ module.exports = {
 
 2. **PostCSS插件**:
    - 处理带作用域隔离的CSS选择器
-   - 处理`:scope`、`>>>`和`:global`选择器
+   - 处理 `:scope`、`:global` 与原生 CSS 嵌套
    - 为组件生成唯一的作用域ID
    - 根据导入类型应用不同的作用域策略
 
@@ -1275,13 +1280,14 @@ className={classNames('btn', variant && `btn-${variant}`) + ' v-abc123'}
 **A:** `scopeAll: false`（默认）只为导入带有`?scoped`样式的文件中的JSX元素生成作用域ID，而`scopeAll: true`为项目中的所有JSX元素生成作用域ID，无论是否导入样式文件。当您想要一致的架构或为样式需求做未来准备时，使用`scopeAll: true`。
 
 ### Q: 作用域ID在CSS选择器中是如何定位的？
-**A:** 默认情况下，作用域ID添加到每个CSS规则的最后一个选择器。使用`:scope`来控制位置，`:global`来防止作用域化，`>>>`用于深度选择器。例如，`.button`变成`.button.v-abc123`，而`.container:scope .button`变成`.container.v-abc123 .button`。
+**A:** 默认在每条规则选择器链的**最后一节**添加作用域 ID（伪类之前，如 `.button.v-abc123:hover`）。使用 `:scope` 控制位置，`:global` 标记全局片段。例如 `.button` → `.button.v-abc123`，`.container:scope .button` → `.container.v-abc123 .button`。
 
-**⚠️ 重要：** `:scope`可以用两种方式使用：
-1. **附加方式**：`.container:scope` → `.container.v-abc123`（作用域ID附加到选择器上）
-2. **独立方式**：`.container :scope` → `.container .v-abc123`（作用域ID作为独立选择器）
+**⚠️ 重要：** `:scope` 可用两种方式：
+1. **附加**：`.container:scope` → `.container.v-abc123`
+2. **独立**：`.container :scope` → `.container .v-abc123`
 
-两种方式都有效，但产生不同的CSS输出。
+### Q: 原生 CSS 嵌套如何作用域化？
+**A:** 与扁平规则一致：仅 **Rule 树叶子** 默认挂 scope，展开后平坦链最后一节带 scope（如 `.card { .title {} }` → `.card .title.v-abc123`）。同一 block 既有声明又有子选择器时，声明会自动包入 `&:scope`。`:global` 段内普通类名不挂 scope；`:global` 内 `:scope` 子块仍 scope。每个 JSX 元素仍有同一 `v-xxx`，selector 须在最后一节绑定本文件 scope 以免误伤其他文件的子组件。
 
 ## 最佳实践
 
@@ -1319,8 +1325,8 @@ shared/
 - **优势**：应用于第三方组件的自定义样式将被正确作用域化
 
 ### 3. CSS选择器
-- 尽可能使用`:scope`而不是`>>>`
-- 谨慎使用`:global`选择器，仅用于真正的全局样式
+- 嵌套样式优先用原生嵌套或已展平的扁平 selector；需要块级声明时用 `&:scope`
+- 谨慎使用 `:global`，仅用于真正的全局片段
 - 利用CSS自定义属性进行主题设置
 
 **理解:scope定位：**

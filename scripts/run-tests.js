@@ -35,9 +35,18 @@ if (!testFiles.length) {
   process.exit(1);
 }
 
-const result = spawnSync(process.execPath, ['--test', ...testFiles], {
+const isParentUnderDebugger = process.execArgv.some((arg) => /^--inspect/.test(arg));
+const spawnOptions = {
   stdio: 'inherit',
-  env: process.env,
-});
+  env: { ...process.env },
+};
+if (isParentUnderDebugger) {
+  // 父进程已被 VS Code 调试时，子进程单独 --inspect，便于 autoAttachChildProcesses 挂载
+  spawnOptions.execArgv = [];
+  const prev = spawnOptions.env.NODE_OPTIONS || '';
+  spawnOptions.env.NODE_OPTIONS = `${prev} --inspect`.trim();
+}
+
+const result = spawnSync(process.execPath, ['--test', ...testFiles], spawnOptions);
 
 process.exit(result.status == null ? 1 : result.status);

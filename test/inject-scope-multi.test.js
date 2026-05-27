@@ -27,8 +27,14 @@ describe('inject-scope 多文件（共享样式表）', () => {
     assert.ok(idButton && idCard, 'both imports should carry scope id');
     assert.notEqual(idButton, idCard, 'scope id should depend on importer filename hash');
 
-    assert.match(button, new RegExp(`shared\\.scss\\?scope-style&scoped=true&id=${idButton}`));
-    assert.match(card, new RegExp(`shared\\.scss\\?scope-style&scoped=true&id=${idCard}`));
+    assert.equal(
+      button.includes(`shared.scss?scope-style&scoped=true&id=${idButton}`),
+      true
+    );
+    assert.equal(
+      card.includes(`shared.scss?scope-style&scoped=true&id=${idCard}`),
+      true
+    );
   });
 
   it('向 JSX 注入与各文件 scope id 匹配的 class', () => {
@@ -46,10 +52,10 @@ describe('inject-scope 多文件（共享样式表）', () => {
     const idButton = extractScopeIdFromCode(button);
     const idCard = extractScopeIdFromCode(card);
 
-    assert.match(button, new RegExp(`className="${idButton} btn"`));
-    assert.match(card, new RegExp(`className="${idCard} card"`));
-    assert.doesNotMatch(button, new RegExp(idCard));
-    assert.doesNotMatch(card, new RegExp(idButton));
+    assert.equal(button.includes(`className="${idButton} btn"`), true);
+    assert.equal(card.includes(`className="${idCard} card"`), true);
+    assert.equal(button.includes(idCard), false);
+    assert.equal(card.includes(idButton), false);
   });
 
   it('同一引用方重复编译时复用相同 scope id', () => {
@@ -72,9 +78,14 @@ describe('inject-scope 多文件（共享样式表）', () => {
     ]);
 
     assert.equal(scopeIds.length, 2);
-    scopeIds.forEach((id) => {
-      assert.match(css, new RegExp(`\\.panel\\.${id}`));
-    });
+    assert.equal(
+      css,
+      [
+        '@import \'./vars.css\';',
+        `.panel.${scopeIds[0]} { display: block; }`,
+        `.panel.${scopeIds[1]} { display: block; }`,
+      ].join('\n')
+    );
 
     const blocks = splitScopedCssBlocks(css);
     assert.equal(blocks[0], '@import \'./vars.css\';');

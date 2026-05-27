@@ -62,8 +62,12 @@ module.exports = {
       global: false,
       id: 'v-your-scope-id',
     }),
+    // Optional: run AFTER the scope plugin if you need flattened CSS for older browsers
+    // require('postcss-nesting'),
   ],
 };
 ```
 
 Keep `id` in sync with the scope class Babel injects into JSX.
+
+**Plugin order:** `babel-preset-react-scope-style/postcss` must run on the **nested Rule tree** (PostCSS 8+ native nesting). If you add `postcss-nesting` to emit flat selectors for legacy browsers, list it **after** the scope plugin so scoping uses the same leaf-gate rules, then nesting only flattens output.

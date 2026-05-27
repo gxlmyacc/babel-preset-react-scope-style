@@ -29,7 +29,7 @@ describe('PostCSS 作用域插件', () => {
       global: true,
       id: 'v-',
     });
-    assert.match(css, /\[class\*=/);
+    assert.equal(css, '.btn[class*=v-] { color: blue; }');
   });
 
   it('将 :scope 替换为 scope class', async () => {
@@ -37,8 +37,7 @@ describe('PostCSS 作用域插件', () => {
       scoped: true,
       id: 'v-abc',
     });
-    assert.match(css, /\.v-abc/);
-    assert.doesNotMatch(css, /:scope/);
+    assert.equal(css, '.v-abc .inner { margin: 0; }');
   });
 
   it('将附着式 :scope 伪类替换为 scope class', async () => {
@@ -46,8 +45,7 @@ describe('PostCSS 作用域插件', () => {
       scoped: true,
       id: 'v-abc',
     });
-    assert.match(css, /\.container\.v-abc/);
-    assert.doesNotMatch(css, /:scope/);
+    assert.equal(css, '.container.v-abc .btn { color: red; }');
   });
 
   it('为 @media 内规则加作用域', async () => {
@@ -55,7 +53,7 @@ describe('PostCSS 作用域插件', () => {
       scoped: true,
       id: 'v-m',
     });
-    assert.match(css, /\.panel\.v-m/);
+    assert.equal(css, '@media (min-width: 768px) { .panel.v-m { display: block; } }');
   });
 
   it('为 @supports 内规则加作用域', async () => {
@@ -63,7 +61,7 @@ describe('PostCSS 作用域插件', () => {
       scoped: true,
       id: 'v-g',
     });
-    assert.match(css, /\.grid\.v-g/);
+    assert.equal(css, '@supports (display: grid) { .grid.v-g { display: grid; } }');
   });
 
   it('不对 @keyframes 关键帧步骤加作用域', async () => {
@@ -71,8 +69,7 @@ describe('PostCSS 作用域插件', () => {
       scoped: true,
       id: 'v-k',
     });
-    assert.match(css, /from\s*\{\s*opacity:\s*0/);
-    assert.doesNotMatch(css, /\.v-k/);
+    assert.equal(css, '@keyframes fade { from { opacity: 0; } to { opacity: 1; } }');
   });
 
   it('去掉行首 :global 后规则不参与作用域', async () => {
@@ -104,9 +101,7 @@ describe('PostCSS 作用域插件', () => {
       scoped: true,
       id: 'v-s',
     });
-    assert.match(css, /\.wrap\.v-s/);
-    assert.doesNotMatch(css, /:global/);
-    assert.match(css, /\.ext/);
+    assert.equal(css, '.wrap.v-s .ext { color: blue; }');
   });
 
   describe('单选择器内多个 :scope / :global（嵌套扁平化）', () => {
@@ -116,7 +111,6 @@ describe('PostCSS 作用域插件', () => {
         id: 'v-multi-scope',
       });
       assert.equal(css, '.a.v-multi-scope .b.v-multi-scope .c { color: red; }');
-      assert.doesNotMatch(css, /:scope/);
     });
 
     it('仅作用域第一个 :global 前前缀并去掉其余 :global', async () => {
@@ -125,7 +119,6 @@ describe('PostCSS 作用域插件', () => {
         id: 'v-multi-global',
       });
       assert.equal(css, '.outer.v-multi-global .mid .inner { color: red; }');
-      assert.doesNotMatch(css, /:global/);
     });
 
     it('存在 :scope 时去掉所有中间 :global', async () => {
@@ -134,7 +127,6 @@ describe('PostCSS 作用域插件', () => {
         id: 'v-both',
       });
       assert.equal(css, '.wrap.v-both .x .y { color: blue; }');
-      assert.doesNotMatch(css, /:scope|:global/);
     });
 
     it(':scope 标记作用域位置，:global 仅剥离后缀', async () => {
@@ -143,7 +135,6 @@ describe('PostCSS 作用域插件', () => {
         id: 'v-mix',
       });
       assert.equal(css, '.a .v-mix .b .c { color: green; }');
-      assert.doesNotMatch(css, /:scope|:global/);
     });
 
     it('组合符链中在第一个 :global 前加作用域', async () => {
@@ -171,14 +162,6 @@ describe('PostCSS 作用域插件', () => {
     });
   });
 
-  it('处理 >>> 深度组合符', async () => {
-    const css = await runPostcssScope('.wrap >>> .deep { color: green; }', {
-      scoped: true,
-      id: 'v-d',
-    });
-    assert.match(css, /\.wrap\.v-d\s+\.deep/);
-  });
-
   it('导出 PostCSS 8 兼容的插件形态', () => {
     const pluginFactory = require('../postcss');
     const instance = pluginFactory({ scoped: true, id: 'v-1' });
@@ -204,10 +187,6 @@ describe('PostCSS 作用域插件', () => {
       const blocks = splitScopedCssBlocks(css);
 
       assert.equal(blocks.length, 4);
-      assert.match(css, new RegExp(`\\.btn\\.${importerA}`));
-      assert.match(css, new RegExp(`\\.title\\.${importerA}`));
-      assert.match(css, new RegExp(`\\.btn\\.${importerB}`));
-      assert.match(css, new RegExp(`\\.title\\.${importerB}`));
       assert.equal(
         css,
         [
@@ -223,9 +202,14 @@ describe('PostCSS 作用域插件', () => {
       const ids = ['v-aaa111', 'v-bbb222', 'v-ccc333'];
       const css = await runPostcssScope('.chip { padding: 4px; }', multiScopeContexts(ids));
 
-      ids.forEach((id) => {
-        assert.match(css, new RegExp(`\\.chip\\.${id}`));
-      });
+      assert.equal(
+        css,
+        [
+          '.chip.v-aaa111 { padding: 4px; }',
+          '.chip.v-bbb222 { padding: 4px; }',
+          '.chip.v-ccc333 { padding: 4px; }',
+        ].join('\n')
+      );
       assert.equal(splitScopedCssBlocks(css).length, 3);
     });
 
@@ -233,9 +217,13 @@ describe('PostCSS 作用域插件', () => {
       const input = '@media (min-width: 768px) { .panel { display: flex; } }';
       const css = await runPostcssScope(input, multiScopeContexts([importerA, importerB]));
 
-      assert.equal((css.match(/@media/g) || []).length, 2);
-      assert.match(css, new RegExp(`\\.panel\\.${importerA}`));
-      assert.match(css, new RegExp(`\\.panel\\.${importerB}`));
+      assert.equal(
+        css,
+        [
+          '@media (min-width: 768px) { .panel.v-7f3a9c2e { display: flex; } }',
+          '@media (min-width: 768px) { .panel.v-1b8d4e60 { display: flex; } }',
+        ].join('\n')
+      );
     });
 
     it('对重复 import 的相同 scope id 去重', async () => {
@@ -244,9 +232,8 @@ describe('PostCSS 作用域插件', () => {
         multiScopeContexts([importerA, importerA])
       );
 
+      assert.equal(css, '.box.v-7f3a9c2e { margin: 0; }');
       assert.equal(splitScopedCssBlocks(css).length, 1);
-      assert.match(css, new RegExp(`\\.box\\.${importerA}`));
-      assert.equal((css.match(new RegExp(`\\.box\\.${importerA}`, 'g')) || []).length, 1);
     });
 
     it('首份 scoped 块留在根节点并追加克隆块', async () => {
@@ -273,8 +260,15 @@ describe('PostCSS 作用域插件', () => {
         blocks.findIndex((line) => line.startsWith('.btn.')) > 1,
         'scoped rules should follow all @import lines'
       );
-      assert.match(css, new RegExp(`\\.btn\\.${importerA}`));
-      assert.match(css, new RegExp(`\\.btn\\.${importerB}`));
+      assert.equal(
+        css,
+        [
+          "@import './vars.css';",
+          "@import './theme.css';",
+          `.btn.${importerA} { color: red; }`,
+          `.btn.${importerB} { color: red; }`,
+        ].join('\n')
+      );
     });
   });
 });

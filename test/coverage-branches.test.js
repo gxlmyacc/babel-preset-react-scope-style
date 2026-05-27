@@ -64,7 +64,7 @@ describe('分支覆盖 — loader', () => {
       null,
       () => undefined
     );
-    assert.match(css, /\.z\.v-noopt/);
+    assert.equal(css, '.z.v-noopt { zoom: 1; }');
   });
 
   it('scope-style query 缺少 id 时透传', async () => {
@@ -76,7 +76,7 @@ describe('分支覆盖 — loader', () => {
   it('有 meta 但无 ast 时正常运行', async () => {
     const query = 'scope-style&scoped=true&id=v-noast';
     const { css } = await runLoader('.n { }', `n.css?${query}`, {}, {});
-    assert.match(css, /\.n\.v-noast/);
+    assert.equal(css, '.n.v-noast { }');
   });
 
   it('meta.ast 类型非 postcss 时忽略', async () => {
@@ -87,7 +87,7 @@ describe('分支覆盖 — loader', () => {
       {},
       { ast: { type: 'other-loader', version: '8.0.0', root: null } }
     );
-    assert.match(css, /\.m\.v-meta/);
+    assert.equal(css, '.m.v-meta { margin: 0; }');
   });
 });
 
@@ -97,7 +97,7 @@ describe('分支覆盖 — PostCSS 插件', () => {
     const runner = pluginCore(null);
     const root = postcss.parse('.d { display: block; }');
     assert.doesNotThrow(() => runner(root, { parse: postcss.parse }));
-    assert.match(root.toString(), /\.d\s*\{/);
+    assert.equal(root.toString(), '.d { display: block; }');
   });
 
   it('无 url() 的 @import 保持不变', async () => {
@@ -105,8 +105,7 @@ describe('分支覆盖 — PostCSS 插件', () => {
       '@import "./plain.css";\n.btn { color: red; }',
       { scoped: true, id: 'v-plain' }
     );
-    assert.match(css, /@import "\.\/plain\.css"/);
-    assert.match(css, /\.btn\.v-plain/);
+    assert.equal(css, '@import "./plain.css";\n.btn.v-plain { color: red; }');
   });
 
   it('追加多 scope 块时使用 helpers.parse', async () => {
@@ -122,8 +121,10 @@ describe('分支覆盖 — PostCSS 插件', () => {
     });
     assert.ok(customParseUsed);
     const out = root.toString();
-    assert.match(out, /\.chip\.v-p1/);
-    assert.match(out, /\.chip\.v-p2/);
+    assert.equal(
+      out,
+      '.chip.v-p1 { padding: 2px; }\n.chip.v-p2 { padding: 2px; }'
+    );
   });
 
   it('无 ?scoped 且无 scopeFn 时保留 import url', async () => {
@@ -132,8 +133,7 @@ describe('分支覆盖 — PostCSS 插件', () => {
       '@import url("./lib.css?global");\n.x { }',
       { scoped: true, id: 'v-url' }
     );
-    assert.match(css, /lib\.css\?global/);
-    assert.doesNotMatch(css, /scope-style/);
+    assert.equal(css, '@import url("./lib.css?global");\n.x.v-url { }');
   });
 });
 
@@ -149,7 +149,7 @@ describe('分支覆盖 — utils', () => {
       [],
       t.blockStatement([])
     );
-    assert.match(utils.expr2str(getter), /get value/);
+    assert.equal(utils.expr2str(getter), 'get value(){}');
   });
 
   it('isRequired 忽略非字符串 import 源', () => {

@@ -1,6 +1,6 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
-const { transformWithPreset } = require('./helpers');
+const { assertScopedEqual, extractScopeIdFromCode } = require('./helpers');
 
 const SCOPED_IMPORT = "import './scoped.scss?scoped';";
 
@@ -12,6 +12,7 @@ const SCOPED_IMPORT = "import './scoped.scss?scoped';";
  * @returns {string}
  */
 function transformScopedJsx(jsx, pluginOptions = {}, extraImports = '') {
+  const { transformWithPreset } = require('./helpers');
   const code = transformWithPreset(`
 import React from 'react';
 ${extraImports}
@@ -34,18 +35,42 @@ describe('classAttrs — className 属性', () => {
         <span />
       </>
     `);
-    assert.match(code, /<div className="v-[^"]+"/);
-    assert.match(code, /<span className="v-[^"]+"/);
+    assertScopedEqual(
+      code,
+      `import React from 'react';
+import "./scoped.scss?scope-style&scoped=true&id={scopeId}";
+export function Demo() {
+  return <>
+        <div className="{scopeId}" />
+        <span className="{scopeId}" />
+      </>;
+}`
+    );
   });
 
   it('在已有字符串 className 前追加 scope id', () => {
     const code = transformScopedJsx('<div className="btn primary" />');
-    assert.match(code, /className="v-[^"]+ btn primary"/);
+    assertScopedEqual(
+      code,
+      `import React from 'react';
+import "./scoped.scss?scope-style&scoped=true&id={scopeId}";
+export function Demo() {
+  return <div className="{scopeId} btn primary" />;
+}`
+    );
   });
 
   it('将 scope id 合并进已有 className 表达式', () => {
     const code = transformScopedJsx('<div className={active ? "on" : "off"} />');
-    assert.match(code, /className=\{classNames\(\["v-[^"]+",\s*active \? "on" : "off"\]\)\}/);
+    assertScopedEqual(
+      code,
+      `import classNames from "classnames";
+import React from 'react';
+import "./scoped.scss?scope-style&scoped=true&id={scopeId}";
+export function Demo() {
+  return <div className={classNames(["{scopeId}", active ? "on" : "off"])} />;
+}`
+    );
   });
 
   it('为树中每个未排除元素注入 className', () => {
@@ -55,22 +80,43 @@ describe('classAttrs — className 属性', () => {
         <p />
       </section>
     `);
-    assert.match(code, /<section className="v-[^"]+"/);
-    assert.match(code, /className="v-[^"]+ hd"/);
-    assert.match(code, /<p className="v-[^"]+"/);
+    assertScopedEqual(
+      code,
+      `import React from 'react';
+import "./scoped.scss?scope-style&scoped=true&id={scopeId}";
+export function Demo() {
+  return <section className="{scopeId}">
+        <header className="{scopeId} hd" />
+        <p className="{scopeId}" />
+      </section>;
+}`
+    );
   });
 
   it('通过 classNames 包装合并模板字符串 className', () => {
     // eslint-disable-next-line no-template-curly-in-string
     const code = transformScopedJsx('<div className={`btn-${kind}`} />');
-    assert.match(code, /className=\{classNames\(\["v-[^"]+",\s*`btn-\$\{kind\}`\]\)\}/);
+    assertScopedEqual(
+      code,
+      `import classNames from "classnames";
+import React from 'react';
+import "./scoped.scss?scope-style&scoped=true&id={scopeId}";
+export function Demo() {
+  return <div className={classNames(["{scopeId}", \`btn-\${kind}\`])} />;
+}`
+    );
   });
 
   it('将 scope 合并进数组表达式 className', () => {
     const code = transformScopedJsx("<div className={['base', isActive && 'on']} />");
-    assert.match(
+    assertScopedEqual(
       code,
-      /className=\{classNames\(\["v-[^"]+",\s*\['base', isActive && 'on'\]\]\)\}/
+      `import classNames from "classnames";
+import React from 'react';
+import "./scoped.scss?scope-style&scoped=true&id={scopeId}";
+export function Demo() {
+  return <div className={classNames(["{scopeId}", ['base', isActive && 'on']])} />;
+}`
     );
   });
 
@@ -80,11 +126,18 @@ describe('classAttrs — className 属性', () => {
       {},
       "import classNames from 'classnames';"
     );
-    assert.match(
+    assertScopedEqual(
       code,
-      /className=\{classNames\(\["v-[^"]+",\s*'size'\],\s*\{\s*active:\s*on\s*\}\)\}/
+      `import React from 'react';
+import classNames from 'classnames';
+import "./scoped.scss?scope-style&scoped=true&id={scopeId}";
+export function Demo() {
+  return <div className={classNames(["{scopeId}", 'size'], {
+    active: on
+  })} />;
+}`
     );
-    assert.doesNotMatch(code, /classNames\(\["v-[^"]+",\s*classNames/);
+    assert.equal((code.match(/classNames\(/g) || []).length, 1);
   });
 
   it('仅 import clsx 时在 clsx() 首参前追加 scope', () => {
@@ -93,11 +146,16 @@ describe('classAttrs — className 属性', () => {
       { classNameLibrary: 'clsx' },
       "import clsx from 'clsx';"
     );
-    assert.match(
+    assertScopedEqual(
       code,
-      /className=\{clsx\(\["v-[^"]+",\s*'a'\],\s*cond && 'b'\)\}/
+      `import React from 'react';
+import clsx from 'clsx';
+import "./scoped.scss?scope-style&scoped=true&id={scopeId}";
+export function Demo() {
+  return <div className={clsx(["{scopeId}", 'a'], cond && 'b')} />;
+}`
     );
-    assert.doesNotMatch(code, /from ['"]classnames['"]/);
+    assert.equal(code.includes("from 'classnames'"), false);
   });
 
   it('auto 且仅 clsx 时在 clsx() 首参前追加 scope', () => {
@@ -106,8 +164,16 @@ describe('classAttrs — className 属性', () => {
       { classNameLibrary: 'auto' },
       "import clsx from 'clsx';"
     );
-    assert.match(code, /className=\{clsx\(\["v-[^"]+",\s*'only-clsx'\]\)\}/);
-    assert.doesNotMatch(code, /from ['"]classnames['"]/);
+    assertScopedEqual(
+      code,
+      `import React from 'react';
+import clsx from 'clsx';
+import "./scoped.scss?scope-style&scoped=true&id={scopeId}";
+export function Demo() {
+  return <div className={clsx(["{scopeId}", 'only-clsx'])} />;
+}`
+    );
+    assert.equal(code.includes("from 'classnames'"), false);
   });
 
   it('auto 且同时 import 两库时用 classNames 包装 clsx', () => {
@@ -116,9 +182,15 @@ describe('classAttrs — className 属性', () => {
       { classNameLibrary: 'auto' },
       "import clsx from 'clsx';\nimport classNames from 'classnames';"
     );
-    assert.match(
+    assertScopedEqual(
       code,
-      /className=\{classNames\(\["v-[^"]+",\s*clsx\('x'\)\]\)\}/
+      `import React from 'react';
+import clsx from 'clsx';
+import classNames from 'classnames';
+import "./scoped.scss?scope-style&scoped=true&id={scopeId}";
+export function Demo() {
+  return <div className={classNames(["{scopeId}", clsx('x')])} />;
+}`
     );
   });
 
@@ -128,7 +200,15 @@ describe('classAttrs — className 属性', () => {
       {},
       "import classNames from 'classnames';"
     );
-    assert.match(code, /classNames\(\["v-[^"]+",\s*\['inner'\]\]\)/);
+    assertScopedEqual(
+      code,
+      `import React from 'react';
+import classNames from 'classnames';
+import "./scoped.scss?scope-style&scoped=true&id={scopeId}";
+export function Demo() {
+  return <div className={classNames(["{scopeId}", ['inner']])} />;
+}`
+    );
     assert.equal((code.match(/classNames\(/g) || []).length, 1);
   });
 
@@ -139,9 +219,19 @@ describe('classAttrs — className 属性', () => {
         <slot />
       </>
     `);
-    assert.doesNotMatch(code, /<template className=/);
-    assert.doesNotMatch(code, /<slot className=/);
-    assert.match(code, /<div className="v-[^"]+ inner"/);
+    assertScopedEqual(
+      code,
+      `import React from 'react';
+import "./scoped.scss?scope-style&scoped=true&id={scopeId}";
+export function Demo() {
+  return <>
+        <template><div className="{scopeId} inner" /></template>
+        <slot />
+      </>;
+}`
+    );
+    assert.equal(code.includes('<template className='), false);
+    assert.equal(code.includes('<slot className='), false);
   });
 });
 
@@ -151,24 +241,40 @@ describe('classAttrs — 非 className 属性', () => {
   };
 
   it('仅当元素已有 data-class 时更新 data-class', () => {
-    const code = transformScopedJsx(
-      '<div data-class="badge" />',
-      dataClassOnly
+    const code = transformScopedJsx('<div data-class="badge" />', dataClassOnly);
+    assertScopedEqual(
+      code,
+      `import React from 'react';
+import "./scoped.scss?scope-style&scoped=true&id={scopeId}";
+export function Demo() {
+  return <div className="{scopeId}" data-class="{scopeId} badge" />;
+}`
     );
-    assert.match(code, /data-class="v-[^"]+ badge"/);
-    assert.match(code, /<div className="v-[^"]+"/);
   });
 
   it('元素无 data-class 时不创建', () => {
     const code = transformScopedJsx('<div className="only" />', dataClassOnly);
-    assert.match(code, /className="v-[^"]+ only"/);
-    assert.doesNotMatch(code, /data-class=/);
+    assertScopedEqual(
+      code,
+      `import React from 'react';
+import "./scoped.scss?scope-style&scoped=true&id={scopeId}";
+export function Demo() {
+  return <div className="{scopeId} only" />;
+}`
+    );
+    assert.equal(code.includes('data-class='), false);
   });
 
   it('仅有 data-class 无 className 时仍创建 className', () => {
     const code = transformScopedJsx('<label data-class="lbl" />', dataClassOnly);
-    assert.match(code, /data-class="v-[^"]+ lbl"/);
-    assert.match(code, /<label className="v-[^"]+"/);
+    assertScopedEqual(
+      code,
+      `import React from 'react';
+import "./scoped.scss?scope-style&scoped=true&id={scopeId}";
+export function Demo() {
+  return <label className="{scopeId}" data-class="{scopeId} lbl" />;
+}`
+    );
   });
 
   it('无 data-class 的兄弟节点除 className 外不变', () => {
@@ -179,11 +285,20 @@ describe('classAttrs — 非 className 属性', () => {
         <span />
       </>
     `, dataClassOnly);
-    assert.match(code, /data-class="v-[^"]+ a"/);
-    assert.doesNotMatch(code, /<span data-class="v-[^"]+ b"/);
-    assert.match(code, /className="v-[^"]+ b"/);
-    const plainSpan = code.match(/<span className="v-[^"]+"\s*\/>/g);
-    assert.ok(plainSpan && plainSpan.length >= 1);
+    assertScopedEqual(
+      code,
+      `import React from 'react';
+import "./scoped.scss?scope-style&scoped=true&id={scopeId}";
+export function Demo() {
+  return <>
+        <span className="{scopeId}" data-class="{scopeId} a" />
+        <span className="{scopeId} b" />
+        <span className="{scopeId}" />
+      </>;
+}`
+    );
+    const scopeId = extractScopeIdFromCode(code);
+    assert.equal(code.includes(`data-class="${scopeId} b"`), false);
   });
 
   it('通过 classAttrs 列表支持自定义属性名', () => {
@@ -191,16 +306,29 @@ describe('classAttrs — 非 className 属性', () => {
       '<button custom-class="cta" />',
       { classAttrs: ['className', 'custom-class'] }
     );
-    assert.match(code, /custom-class="v-[^"]+ cta"/);
-    assert.match(code, /<button className="v-[^"]+"/);
+    assertScopedEqual(
+      code,
+      `import React from 'react';
+import "./scoped.scss?scope-style&scoped=true&id={scopeId}";
+export function Demo() {
+  return <button className="{scopeId}" custom-class="{scopeId} cta" />;
+}`
+    );
   });
 
   it('属性不存在时不创建 custom-class', () => {
     const code = transformScopedJsx('<button />', {
       classAttrs: ['className', 'custom-class'],
     });
-    assert.match(code, /<button className="v-[^"]+"/);
-    assert.doesNotMatch(code, /custom-class=/);
+    assertScopedEqual(
+      code,
+      `import React from 'react';
+import "./scoped.scss?scope-style&scoped=true&id={scopeId}";
+export function Demo() {
+  return <button className="{scopeId}" />;
+}`
+    );
+    assert.equal(code.includes('custom-class='), false);
   });
 });
 
@@ -220,19 +348,32 @@ describe('classAttrs — 函数 matcher', () => {
         ],
       }
     );
-    assert.match(code, /<Button className="v-[^"]+" data-class="v-[^"]+ primary"/);
-    assert.match(code, /<div className="v-[^"]+" data-class="ignored"/);
-    assert.doesNotMatch(code, /data-class="v-[^"]+ ignored"/);
-    assert.match(code, /<Button className="v-[^"]+"/);
-    assert.match(code, /<div className="v-[^"]+"/);
+    assertScopedEqual(
+      code,
+      `import React from 'react';
+import "./scoped.scss?scope-style&scoped=true&id={scopeId}";
+export function Demo() {
+  return <>
+        <Button className="{scopeId}" data-class="{scopeId} primary" />
+        <div className="{scopeId}" data-class="ignored" />
+      </>;
+}`
+    );
+    assert.equal(code.includes('data-class="{scopeId} ignored"'), false);
   });
 });
 
 describe('classAttrs — 默认配置', () => {
   it('未自定义 classAttrs 时仅使用 className', () => {
     const code = transformScopedJsx('<div data-class="x" />');
-    assert.match(code, /<div className="v-[^"]+"/);
-    assert.equal(code.includes('data-class='), true);
-    assert.doesNotMatch(code, /data-class="v-/);
+    assertScopedEqual(
+      code,
+      `import React from 'react';
+import "./scoped.scss?scope-style&scoped=true&id={scopeId}";
+export function Demo() {
+  return <div className="{scopeId}" data-class="x" />;
+}`
+    );
+    assert.equal(code.includes('data-class="v-'), false);
   });
 });

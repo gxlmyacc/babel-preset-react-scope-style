@@ -17,7 +17,8 @@ A comprehensive solution for scoping styles in React components, with Babel and 
 - **Flexible Configuration**: Customizable scope prefixes, attributes, and scoping strategies
 - **React Component Support**: Optimized for React components with automatic className handling
 - **CSS-in-JS Support**: Works with classnames, clsx, and other utility libraries
-- **Deep Selector Support**: Handles `>>>` and `:scope` selectors for component styling
+- **:scope / :global selectors**: Control where scope IDs attach and which fragments stay global
+- **Native CSS nesting**: Supports nested Rule trees from PostCSS 8+; flattened chains match flat CSS scoping rules
 - **Global Style Support**: Allows global styles while maintaining component isolation
 
 ## Installation
@@ -408,18 +409,27 @@ This library does **not** support CSS Modules-style `:global(.class)`. Only thes
 /* Output: .container.v-abc123 .ant-btn { color: red; } */
 ```
 
-#### 4. Using >>> for Deep Selectors
-Use `>>>` for deep selectors:
+#### 4. Native CSS nesting (PostCSS 8+)
 
-```scss
-/* Input SCSS */
-.container >>> .deep-element { color: green; }
-.wrapper >>> .nested .deep { background: yellow; }
+When styles enter the plugin as a **nested Rule tree** (native `.css` nesting):
 
-/* Generated CSS */
-.container.v-abc123 .deep-element { color: green; }
-.wrapper.v-abc123 .nested .deep { background: yellow; }
+- **Flat-chain principle**: After nesting expands, effective selectors follow the same rules as hand-written flat CSS — scope on the **last segment** by default (e.g. `.card .title.v-abc123`).
+- **Leaf-only gate**: Parent blocks (e.g. `.card` in `.card { .title {} }`) are **not** scoped again, avoiding `.card.v-xxx .title.v-xxx`.
+- **Declarations + child rules**: Block-level declarations are auto-wrapped in `&:scope { }` (often compiled to `&.v-abc123 { }`, equivalent to `.card.v-abc123`).
+- **`:global` segments**: Plain selectors inside `:global` are not scoped; redundant nested `:global` wrappers are removed; inner `:scope` still scopes normally.
+- **Pseudo-classes**: `&:hover` may output `&.v-abc123:hover`; the effective chain is `.card.v-abc123:hover`.
+- **Flat SCSS/Less** (already expanded to a single selector string) behaves as before.
+
+```css
+/* Input */
+.card { .title { color: red; } }
+
+/* Output (concept) */
+.card { .title.v-abc123 { color: red; } }
+/* expands to: .card .title.v-abc123 */
 ```
+
+**Cross-file child components**: scope must appear on the **last segment** of the chain (`.title.v-abc123`), not only on an ancestor `.card`.
 
 #### 5. Practical Application Examples
 ```scss
@@ -442,10 +452,6 @@ Use `>>>` for deep selectors:
 :global .reset { margin: 0; }
 /* Output: .reset { margin: 0; } (no scope added) */
 
-/* >>> - deep selector (use with caution) */
-.container >>> .deep { color: blue; }
-/* Output: .container.v-abc123 .deep { color: blue; } */
-
 /* Wrong - without :scope this won't work */
 .custom-modal .ant-modal-content { padding: 24px; }
 /* Output: .custom-modal.v-abc123 .ant-modal-content { padding: 24px; } */
@@ -464,11 +470,10 @@ Use `>>>` for deep selectors:
 **Key Transformation Notes:**
 
 1. **`:scope` selector**: Transforms to `.v-abc123` class selector (`?scoped`) or `[class*=v-]` attribute selector (`?global`)
-2. **`>>>` deep selector**: Parent element gets scope ID, child elements remain unchanged
-3. **Leading `:global`**: Entire rule unscoped; **middle `:global`** (from nesting): scope on the selector before `:global`, suffix unchanged
-4. **Regular selectors**: Automatically add scope ID at the end
-5. **Nested selectors**: Each nested level gets scope ID
-6. **SCSS variables**: Replaced with actual values in CSS output
+2. **Leading `:global`**: Entire rule unscoped; **middle `:global`** (from nesting): scope on the selector before `:global`, suffix unchanged
+3. **Regular / flat selectors**: Scope ID on the last segment (before pseudo-classes, e.g. `.card.v-abc123:hover`)
+4. **Native nested Rule trees**: Only **Rule tree leaves** (or explicit `:scope` / `:global`) are scoped; after flattening, same as flat rules
+5. **SCSS variables**: Replaced with actual values in CSS output
 
 ### Understanding ?scoped vs ?global
 
@@ -949,7 +954,7 @@ The PostCSS plugin automatically receives these parameters from the loader based
 
 2. **PostCSS Plugin**:
    - Processes CSS selectors with scope isolation
-   - Handles `:scope`, `>>>`, and `:global` selectors
+   - Handles `:scope`, `:global`, and native CSS nesting
    - Generates unique scope IDs for components
    - Applies different scoping strategies based on import types
 
@@ -1250,13 +1255,14 @@ To opt a **rule** out of scoping, use a **leading** `:global` in that file’s s
 **A:** `scopeAll: false` (default) only generates scope IDs for JSX elements in files that import styles with `?scoped`, while `scopeAll: true` generates scope IDs for ALL JSX elements in the project, regardless of style file imports. Use `scopeAll: true` when you want consistent architecture or future-proofing for styling needs.
 
 ### Q: How are scope IDs positioned in CSS selectors?
-**A:** By default, scope IDs are added to the last selector in each CSS rule. Use `:scope` to control the position, `:global` to prevent scoping, and `>>>` for deep selectors. For example, `.button` becomes `.button.v-abc123`, while `.container:scope .button` becomes `.container.v-abc123 .button`.
+**A:** By default, scope IDs are added to the **last segment** of each selector chain (before pseudo-classes, e.g. `.button.v-abc123:hover`). Use `:scope` to control position and `:global` for global fragments. For example, `.button` → `.button.v-abc123`, `.container:scope .button` → `.container.v-abc123 .button`.
 
 **⚠️ Important:** `:scope` can be used in two ways:
-1. **Attached**: `.container:scope` → `.container.v-abc123` (scope ID attached to selector)
-2. **Standalone**: `.container :scope` → `.container .v-abc123` (scope ID as separate selector)
+1. **Attached**: `.container:scope` → `.container.v-abc123`
+2. **Standalone**: `.container :scope` → `.container .v-abc123`
 
-Both are valid but produce different CSS output.
+### Q: How does native CSS nesting get scoped?
+**A:** Same as flat rules: only **Rule tree leaves** get scope by default, so `.card { .title {} }` becomes `.card .title.v-abc123` after flattening. Declarations alongside child rules are auto-wrapped in `&:scope`. Selectors inside `:global` are not scoped; `:scope` blocks inside `:global` still scope. Every JSX element still gets the same `v-xxx`; the selector must bind scope on the last segment so child components from other files are not affected.
 
 ## Best Practices
 
@@ -1294,8 +1300,8 @@ shared/
 - **Benefit**: Custom styles applied to third-party components will be properly scoped
 
 ### 4. CSS Selectors
-- Prefer `:scope` over `>>>` when possible
-- Use `:global` sparingly for truly global styles
+- Prefer native nesting or flat selectors; use `&:scope` when a block needs both declarations and child rules
+- Use `:global` sparingly for truly global fragments
 - Leverage CSS custom properties for theming
 
 **Understanding :scope positioning:**

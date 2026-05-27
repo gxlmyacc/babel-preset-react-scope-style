@@ -68,7 +68,7 @@ function selectorAlreadyScoped(selector, id, isGlobal) {
 }
 
 /**
- * 在复合选择器上插入 scope（默认加在最后一个可附着节点后；>>> 则加在深度组合符前一侧）。
+ * 在复合选择器上插入 scope（默认加在最后一个可附着节点后；伪类之前）。
  * @param {import('postcss-selector-parser').Selector} selector - 复合选择器
  * @param {string} id - 作用域 id
  * @param {boolean} isGlobal - 是否 global 模式
@@ -79,15 +79,8 @@ function appendScopeToSelector(selector, id, isGlobal) {
     return;
   }
 
-  let idx = selector.nodes.findIndex((n) => n.type === 'combinator' && n.value === '>>>');
+  let idx = selector.nodes.length - 1;
   let lastNode;
-  if (idx < 0) {
-    idx = selector.nodes.length - 1;
-  } else {
-    selector.nodes.splice(idx, 1);
-    lastNode = selector.nodes[idx];
-    idx -= 1;
-  }
 
   for (; idx > -1; idx -= 1) {
     const node = selector.nodes[idx];
@@ -277,14 +270,14 @@ function scopeCompoundSelector(selector, options) {
 }
 
 /**
- * 对单条 CSS 选择器字符串施加作用域（含 :scope、:global、>>>）。
+ * 对单条 CSS 选择器字符串施加作用域（含 :scope、:global）。
  * @param {string} selector - 选择器文本
  * @param {{ id: string, isGlobal: boolean, globalSelector?: string }} options - 作用域选项
  * @returns {string}
  */
 function scopeSelector(selector, options) {
   const { id, isGlobal, globalSelector = '' } = options;
-  const normalized = selector.replace(/> > >/g, '>>>').trim();
+  const normalized = selector.trim();
   if (!normalized) return selector;
 
   if (isLeadingGlobalRule(normalized)) {

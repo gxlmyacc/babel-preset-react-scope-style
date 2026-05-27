@@ -43,6 +43,8 @@
     "build": "babel src -d esm",
     "prepare": "npm run build",
     "test": "node scripts/run-tests.js",
+    "debug:test": "node --inspect-brk=9229 scripts/debug-test.js test/postcss-nesting.test.js",
+    "debug:test:file": "node --inspect-brk=9229 scripts/debug-test.js",
     "test:coverage": "c8 node scripts/run-tests.js",
     "test:coverage:report": "c8 report --reporter=text"
   },

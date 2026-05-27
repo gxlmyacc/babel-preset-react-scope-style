@@ -1,5 +1,10 @@
 const { createScopeQuery, isFunction } = require('../src/utils');
-const { shouldSkipRule, scopeSelector } = require('./selector-scope');
+const { scopeSelector } = require('./selector-scope');
+const {
+  runNestingPrepass,
+  shouldApplyScope,
+  replaceBareNestingMarkersWithAmpersand,
+} = require('./nesting-scope');
 
 const URL_PATTERNS = [
   /(url\(\s*['"]?)([^"')]+)(["']?\s*\))/g,
@@ -153,14 +158,18 @@ function rewriteImportUrls(root, ctx) {
  * @returns {void}
  */
 function rewriteAllSelectors(root, scopeOpts) {
+  runNestingPrepass(root);
+
   root.walkRules((rule) => {
-    if (!rule.selector || shouldSkipRule(rule)) return;
+    if (!shouldApplyScope(rule, scopeOpts)) return;
     rule.selector = scopeSelector(rule.selector, {
       id: scopeOpts.id,
       isGlobal: scopeOpts.isGlobal,
       globalSelector: scopeOpts.globalSelector,
     });
   });
+
+  replaceBareNestingMarkersWithAmpersand(root, scopeOpts);
 }
 
 /**

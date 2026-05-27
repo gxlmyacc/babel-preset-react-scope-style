@@ -1,6 +1,6 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
-const { transformWithPreset } = require('./helpers');
+const { transformWithPreset, assertScopedEqual } = require('./helpers');
 
 describe('inject-scope 插件', () => {
   it('改写 ?scoped 样式 import 并向 JSX 注入 scope class', () => {
@@ -12,8 +12,14 @@ export function Button() {
   return <button className="btn">OK</button>;
 }
 `);
-    assert.match(code, /scope-style&scoped=true&id=v-/);
-    assert.match(code, /className="v-[^"]+ btn"/);
+    assertScopedEqual(
+      code,
+      `import React from 'react';
+import "./button.scss?scope-style&scoped=true&id={scopeId}";
+export function Button() {
+  return <button className="{scopeId} btn">OK</button>;
+}`
+    );
   });
 
   it('改写 ?global 样式 import 并带 global 前缀', () => {
@@ -25,7 +31,14 @@ export function App() {
   return <div className="wrap">x</div>;
 }
 `);
-    assert.match(code, /scope-style&scoped=true&global=true&id=v-/);
+    assert.equal(
+      code,
+      `import React from 'react';
+import "./theme.scss?scope-style&scoped=true&global=true&id=v-";
+export function App() {
+  return <div className="wrap">x</div>;
+}`
+    );
   });
 
   it('将 scope id 合并进 classnames() 调用', () => {
@@ -38,8 +51,19 @@ export function Box({ on }) {
   return <div className={classnames({ active: on })} />;
 }
 `);
-    assert.match(code, /classnames\(\[/);
-    assert.match(code, /"v-/);
+    assertScopedEqual(
+      code,
+      `import React from 'react';
+import classnames from 'classnames';
+import "./a.scss?scope-style&scoped=true&id={scopeId}";
+export function Box({
+  on
+}) {
+  return <div className={classnames(["{scopeId}", {
+    active: on
+  }])} />;
+}`
+    );
   });
 
   it('已 import clsx 时将 scope id 合并进 clsx()', () => {
@@ -52,7 +76,18 @@ export function Box({ on }) {
   return <div className={clsx({ active: on })} />;
 }
 `, { pluginOptions: { classNameLibrary: 'auto' } });
-    assert.match(code, /clsx\(\[/);
-    assert.match(code, /"v-/);
+    assertScopedEqual(
+      code,
+      `import React from 'react';
+import clsx from 'clsx';
+import "./a.scss?scope-style&scoped=true&id={scopeId}";
+export function Box({
+  on
+}) {
+  return <div className={clsx(["{scopeId}", {
+    active: on
+  }])} />;
+}`
+    );
   });
 });

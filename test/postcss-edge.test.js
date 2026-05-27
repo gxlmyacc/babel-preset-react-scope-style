@@ -15,12 +15,10 @@ describe('PostCSS 边界情况', () => {
         '@import url("./partial.scss?scoped");\n.main { color: black; }',
         { scoped: true, global: false, id: 'v-parent-scoped' }
       );
-      assert.match(
+      assert.equal(
         css,
-        /partial\.scss\?scope-style&scoped=true&id=v-parent-scoped/
+        '@import url("./partial.scss?scope-style&scoped=true&id=v-parent-scoped");\n.main.v-parent-scoped { color: black; }'
       );
-      assert.doesNotMatch(css, /scope-style&scoped=true&global=true/);
-      assert.match(css, /\.main\.v-parent-scoped/);
     });
 
     it('父文件为 global 时，子 import 的 ?scoped 等价于 JS 的 ?global', async () => {
@@ -29,11 +27,10 @@ describe('PostCSS 边界情况', () => {
         '@import url("./shared.scss?scoped");\n.util { margin: 0; }',
         { scoped: true, global: true, id: 'v-parent-global' }
       );
-      assert.match(
+      assert.equal(
         css,
-        /shared\.scss\?scope-style&scoped=true&global=true&id=v-parent-global/
+        '@import url("./shared.scss?scope-style&scoped=true&global=true&id=v-parent-global");\n.util[class*=v-parent-global] { margin: 0; }'
       );
-      assert.match(css, /\.util\[class\*=v-parent-global\]/);
     });
 
     it('import 仅识别 ?scoped 后缀，?global 不会注入 scope-style', async () => {
@@ -46,9 +43,14 @@ describe('PostCSS 边界情况', () => {
         ].join('\n'),
         { scoped: true, id: 'v-plain' }
       );
-      assert.match(css, /keep-global\.scss\?global/);
-      assert.match(css, /plain\.scss/);
-      assert.doesNotMatch(css, /scope-style/);
+      assert.equal(
+        css,
+        [
+          '@import url("./keep-global.scss?global");',
+          '@import url("./plain.scss");',
+          '.z.v-plain { }',
+        ].join('\n')
+      );
     });
 
     it('无 scopeFn 时非 ?scoped 的 import 保持原样', async () => {
@@ -57,8 +59,7 @@ describe('PostCSS 边界情况', () => {
         '@import url("./only-global.scss?global");\n.z { }',
         { scoped: true, id: 'v-plain' }
       );
-      assert.match(css, /only-global\.scss\?global/);
-      assert.doesNotMatch(css, /scope-style/);
+      assert.equal(css, '@import url("./only-global.scss?global");\n.z.v-plain { }');
     });
   });
 
@@ -70,7 +71,7 @@ describe('PostCSS 边界情况', () => {
       '@import url("./part.scss?global");\n.x { }',
       { scoped: true, id: 'v-z' }
     );
-    assert.match(css, /part\.scss\?custom/);
+    assert.equal(css, '@import url("./part.scss?custom");\n.x.v-z { }');
   });
 
   it('嵌套 ?scoped import 时 scopeFn 收到 scopeId', async () => {
@@ -105,7 +106,7 @@ describe('PostCSS 边界情况', () => {
       scoped: true,
       id: 'v-factory',
     }));
-    assert.match(css, /\.a\.v-factory/);
+    assert.equal(css, '.a.v-factory { }');
   });
 
   it('忽略无 scoped/id 的配置项', async () => {
@@ -113,8 +114,7 @@ describe('PostCSS 边界情况', () => {
       { scoped: false, id: 'v-skip' },
       { scoped: true, id: 'v-ok' },
     ]);
-    assert.match(css, /\.a\.v-ok/);
-    assert.doesNotMatch(css, /\.v-skip/);
+    assert.equal(css, '.a.v-ok { color: red; }');
   });
 
   it('工厂返回假值时跳过处理', async () => {
@@ -142,7 +142,7 @@ describe('PostCSS 边界情况', () => {
       '@import url("./token.scss?global");\n.z { }',
       { scoped: true, id: 'v-tok' }
     );
-    assert.match(css, /token\.scss\?custom/);
+    assert.equal(css, '@import url("./token.scss?custom");\n.z.v-tok { }');
   });
 
   it('合并多 scope 时对重复 @import 去重', async () => {
@@ -157,7 +157,7 @@ describe('PostCSS 边界情况', () => {
       { scoped: true, global: true, id: 'v-' },
       { scoped: true, id: 'v-local' },
     ]);
-    assert.match(css, /\.g\[class\*=v-\]\.v-local/);
+    assert.equal(css, '.g[class*=v-].v-local { }');
   });
 
   it('options.scope 函数充当 scopeFn', async () => {
@@ -168,7 +168,7 @@ describe('PostCSS 边界情况', () => {
       '@import url("./fn.scss?scoped");\n.r { }',
       { scoped: true, id: 'v-fn2' }
     );
-    assert.match(css, /fn\.scss\?scope-style/);
+    assert.equal(css, '@import url("./fn.scss?scope-style&scoped=true&id=v-fn2");\n.r.v-fn2 { }');
   });
 
   it('selector-scope 处理空选择器与已带 global 属性的选择器', async () => {
@@ -179,8 +179,7 @@ describe('PostCSS 边界情况', () => {
       global: true,
       id: 'v-g',
     });
-    assert.match(css, /\[class\*="v-g"\]/);
-    assert.equal((css.match(/\[class\*="v-g"\]/g) || []).length, 1);
+    assert.equal(css, '.box[class*="v-g"] { color: green; }');
   });
 
   it('跳过 @-webkit-keyframes 内部规则', async () => {
@@ -188,7 +187,7 @@ describe('PostCSS 边界情况', () => {
       '@-webkit-keyframes spin { from { transform: rotate(0); } }',
       { scoped: true, id: 'v-wk' }
     );
-    assert.doesNotMatch(css, /\.v-wk/);
+    assert.equal(css, '@-webkit-keyframes spin { from { transform: rotate(0); } }');
   });
 
   it('selectorAlreadyScoped 避免重复追加 scope class', async () => {
@@ -230,7 +229,7 @@ describe('PostCSS 边界情况', () => {
       const css = '.p { padding: 0; }';
       const postcss = require('postcss');
       const result = await postcss([wrapped]).process(css, { from: undefined });
-      assert.match(result.css, /\.p\.v-seven/);
+      assert.equal(result.css.trim(), '.p.v-seven { padding: 0; }');
       delete require.cache[indexPath];
     });
   });

@@ -74,7 +74,7 @@ describe('Webpack loader', () => {
   it('存在 scope-style query 时转换 CSS', async () => {
     const query = 'scope-style&scoped=true&id=v-loader';
     const { css, meta } = await runWebpackLoader('.box { margin: 0; }', `box.css?${query}`);
-    assert.match(css, /\.box\.v-loader/);
+    assert.equal(css, '.box.v-loader { margin: 0; }');
     assert.equal(meta.ast.type, 'react-scope-style/loader');
   });
 
@@ -86,7 +86,7 @@ describe('Webpack loader', () => {
     const { css } = await runWebpackLoader(root, `x.css?${query}`, {}, {
       ast: { type: 'postcss', version: postcssPkg.version, root },
     });
-    assert.match(css, /\.x\.v-ast/);
+    assert.equal(css, '.x.v-ast { color: blue; }');
   });
 
   it('启用 sourceMap 选项并规范化 map', async () => {
@@ -107,22 +107,24 @@ describe('Webpack loader', () => {
       null,
       prevMap
     );
-    assert.match(css, /\.m\.v-map/);
+    assert.equal(
+      css,
+      '.m.v-map { margin: 0; }\n.n.v-map { padding: 1px; }\n/* third line */'
+    );
     assert.equal(map, undefined);
   });
 
   it('未启用 sourceMap 时正常处理', async () => {
     const query = 'scope-style&scoped=true&id=v-nomap';
     const { css, map } = await runWebpackLoader('.p { }', `p.css?${query}`, {});
-    assert.match(css, /\.p\.v-nomap/);
+    assert.equal(css, '.p.v-nomap { }');
     assert.equal(map, undefined);
   });
 
   it('resourceQuery 含 global=true 时按 global 作用域', async () => {
     const query = 'scope-style&scoped=true&global=true&id=v-';
     const { css } = await runWebpackLoader('.g { color: green; }', `g.css?${query}`);
-    assert.match(css, /\[class\*=v-\]/);
-    assert.doesNotMatch(css, /\.g\.v-/);
+    assert.equal(css, '.g[class*=v-] { color: green; }');
   });
 
   it('request query 不同时优先使用 resourceQuery', async () => {
@@ -135,7 +137,7 @@ describe('Webpack loader', () => {
       null,
       { resourceQuery: scopeQuery }
     );
-    assert.match(css, /\.rq\.v-rqonly/);
+    assert.equal(css, '.rq.v-rqonly { padding: 0; }');
   });
 
   it('接受 PostCSS 7 的 ast meta 但不复用 root 为内容', async () => {
@@ -148,7 +150,7 @@ describe('Webpack loader', () => {
       {},
       { ast: { type: 'postcss', version: '7.0.0', root } }
     );
-    assert.match(css, /\.y\.v-p7/);
+    assert.equal(css, '.y.v-p7 { color: yellow; }');
   });
 });
 
@@ -163,14 +165,14 @@ export function C() { return <div className="c" />; }
 `;
     const jsxResult = await plugin.transform(jsx, '/project/src/C.jsx');
     assert.ok(jsxResult && jsxResult.code);
-    assert.match(jsxResult.code, /scope-style&scoped=true/);
+    assert.equal(jsxResult.code.includes('scope-style&scoped=true'), true);
 
     const cssResult = await plugin.transform(
       '.c { color: cyan; }',
       '/project/src/c.scss?scope-style&scoped=true&id=v-abc'
     );
     assert.ok(cssResult);
-    assert.match(cssResult.code, /\.c\.v-abc/);
+    assert.equal(cssResult.code.trim(), '.c.v-abc { color: cyan; }');
 
     const skip = await plugin.transform('code', '/project/node_modules/pkg/index.js');
     assert.equal(skip, null);
@@ -193,7 +195,10 @@ describe('Rspack 辅助函数', () => {
     const withReactScopeStyle = rspack.default || rspack;
     const config = withReactScopeStyle({});
     assert.ok(config.module.rules.length >= 1);
-    assert.match(config.module.rules[0].use[0].loader, /loader[\\/]index\.js$/);
+    assert.equal(
+      /loader[\\/]index\.js$/.test(config.module.rules[0].use[0].loader),
+      true
+    );
     const chained = withReactScopeStyle({ module: { rules: [] } }, { sourceMap: true });
     assert.equal(chained.module.rules.length, 1);
     assert.equal(chained.module.rules[0].use[0].options.sourceMap, true);
@@ -218,7 +223,7 @@ describe('lib/process-scope-css 处理', () => {
       '.lib { float: left; }',
       '?scope-style&scoped=true&id=v-lib'
     );
-    assert.match(out, /\.lib\.v-lib/);
+    assert.equal(out.trim(), '.lib.v-lib { float: left; }');
   });
 
   it('无效 query 时 processScopeStyleCss 抛错', async () => {
@@ -237,7 +242,7 @@ describe('transform-class 边界情况', () => {
 import './x.scss?scoped';
 export function A() { return <div className={['a']} />; }
 `, { filename: '/p/NoReact.js' });
-    assert.doesNotMatch(code, /classnames/i);
-    assert.doesNotMatch(code, /clsx/i);
+    assert.equal(/classnames/i.test(code), false);
+    assert.equal(/clsx/i.test(code), false);
   });
 });

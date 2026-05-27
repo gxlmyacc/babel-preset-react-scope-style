@@ -1,0 +1,59 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "debug: wait on port 9229 (postcss-nesting)",
+      "type": "shell",
+      "command": "node --inspect-brk=9229 scripts/debug-test.js test/postcss-nesting.test.js",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "NODE_OPTIONS": "",
+          "VSCODE_INSPECTOR_OPTIONS": ""
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "node",
+        "pattern": { "regexp": "^$" },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "Debugger listening on ws://127\\.0\\.0\\.1:9229"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": false
+      }
+    },
+    {
+      "label": "debug: wait on port 9229 (current test file)",
+      "type": "shell",
+      "command": "node --inspect-brk=9229 scripts/debug-test.js \"${file}\"",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "NODE_OPTIONS": "",
+          "VSCODE_INSPECTOR_OPTIONS": ""
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "node",
+        "pattern": { "regexp": "^$" },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "Debugger listening on ws://127\\.0\\.0\\.1:9229"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": false
+      }
+    }
+  ]
+}

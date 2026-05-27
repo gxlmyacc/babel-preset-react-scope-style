@@ -1,6 +1,6 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
-const { transformWithPreset } = require('./helpers');
+const { transformWithPreset, assertScopedEqual } = require('./helpers');
 
 describe('inject-scope 边界情况', () => {
   it('scopeAll 在无样式 import 时仍注入 scope', () => {
@@ -10,8 +10,13 @@ export function Box() {
   return <div className="box" />;
 }
 `, { pluginOptions: { scopeAll: true } });
-    assert.match(code, /className="v-[^"]+ box"/);
-    assert.doesNotMatch(code, /scope-style/);
+    assertScopedEqual(
+      code,
+      `import React from 'react';
+export function Box() {
+  return <div className="{scopeId} box" />;
+}`
+    );
   });
 
   it('scopeVersion 在 scope id 中包含包名', () => {
@@ -37,7 +42,14 @@ export function A() { return <div />; }
         scopeFn: (p1) => `${p1}?scoped`,
       },
     });
-    assert.match(code, /plain\.scss\?scoped/);
+    assert.equal(
+      code,
+      `import React from 'react';
+import "./plain.scss?scoped";
+export function A() {
+  return <div />;
+}`
+    );
   });
 
   it('scoped import 时 scopeFn 收到 scopeId', () => {
@@ -64,8 +76,14 @@ import React from 'react';
 import './x.scss?scoped';
 export function A() { return <div className="a" />; }
 `, { pluginOptions: { scope: false } });
-    assert.match(code, /\.\/x\.scss\?scoped/);
-    assert.doesNotMatch(code, /scope-style/);
+    assert.equal(
+      code,
+      `import React from 'react';
+import './x.scss?scoped';
+export function A() {
+  return <div className="a" />;
+}`
+    );
   });
 
   it('为无 class 属性的元素注入 className', () => {
@@ -74,7 +92,14 @@ import React from 'react';
 import './x.scss?scoped';
 export function A() { return <div />; }
 `);
-    assert.match(code, /<div className="v-[^"]+"/);
+    assertScopedEqual(
+      code,
+      `import React from 'react';
+import "./x.scss?scope-style&scoped=true&id={scopeId}";
+export function A() {
+  return <div className="{scopeId}" />;
+}`
+    );
   });
 
   it('跳过 template 与 slot 标签', () => {
@@ -90,8 +115,19 @@ export function A() {
   );
 }
 `);
-    assert.doesNotMatch(code, /<template className=/);
-    assert.doesNotMatch(code, /<slot className=/);
+    assertScopedEqual(
+      code,
+      `import React from 'react';
+import "./x.scss?scope-style&scoped=true&id={scopeId}";
+export function A() {
+  return <>
+      <template><div className="{scopeId} t" /></template>
+      <slot />
+    </>;
+}`
+    );
+    assert.equal(code.includes('<template className='), false);
+    assert.equal(code.includes('<slot className='), false);
   });
 
   it('支持 .less 与 .sass import', () => {
@@ -105,8 +141,22 @@ import React from 'react';
 import './b.sass?scoped';
 export function B() { return <div />; }
 `);
-    assert.match(less, /\.less\?scope-style/);
-    assert.match(sass, /\.sass\?scope-style/);
+    assertScopedEqual(
+      less,
+      `import React from 'react';
+import "./a.less?scope-style&scoped=true&id={scopeId}";
+export function A() {
+  return <div className="{scopeId}" />;
+}`
+    );
+    assertScopedEqual(
+      sass,
+      `import React from 'react';
+import "./b.sass?scope-style&scoped=true&id={scopeId}";
+export function B() {
+  return <div className="{scopeId}" />;
+}`
+    );
   });
 
   it('scope 关闭但匹配时 scopeFn 仍改写 import', () => {
@@ -120,7 +170,14 @@ export function A() { return <div />; }
         scopeFn: (p1, q) => (q ? p1 + q : `${p1}?from-fn`),
       },
     });
-    assert.match(code, /plain\.scss\?from-fn/);
+    assert.equal(
+      code,
+      `import React from 'react';
+import "./plain.scss?from-fn";
+export function A() {
+  return <div />;
+}`
+    );
   });
 
   it('改写 ?global 样式 import 并带 scope 前缀 id', () => {
@@ -129,8 +186,14 @@ import React from 'react';
 import './global.scss?global';
 export function A() { return <div className="a" />; }
 `);
-    assert.match(code, /scope-style&scoped=true&global=true&id=v-/);
-    assert.match(code, /global\.scss\?scope-style/);
+    assert.equal(
+      code,
+      `import React from 'react';
+import "./global.scss?scope-style&scoped=true&global=true&id=v-";
+export function A() {
+  return <div className="a" />;
+}`
+    );
   });
 
   it('将 options.scope 函数视为 scopeFn', () => {
@@ -143,7 +206,14 @@ export function A() { return <div />; }
         scope: (p1, query) => (query ? `${p1}${query}` : `${p1}?fn`),
       },
     });
-    assert.match(code, /fn\.scss\?scope-style/);
+    assertScopedEqual(
+      code,
+      `import React from 'react';
+import "./fn.scss?scope-style&scoped=true&id={scopeId}";
+export function A() {
+  return <div className="{scopeId}" />;
+}`
+    );
   });
 
   it('将 scope 字符串用作 scope id 的命名空间', () => {
@@ -155,7 +225,14 @@ export function A() { return <div />; }
       filename: '/p/src/Namespaced.jsx',
       pluginOptions: { scope: 'pkg' },
     });
-    assert.match(code, /id=v-pkg-/);
+    assert.equal(
+      code,
+      `import React from 'react';
+import "./x.scss?scope-style&scoped=true&id=v-pkg-0021b7bc";
+export function A() {
+  return <div className="v-pkg-0021b7bc" />;
+}`
+    );
   });
 
   it('注入 scope 时包装已有 classnames 调用', () => {
@@ -165,6 +242,14 @@ import classNames from 'classnames';
 import './x.scss?scoped';
 export function A() { return <div className={classNames('a', 'b')} />; }
 `);
-    assert.match(code, /classNames\(\["v-[^"]+",\s*'a'\],\s*'b'\)/);
+    assertScopedEqual(
+      code,
+      `import React from 'react';
+import classNames from 'classnames';
+import "./x.scss?scope-style&scoped=true&id={scopeId}";
+export function A() {
+  return <div className={classNames(["{scopeId}", 'a'], 'b')} />;
+}`
+    );
   });
 });
