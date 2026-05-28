@@ -1,0 +1,112 @@
+/** @type {Record<string, string | string[] | Record<string, string>>} */
+export default {
+  app: {
+    title: 'Scope Style Demos',
+    subtitle: 'babel-preset-react-scope-style',
+    languageLabel: 'Language',
+    langEn: 'English',
+    langZh: '中文',
+  },
+  menu: {
+    title: 'Scenarios',
+    ariaLabel: 'Demo scenarios',
+  },
+  demoPanel: {
+    hintPrefix: 'Open DevTools and inspect the DOM: look for ',
+    hintEx: 'ex-',
+    hintMid: ' prefixed classes, and ',
+    hintGlobal: '[class*=ex-]',
+    hintSuffix: ' matching in global scenarios.',
+  },
+  common: {
+    innerText: 'inner text',
+    closeAria: 'Close',
+  },
+  demos: {
+    'scoped-basic': {
+      label: 'Basic scoped',
+      menuSummary: 'import ?scoped — scope on the last selector segment by default',
+      title: 'Basic scoped (?scoped)',
+      summary:
+        "After import './ScopedBasic.scss?scoped', `.card .title` becomes `.card .title.ex-xxx`, and JSX nodes get the same scope class.",
+      cardTitle: 'In-component title',
+      cardBody: 'These styles apply only within this file’s scope and do not affect other demos.',
+      cardBtn: 'Scoped button',
+      tagScoped: '?scoped',
+      tagDefault: 'default last segment',
+    },
+    'global-shared': {
+      label: 'Shared global',
+      menuSummary: 'import ?global — selectors use [class*=ex-] across components',
+      title: 'Shared global (?global)',
+      summary:
+        'Shared styles use ?global (`.shared-chip[class*=ex-]`). The same component must also import an empty ?scoped file so JSX gets an ex- scope class; otherwise global selectors never match.',
+      blockAChip: 'Block A chip',
+      blockAText: 'Both blocks use `.shared-chip` from the same global stylesheet',
+      blockBChip: 'Block B chip',
+      blockBText: 'After switching demos, global styles still apply to scoped nodes',
+      tagGlobal: '?global',
+      tagAttr: '[class*=ex-]',
+    },
+    'scope-selectors': {
+      label: ':scope selector',
+      menuSummary: 'Attach scope to a parent vs default leaf scoping',
+      title: ':scope selectors',
+      summary:
+        'Default `.box .inner` (scope on leaf); `.box:scope .inner` attached; nested `.box { &:scope .inner }` is equivalent.',
+      labelDefault: 'Default nesting',
+      labelAttached: '.box:scope .inner',
+      labelNested: '.box { &:scope .inner }',
+      tagScope: ':scope',
+      tagPosition: 'selector position',
+    },
+    'global-selectors': {
+      label: ':global selector',
+      menuSummary: 'Leading :global vs nested middle :global',
+      title: ':global selectors',
+      summary:
+        'Leading `:global` skips scoping for the whole rule; nested `:global .external-widget` scopes only the part before `:global`.',
+      captionLeading: 'Leading :global (no scope)',
+      utilityText: 'utility-reset-box: no ex- scope class; styles still come from this demo file',
+      captionNested: 'Nested :global .external-widget',
+      wrapperScoped: 'Container has scope',
+      externalWidget: 'Simulated third-party child class (e.g. Ant Design)',
+      tagGlobal: ':global',
+      tagThirdParty: 'third-party DOM',
+    },
+    'child-passthrough': {
+      label: 'Child className passthrough',
+      menuSummary: 'Parent passes className as skin marker; parent SCSS uses :scope on child inner nodes',
+      title: 'Pass className to child',
+      summary:
+        'Flow: ① Parent renders `<ChildCard className={skin} />` with skin-a / skin-b; ② Child merges it on the root (e.g. `child-card skin-a`); ③ Parent ChildPassthrough.scss?scoped defines `.skin-a:scope .child-card__body` — :scope attaches scope to the passthrough skin class, then targets inner child nodes so the parent stylesheet can style them.',
+      skinA: 'Skin A',
+      skinB: 'Skin B',
+      cardTitle: 'Child title (root receives parent className)',
+      cardBody:
+        'After switching skins, the parent changes the passed className so the root gets skin-a / skin-b; the matching `.skin-a:scope .child-card__body` in parent SCSS applies and overrides this background.',
+      tagPassthrough: 'className passthrough',
+      tagScope: ':scope',
+      tagInner: 'child inner nodes',
+    },
+    'custom-class-attrs': {
+      label: 'Custom classAttrs',
+      menuSummary: 'wrapClassName and other attrs get scope id when present',
+      title: 'Custom classAttrs (wrapClassName)',
+      summary:
+        'classAttrs includes wrapClassName. Modal layout and `.demo-modal-wrap:scope` live in MockModal.scss?scoped (same scope as JSX); parent file keeps only page chrome.',
+      configText: 'Build config: ',
+      configCode: "classAttrs: ['className', 'wrapClassName', 'overlayClassName']",
+      openModal: 'Open mock modal',
+      modalTitle: 'wrapClassName demo',
+      modalBodyPrefix: 'See ',
+      modalBodyCodeScss: 'MockModal.scss',
+      modalBodyMid: ': base layout + ',
+      modalBodyCodeScope: '.demo-modal-wrap:scope',
+      modalBodySuffix: ' for radius and shadow.',
+      tagWrap: 'wrapClassName',
+      tagAttrs: 'classAttrs',
+      tagScope: ':scope',
+    },
+  },
+};

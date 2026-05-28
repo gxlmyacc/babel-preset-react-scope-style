@@ -1,0 +1,24 @@
+.attrs-demo {
+  &__text {
+    margin: 0 0 12px;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: #57606a;
+
+    code {
+      padding: 0 4px;
+      border-radius: 4px;
+      background: #f6f8fa;
+      font-size: 0.8125rem;
+    }
+  }
+
+  &__open {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    background: #8250df;
+    color: #fff;
+    cursor: pointer;
+  }
+}

@@ -1,0 +1,55 @@
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 24px;
+  border-bottom: 1px solid #d0d7de;
+  background: #fff;
+
+  &__brand {
+    min-width: 0;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 1.25rem;
+    line-height: 1.3;
+  }
+
+  &__subtitle {
+    margin: 4px 0 0;
+    font-size: 0.8125rem;
+    color: #656d76;
+  }
+
+  &__actions {
+    flex-shrink: 0;
+  }
+
+  &__lang {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+    color: #57606a;
+  }
+
+  &__lang-label {
+    white-space: nowrap;
+  }
+
+  &__lang-select {
+    padding: 6px 10px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    background: #fff;
+    font-size: 0.875rem;
+    cursor: pointer;
+
+    &:focus {
+      outline: 2px solid #0969da;
+      outline-offset: 1px;
+    }
+  }
+}

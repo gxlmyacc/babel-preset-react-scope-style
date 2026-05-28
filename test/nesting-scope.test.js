@@ -8,16 +8,30 @@ const {
   isBareGlobalWrapper,
   isBareScopeWrapper,
   isAttachedGlobalNestingWrapper,
+  isBareGlobalNestingSelector,
+  isSpacedGlobalNestingSelector,
+  isStarPlaceholderGlobalNestingSelector,
+  isAmpersandGlobalNestingSelector,
+  isBareScopeNestingSelector,
+  isSpacedScopeNestingSelector,
+  isStarPlaceholderScopeNestingSelector,
+  isAmpersandScopeNestingSelector,
   isInGlobalSubtree,
   isScopeAnchorSelector,
   isUnderScopeAnchorAncestor,
   shouldApplyScope,
   unwrapRedundantNestedGlobalUnder,
   unwrapAllRedundantNestedGlobal,
-  bareScopeMarkerToAmpersand,
+  unwrapRootBareGlobalWrappers,
+  unwrapAllConsecutiveGlobalWrappers,
+  bareScopeMarkerToStar,
+  ampersandScopeMarkerWithScope,
   replaceBareNestingMarkersWithAmpersand,
+  replaceNestingSegmentMarker,
   wrapDeclsInAmpersandScope,
   runNestingPrepass,
+  isEffectivelyEmptyRule,
+  removeEffectivelyEmptyRules,
 } = require('../postcss/nesting-scope');
 
 describe('nesting-scope 单元', () => {
@@ -25,8 +39,41 @@ describe('nesting-scope 单元', () => {
     assert.equal(hasExplicitScopeControl('.btn:scope'), true);
     assert.equal(hasExplicitScopeControl(':global .reset'), true);
     assert.equal(hasExplicitScopeControl('.wrap :global .ext'), true);
+    assert.equal(hasExplicitScopeControl('.card:global .title'), true);
+    assert.equal(hasExplicitScopeControl('.wrap:global'), false);
     assert.equal(hasExplicitScopeControl('.plain'), false);
     assert.equal(hasExplicitScopeControl(':global(.btn)'), false);
+  });
+
+  it('global、scope 嵌套选择器分类（裸 / 分隔 / &:）', () => {
+    assert.equal(isBareGlobalNestingSelector(':global'), true);
+    assert.equal(isBareGlobalNestingSelector('&:global'), false);
+    assert.equal(isSpacedGlobalNestingSelector('& :global'), true);
+    assert.equal(isAmpersandGlobalNestingSelector('&:global'), true);
+    assert.equal(isAmpersandGlobalNestingSelector('& :global'), false);
+    assert.equal(isStarPlaceholderGlobalNestingSelector(':global'), true);
+    assert.equal(isStarPlaceholderGlobalNestingSelector('& :global'), true);
+    assert.equal(isBareScopeNestingSelector(':scope'), true);
+    assert.equal(isSpacedScopeNestingSelector('& :scope'), true);
+    assert.equal(isAmpersandScopeNestingSelector('&:scope'), true);
+    assert.equal(isAmpersandScopeNestingSelector('& :scope'), false);
+  });
+
+  it('replaceNestingSegmentMarker：裸 global / scope 统一占位（*.scope / &.scope）', () => {
+    const scopeOpts = { id: 'v-nest', isGlobal: false };
+    const globalBare = postcss.rule({ selector: ':global' });
+    const scopeBare = postcss.rule({ selector: ':scope' });
+    const globalAmp = postcss.rule({ selector: '&:global' });
+    const scopeAmp = postcss.rule({ selector: '&:scope' });
+
+    assert.equal(replaceNestingSegmentMarker(globalBare, 'global', scopeOpts), true);
+    assert.equal(globalBare.selector, '*.v-nest');
+    assert.equal(replaceNestingSegmentMarker(scopeBare, 'scope', scopeOpts), true);
+    assert.equal(scopeBare.selector, '*.v-nest');
+    assert.equal(replaceNestingSegmentMarker(globalAmp, 'global', scopeOpts), true);
+    assert.equal(globalAmp.selector, '&.v-nest');
+    assert.equal(replaceNestingSegmentMarker(scopeAmp, 'scope', scopeOpts), true);
+    assert.equal(scopeAmp.selector, '&.v-nest');
   });
 
   it('isBareGlobalWrapper / isBareScopeWrapper：无 selector 或无子 rule', () => {
@@ -75,17 +122,21 @@ describe('nesting-scope 单元', () => {
     assert.equal(hasAttachedScopePseudo('.plain'), false);
   });
 
-  it('isScopeAnchorSelector：global 模式识别 [class*=] 锚点', () => {
+  it('isScopeAnchorSelector：*.scope 与 &.scope 锚点', () => {
     const opts = { id: 'v-g', isGlobal: true };
     assert.equal(isScopeAnchorSelector('.x[class*=v-g]', opts), true);
-    assert.equal(isScopeAnchorSelector('.x[class*="v-g"]', opts), true);
-    assert.equal(isScopeAnchorSelector('.x.v-g', opts), false);
-    assert.equal(isScopeAnchorSelector('.card', { id: '', isGlobal: false }), false);
+    assert.equal(isScopeAnchorSelector('*[class*=v-g]', opts), true);
+    assert.equal(isScopeAnchorSelector('*.v-local', { id: 'v-local', isGlobal: false }), true);
+    assert.equal(isScopeAnchorSelector('[class*=v-g]', opts), true);
+    assert.equal(isScopeAnchorSelector('.v-local', { id: 'v-local', isGlobal: false }), true);
+    assert.equal(isScopeAnchorSelector('&.v-nest', { id: 'v-nest', isGlobal: false }), true);
+    assert.equal(isScopeAnchorSelector('*', { id: 'v-nest', isGlobal: false }), false);
   });
 
-  it('bareScopeMarkerToAmpersand：global 与 local 占位', () => {
-    assert.equal(bareScopeMarkerToAmpersand('v-g', true), '&[class*=v-g]');
-    assert.equal(bareScopeMarkerToAmpersand('v-local', false), '&.v-local');
+  it('bareScopeMarkerToStar / ampersandScopeMarkerWithScope', () => {
+    assert.equal(bareScopeMarkerToStar('v-g', true), '*[class*=v-g]');
+    assert.equal(bareScopeMarkerToStar('v-local', false), '*.v-local');
+    assert.equal(ampersandScopeMarkerWithScope('v-local', false), '&.v-local');
   });
 
   it('isUnderScopeAnchorAncestor：链上任意 :scope 锚点后代不再挂 scope', () => {
@@ -117,10 +168,14 @@ describe('nesting-scope 单元', () => {
     assert.equal(shouldApplyScope(title, opts), true);
   });
 
-  it('isInGlobalSubtree：无 global 祖先、:scope 祖先打断', () => {
+  it('isInGlobalSubtree：:global 包装与 :scope 祖先打断', () => {
     const nested = postcss.parse('.card { .title {} }');
     const title = nested.first.nodes[0];
     assert.equal(isInGlobalSubtree(title), false);
+
+    const globalWrap = postcss.parse('.card { :global { .ext {} } }');
+    const ext = globalWrap.first.nodes[0].nodes[0];
+    assert.equal(isInGlobalSubtree(ext), true);
 
     const mixed = postcss.parse('.card { :global { :scope { .scoped {} } } }');
     const scoped = mixed.first.nodes[0].nodes[0].nodes[0];
@@ -172,7 +227,7 @@ describe('nesting-scope 单元', () => {
 
     const root2 = postcss.parse('.a { :global { :global { .y {} } } }');
     unwrapAllRedundantNestedGlobal(root2);
-    assert.equal(root2.toString(), '.a { :global { .y {} } }');
+    assert.equal(root2.toString(), '.a { :global { :global { .y {} } } }');
   });
 
   it('isAttachedGlobalNestingWrapper：否定分支与附着式包装', () => {
@@ -215,35 +270,76 @@ describe('nesting-scope 单元', () => {
     );
   });
 
-  it('replaceBareNestingMarkersWithAmpersand：裸 :global / :scope 改为 & 占位', () => {
+  it('unwrapRootBareGlobalWrappers：根级 :global 上提子规则，不保留占位', () => {
+    const root = postcss.parse(`
+:global {
+  html, body { margin: 0; }
+  #root { height: 100%; }
+}
+.shared { color: red; }
+`);
+    unwrapRootBareGlobalWrappers(root);
+    assert.equal(
+      root.toString().replace(/\s+/g, ' ').trim(),
+      'html, body { margin: 0; } #root { height: 100%; } .shared { color: red; }'
+    );
+  });
+
+  it('replaceBareNestingMarkersWithAmpersand：根级裸 :global 保持不改为占位', () => {
+    const rootOnly = postcss.parse(':global { .reset { margin: 0; } }');
+    replaceBareNestingMarkersWithAmpersand(rootOnly);
+    assert.equal(rootOnly.toString(), ':global { .reset { margin: 0; } }');
+  });
+
+  it('replaceBareNestingMarkersWithAmpersand：裸 :global→*.id、裸 :scope→*.id、&:global/:scope→&.id', () => {
     const globalRoot = postcss.parse('.card { :global { .ext { color: red; } } }');
-    replaceBareNestingMarkersWithAmpersand(globalRoot);
+    replaceBareNestingMarkersWithAmpersand(globalRoot, { id: 'v-nest' });
     assert.equal(
       globalRoot.toString(),
-      '.card { & { .ext { color: red; } } }'
+      '.card { *.v-nest { .ext { color: red; } } }'
     );
 
     const nestedGlobal = postcss.parse(
-      '.card { :global { :global { .reset { color: red; } } } }'
+      ':global { :global { .reset { color: red; } } }'
     );
+    unwrapAllConsecutiveGlobalWrappers(nestedGlobal);
+    unwrapRootBareGlobalWrappers(nestedGlobal);
     replaceBareNestingMarkersWithAmpersand(nestedGlobal);
-    assert.equal(
-      nestedGlobal.toString(),
-      '.card { & { & { .reset { color: red; } } } }'
-    );
+    assert.equal(nestedGlobal.toString().trim(), '.reset { color: red; }');
 
     const scopeRoot = postcss.parse('.card { :scope { .inner { margin: 0; } } }');
     replaceBareNestingMarkersWithAmpersand(scopeRoot, { id: 'v-nest' });
     assert.equal(
       scopeRoot.toString(),
-      '.card { &.v-nest { .inner { margin: 0; } } }'
+      '.card { *.v-nest { .inner { margin: 0; } } }'
+    );
+
+    const ampersandScope = postcss.parse('.card { &:scope { .inner { padding: 0; } } }');
+    replaceBareNestingMarkersWithAmpersand(ampersandScope, { id: 'v-nest' });
+    assert.equal(
+      ampersandScope.toString(),
+      '.card { &.v-nest { .inner { padding: 0; } } }'
+    );
+
+    const ampersandGlobal = postcss.parse('.card { &:global { .ext { color: blue; } } }');
+    replaceBareNestingMarkersWithAmpersand(ampersandGlobal, { id: 'v-nest' });
+    assert.equal(
+      ampersandGlobal.toString(),
+      '.card { &.v-nest { .ext { color: blue; } } }'
+    );
+
+    const spacedGlobal = postcss.parse('.card { & :global { .ext { color: green; } } }');
+    replaceBareNestingMarkersWithAmpersand(spacedGlobal, { id: 'v-nest' });
+    assert.equal(
+      spacedGlobal.toString(),
+      '.card { *.v-nest { .ext { color: green; } } }'
     );
 
     const globalScopeRoot = postcss.parse('.card { :scope { .inner { padding: 0; } } }');
     replaceBareNestingMarkersWithAmpersand(globalScopeRoot, { id: 'v-g', isGlobal: true });
     assert.equal(
       globalScopeRoot.toString(),
-      '.card { &[class*=v-g] { .inner { padding: 0; } } }'
+      '.card { *[class*=v-g] { .inner { padding: 0; } } }'
     );
   });
 
@@ -251,6 +347,17 @@ describe('nesting-scope 单元', () => {
     const root = postcss.parse('.card { :global { :global { .reset {} } } }');
     runNestingPrepass(root);
     assert.equal(root.toString(), '.card { :global { :global { .reset {} } } }');
+  });
+
+  it('isEffectivelyEmptyRule：仅删含注释的占位块，保留纯空规则', () => {
+    const commentOnly = postcss.parse('.wrap { /* placeholder */ }').first;
+    const bareEmpty = postcss.parse('.z { }').first;
+    assert.equal(isEffectivelyEmptyRule(commentOnly), true);
+    assert.equal(isEffectivelyEmptyRule(bareEmpty), false);
+
+    const root = postcss.parse('.keep { } .drop { /* x */ }');
+    removeEffectivelyEmptyRules(root);
+    assert.equal(root.toString(), '.keep { }');
   });
 
   it('isRuleTreeLeaf：仅 @media 子节点视为叶子', () => {

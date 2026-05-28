@@ -372,24 +372,35 @@ $border-radius: 4px;
 
 ```
 
-#### 2. 使用:scope自定义位置
-使用`:scope`伪类来控制作用域ID的放置位置：
+#### 2. 使用 :scope 自定义位置
 
-**⚠️ 重要：** `:scope`可以用两种方式使用，含义不同：
+使用 `:scope` 控制作用域 ID 挂在选择器链的哪一节。**推荐写法**是把 `:scope` **附着在父选择器上**（或嵌套里写 `&:scope`），而不是单独写「裸 `:scope`」。
 
-1. **附加到选择器**：`.container:scope` → `.container.v-abc123`（作用域ID附加到选择器上）
-2. **独立选择器**：`.container :scope` → `.container .v-abc123`（作用域ID作为独立的选择器）
+| 写法 | 编译结果（概念） | 推荐 |
+|------|------------------|------|
+| **`.container:scope .button`** | `.container.v-abc123 .button` | ✅ 推荐（扁平） |
+| **`.container { &:scope .button {} }`** | `.container.v-abc123 .button` | ✅ 推荐（嵌套） |
+| **`.container:scope { .button {} }`** | `.container.v-abc123 { .button {} }` | ✅ 推荐（块级嵌套） |
+| `.container :scope .button` | `.container .v-abc123 .button` | ⚠️ 不推荐：多一层独立节点，常与真实 DOM 不符 |
+| `:scope .header`、`.parent { :scope { .child {} } }` | `.v-abc123 .header` 等 | ⚠️ 不推荐：同上 |
+
+**为何不推荐裸 `:scope`？** Babel 会把 scope class 注入到**已有 class 的 JSX 节点**上（常与 `className` / `wrapClassName` 在同一元素）。附着式 `.custom-modal:scope .ant-modal-content` 表示「带 scope 的 `.custom-modal` 下的子节点」；而 `.custom-modal :scope .ant-modal-content` 或 `.custom-modal { :scope { ... } }` 会要求中间多一个**仅含 scope class 的子元素**，一般对不上实际结构，样式容易不生效。
 
 ```scss
-/* 输入SCSS */
-.container:scope .button { color: blue; }  /* ✅ 作用域ID附加到.container上 */
-.container :scope .button { color: blue; } /* ✅ 作用域ID作为独立选择器 */
-:scope .header { font-size: 18px; }       /* ✅ 独立作用域选择器 */
+/* ✅ 推荐 */
+.container:scope .button { color: blue; }
 
-/* 生成的CSS（使用默认前缀 'v-'） */
-.container.v-abc123 .button { color: blue; } /* 作用域ID在.container上 */
-.container .v-abc123 .button { color: blue; } /* 作用域ID作为独立元素 */
-.v-abc123 .header { font-size: 18px; }       /* 作用域ID作为根元素 */
+.container {
+  &:scope .button { color: blue; }
+}
+
+.custom-modal:scope {
+  .ant-modal-content { padding: 24px; }
+}
+
+/* ⚠️ 不推荐（多一层 .v-xxx 节点，通常匹配不到） */
+.container :scope .button { color: blue; }
+:scope .header { font-size: 18px; }
 ```
 
 #### 3. 使用 :global（嵌套分界，非 CSS Modules 语法）
@@ -442,34 +453,28 @@ $border-radius: 4px;
 .button { color: red; }
 /* 输出: .button.v-abc123 { color: red; } */
 
-/* :scope - 组件级作用域（嵌套元素必需） */
-:scope .button { color: red; }
-/* 输出: .v-abc123 .button { color: red; } */
-
-/* 使用:scope自定义位置 - 两种不同方法 */
-.container:scope .button { color: blue; }
-/* 输出: .container.v-abc123 .button { color: blue; } */
-
-.container :scope .button { color: blue; }
-/* 输出: .container .v-abc123 .button { color: blue; } */
-
 /* :global - 防止作用域化 */
 :global .reset { margin: 0; }
 /* 输出: .reset { margin: 0; } (不添加作用域) */
 
-/* 错误 - 没有:scope这将无法工作 */
+/* 错误 - 仅祖先挂 scope，子选择器节未绑定本文件 scope，常匹配不到 */
 .custom-modal .ant-modal-content { padding: 24px; }
 /* 输出: .custom-modal.v-abc123 .ant-modal-content { padding: 24px; } */
-/* 但选择器无法匹配，因为.ant-modal-content没有被作用域化！ */
 
-/* 正确 - 对嵌套元素使用:scope */
-.custom-modal {
-  :scope {
-    .ant-modal-content { padding: 24px; }
-  }
+/* 正确 - 将 :scope 附着在透传 class / 容器上 */
+.custom-modal:scope {
+  .ant-modal-content { padding: 24px; }
 }
 /* 输出: .custom-modal.v-abc123 .ant-modal-content { padding: 24px; } */
-/* 现在可以工作，因为:scope确保正确的作用域化 */
+
+/* 或嵌套写法（等价） */
+.custom-modal {
+  &:scope .ant-modal-content { padding: 24px; }
+}
+
+/* 附着式扁平写法 */
+.container:scope .button { color: blue; }
+/* 输出: .container.v-abc123 .button { color: blue; } */
 ```
 
 **关键转换说明：**
@@ -713,19 +718,15 @@ classAttrs: ['className']  // 默认：只有className被作用域化
   border: 1px solid #ddd;
 }
 
-.custom-modal {
-  :scope {
-    .ant-modal-content {
-      padding: 24px;
-    }
+.custom-modal:scope {
+  .ant-modal-content {
+    padding: 24px;
   }
 }
 
-.custom-dropdown {
-  :scope {
-    .ant-dropdown-menu {
-      border-radius: 6px;
-    }
+.custom-dropdown:scope {
+  .ant-dropdown-menu {
+    border-radius: 6px;
   }
 }
 ```
@@ -1215,7 +1216,7 @@ className={classNames('btn', variant && `btn-${variant}`) + ' v-abc123'}
 
 1. **修改外层元素样式**：为组件提供`className`属性，然后通过该className来修改外层元素样式。
 
-2. **修改内部元素样式**：使用指定的`className`配合`:scope`伪类来控制作用域ID位置，然后通过透传的组件内部类名来修改样式。
+2. **修改内部元素样式**：在透传的 `className` / `wrapClassName` 上使用**附着式** `:scope`（如 `.custom-modal:scope .ant-modal-content`），再通过子节点选择器命中组件内部 DOM。
 
 **示例：**
 ```jsx
@@ -1230,16 +1231,14 @@ className={classNames('btn', variant && `btn-${variant}`) + ' v-abc123'}
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-// 使用:scope的内部元素样式
-.custom-button {
-  :scope {
-    .ant-btn-inner {
-      font-weight: 600;
-    }
-    
-    .ant-btn-icon {
-      margin-right: 8px;
-    }
+// 内部元素：:scope 写在父选择器上（勿用裸 :scope 包装块）
+.custom-button:scope {
+  .ant-btn-inner {
+    font-weight: 600;
+  }
+
+  .ant-btn-icon {
+    margin-right: 8px;
   }
 }
 ```
@@ -1274,8 +1273,8 @@ className={classNames('btn', variant && `btn-${variant}`) + ' v-abc123'}
 ### Q: className和classAttrs中其他属性有什么区别？
 **A:** `className`属性获得全局注入 - 它被添加到所有JSX元素中（即使那些没有className的元素），而其他属性（如`class`或`data-class`）只有在JSX元素上已经存在时才会获得作用域ID注入。这就是为什么`className`是全面样式的默认且推荐选择。
 
-### Q: 为什么嵌套元素选择器需要使用:scope？
-**A:** 作用域样式不会自动继承到子元素。当您编写`.custom-modal .ant-modal-content`时，只有`.custom-modal`获得作用域ID，但`.ant-modal-content`仍然没有作用域化。使用`:scope`确保嵌套选择器被正确作用域化，并且可以匹配生成的HTML结构。
+### Q: 为什么嵌套元素选择器需要使用 :scope？
+**A:** 默认只在选择器链**最后一节**挂 scope。写 `.custom-modal .ant-modal-content` 时，scope 会落在 `.ant-modal-content` 上，而第三方内部节点往往**没有**你注入的 scope class，导致匹配失败。应使用 **`.custom-modal:scope .ant-modal-content`**（或 `&:scope`），把 scope 锚在透传的容器 class 上。避免裸 `:scope { }` 或 `.custom-modal :scope .child`——它们会多出一层独立 `.v-xxx` 节点，通常与真实 DOM 不符。
 
 ### Q: scopeAll: false和scopeAll: true有什么区别？
 **A:** `scopeAll: false`（默认）只为导入带有`?scoped`样式的文件中的JSX元素生成作用域ID，而`scopeAll: true`为项目中的所有JSX元素生成作用域ID，无论是否导入样式文件。当您想要一致的架构或为样式需求做未来准备时，使用`scopeAll: true`。
@@ -1283,9 +1282,7 @@ className={classNames('btn', variant && `btn-${variant}`) + ' v-abc123'}
 ### Q: 作用域ID在CSS选择器中是如何定位的？
 **A:** 默认在每条规则选择器链的**最后一节**添加作用域 ID（伪类之前，如 `.button.v-abc123:hover`）。使用 `:scope` 控制位置，`:global` 标记全局片段。例如 `.button` → `.button.v-abc123`，`.container:scope .button` → `.container.v-abc123 .button`。
 
-**⚠️ 重要：** `:scope` 可用两种方式：
-1. **附加**：`.container:scope` → `.container.v-abc123`
-2. **独立**：`.container :scope` → `.container .v-abc123`
+**⚠️ 重要：** 请优先使用 **附着式** `.container:scope` / `&:scope`（→ `.container.v-abc123`）。`.container :scope` 等裸写法虽可编译，但会插入独立 `.v-abc123` 节点，多数场景下样式不生效。
 
 ### Q: 原生 CSS 嵌套如何作用域化？
 **A:** 与扁平规则一致：仅 **Rule 树叶子** 默认挂 scope，展开后平坦链最后一节带 scope（如 `.card { .title {} }` → `.card .title.v-abc123`）。同一 block 既有声明又有子选择器时，声明会自动包入 `&:scope`。`:global` 段内普通类名不挂 scope；`:global` 内 `:scope` 子块仍 scope。每个 JSX 元素仍有同一 `v-xxx`，selector 须在最后一节绑定本文件 scope 以免误伤其他文件的子组件。
@@ -1330,15 +1327,15 @@ shared/
 - 谨慎使用 `:global`，仅用于真正的全局片段
 - 利用CSS自定义属性进行主题设置
 
-**理解:scope定位：**
-- **`.container:scope`**：作用域ID附加到容器上（`.container.v-abc123`）
-- **`.container :scope`**：作用域ID作为独立元素（`.container .v-abc123`）
-- **根据HTML结构和样式需求选择**
+**理解 :scope 写法（推荐顺序）：**
+1. **`.container:scope .child`** — 扁平、透传 className 最常用
+2. **`.container { &:scope .child {} }`** 或 **`.container:scope { .child {} }`** — 嵌套 SCSS
+3. **避免** `.container :scope .child`、`:scope .child`、`.container { :scope { .child {} } }` — 多一层节点，易失效
 
-**关于作用域继承的重要说明：**
-- **作用域样式不会自动继承到子元素**
-- **使用`:scope`来明确目标嵌套元素**
-- **没有`:scope`，子元素选择器将无法匹配**
+**关于嵌套子元素：**
+- scope **不会**自动作用到「仅写在祖先选择器上」的子节点规则
+- 需要把 scope **锚在**带 className 的那一层（`:scope` 写在父选择器后）
+- 仅写 `.parent .child` 时 scope 往往在 `.child` 上，第三方内部 class 常匹配不到
 
 
 ### 4. 性能考虑

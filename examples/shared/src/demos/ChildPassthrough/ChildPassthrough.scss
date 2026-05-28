@@ -1,0 +1,39 @@
+.passthrough-demo {
+  max-width: 480px;
+
+  &__toolbar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  &__tab {
+    padding: 6px 12px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    background: #fff;
+    cursor: pointer;
+
+    &--active {
+      border-color: #0969da;
+      background: #ddf4ff;
+      color: #0969da;
+    }
+  }
+}
+
+/* 父组件透传 className="skin-a" / "skin-b" 时，:scope 锚在根节点合并后的 class 上 */
+.skin-a:scope {
+  .child-card__body {
+    background: linear-gradient(135deg, #e8f5ff 0%, #f0fff4 100%);
+    border-left: 4px solid #0969da;
+  }
+}
+
+.skin-b:scope {
+  .child-card__body {
+    background: linear-gradient(135deg, #fff8f0 0%, #ffebe9 100%);
+    border-left: 4px solid #cf222e;
+  }
+}
+

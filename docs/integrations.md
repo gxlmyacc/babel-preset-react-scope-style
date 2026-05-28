@@ -49,6 +49,8 @@ module.exports = {
 
 Optional: `require('babel-preset-react-scope-style/rspack').withReactScopeStyle(config)`.
 
+Runnable demo: [examples/rspack](../examples/rspack/) (shared app, port 3001).
+
 ## Pure PostCSS
 
 Only when **not** using the Webpack loader or Vite plugin:

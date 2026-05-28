@@ -1,0 +1,30 @@
+{
+  "name": "react-scope-style-rspack-example",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Rspack example for babel-preset-react-scope-style",
+  "sideEffects": true,
+  "scripts": {
+    "dev": "rspack serve",
+    "build": "rspack build"
+  },
+  "dependencies": {
+    "babel-preset-react-scope-style": "file:../..",
+    "classnames": "^2.5.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.26.0",
+    "@babel/preset-env": "^7.26.0",
+    "@babel/preset-react": "^7.26.0",
+    "@rspack/cli": "^1.2.8",
+    "@rspack/core": "^1.2.8",
+    "babel-loader": "^9.2.1",
+    "css-loader": "^7.1.2",
+    "html-webpack-plugin": "^5.6.3",
+    "sass": "^1.81.0",
+    "sass-loader": "^16.0.3",
+    "style-loader": "^4.0.0"
+  }
+}

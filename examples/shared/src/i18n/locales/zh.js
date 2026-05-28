@@ -1,0 +1,112 @@
+/** @type {Record<string, string | string[] | Record<string, string>>} */
+export default {
+  app: {
+    title: 'Scope Style 示例',
+    subtitle: 'babel-preset-react-scope-style',
+    languageLabel: '语言',
+    langEn: 'English',
+    langZh: '中文',
+  },
+  menu: {
+    title: '演示场景',
+    ariaLabel: '演示场景导航',
+  },
+  demoPanel: {
+    hintPrefix: '打开开发者工具查看 DOM：关注带 ',
+    hintEx: 'ex-',
+    hintMid: ' 前缀的 class，以及 global 场景下的 ',
+    hintGlobal: '[class*=ex-]',
+    hintSuffix: ' 匹配方式。',
+  },
+  common: {
+    innerText: 'inner 文本',
+    closeAria: '关闭',
+  },
+  demos: {
+    'scoped-basic': {
+      label: '基础 scoped',
+      menuSummary: 'import ?scoped，选择器默认挂在链的最后一节',
+      title: '基础 scoped（?scoped）',
+      summary:
+        "import './ScopedBasic.scss?scoped' 后，`.card .title` 会编译为 `.card .title.ex-xxx`，JSX 根节点自动带上同一 scope class。",
+      cardTitle: '组件内标题',
+      cardBody: '本卡片样式仅在本文件 scope 内生效，不会影响其他演示页。',
+      cardBtn: '带 scope 的按钮',
+      tagScoped: '?scoped',
+      tagDefault: '默认最后一节',
+    },
+    'global-shared': {
+      label: '共享 global',
+      menuSummary: 'import ?global，选择器使用 [class*=ex-] 在组件间共享',
+      title: '共享 global（?global）',
+      summary:
+        '共享样式用 ?global（`.shared-chip[class*=ex-]`）；同组件 JSX 还须 import 空 ?scoped 文件，才会注入 ex- scope class，否则 global 选择器无法命中。',
+      blockAChip: '区块 A 徽章',
+      blockAText: '两个区块使用同一 global 样式文件中的 .shared-chip',
+      blockBChip: '区块 B 徽章',
+      blockBText: '切换演示页后，global 样式仍可作用于带 scope 的节点',
+      tagGlobal: '?global',
+      tagAttr: '[class*=ex-]',
+    },
+    'scope-selectors': {
+      label: ':scope 选择器',
+      menuSummary: 'scope 挂在父选择器上还是默认叶子规则',
+      title: ':scope 选择器',
+      summary:
+        '默认 `.box .inner`（scope 在叶子）；`.box:scope .inner` 附着式；嵌套 `.box { &:scope .inner }` 与之等价。',
+      labelDefault: '默认嵌套',
+      labelAttached: '.box:scope .inner',
+      labelNested: '.box { &:scope .inner }',
+      tagScope: ':scope',
+      tagPosition: '选择器位置',
+    },
+    'global-selectors': {
+      label: ':global 选择器',
+      menuSummary: '行首 :global 与嵌套中间的 :global',
+      title: ':global 选择器',
+      summary:
+        '行首 `:global` 整条规则不作用域化；嵌套 `:global .external-widget` 仅在 `:global` 之前挂 scope。',
+      captionLeading: '行首 :global（无 scope）',
+      utilityText: 'utility-reset-box：无 ex- scope class，样式仍来自本演示文件',
+      captionNested: '嵌套 :global .external-widget',
+      wrapperScoped: '容器自身带 scope',
+      externalWidget: '模拟 Ant Design 等外部子节点 class',
+      tagGlobal: ':global',
+      tagThirdParty: '第三方 DOM',
+    },
+    'child-passthrough': {
+      label: '透传子组件',
+      menuSummary: '父传 className 作皮肤标记，父 SCSS 用 :scope 定制子内部',
+      title: '透传子组件 className',
+      summary:
+        '流程：① 父组件 `<ChildCard className={skin} />` 传入 skin-a / skin-b；② 子组件用 classnames 合并到根节点（如 `child-card skin-a`）；③ 父级 ChildPassthrough.scss?scoped 写 `.skin-a:scope .child-card__body`——:scope 把 scope 挂在透传的皮肤 class 上，再命中子组件内部节点，从而在父样式里修改子元素。',
+      skinA: '皮肤 A',
+      skinB: '皮肤 B',
+      cardTitle: '子组件标题（根节点接收父级 className）',
+      cardBody:
+        '切换皮肤后，父组件改传的 className 使根节点带上 skin-a / skin-b；父 SCSS 中对应的 `.skin-a:scope .child-card__body` 生效，此处背景由父组件样式覆盖。',
+      tagPassthrough: 'className 透传',
+      tagScope: ':scope',
+      tagInner: '子组件内部',
+    },
+    'custom-class-attrs': {
+      label: '自定义 classAttrs',
+      menuSummary: 'wrapClassName 等非 className 属性注入 scope',
+      title: '自定义 classAttrs（wrapClassName）',
+      summary:
+        'classAttrs 含 wrapClassName；弹层结构与 `.demo-modal-wrap:scope` 定制写在 MockModal.scss?scoped（与组件 JSX 同一 scope），父级文件只保留页面壳样式。',
+      configText: '构建配置：',
+      configCode: "classAttrs: ['className', 'wrapClassName', 'overlayClassName']",
+      openModal: '打开模拟弹层',
+      modalTitle: 'wrapClassName 演示',
+      modalBodyPrefix: '弹层样式见 ',
+      modalBodyCodeScss: 'MockModal.scss',
+      modalBodyMid: '：基础布局 + ',
+      modalBodyCodeScope: '.demo-modal-wrap:scope',
+      modalBodySuffix: ' 定制圆角与阴影。',
+      tagWrap: 'wrapClassName',
+      tagAttrs: 'classAttrs',
+      tagScope: ':scope',
+    },
+  },
+};

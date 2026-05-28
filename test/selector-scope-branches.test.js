@@ -6,6 +6,7 @@ const {
   scopeSelector,
   isLeadingGlobalRule,
   stripLeadingGlobal,
+  stripLeadingGlobalFromAllSelectors,
   appendScopeToSelector,
   selectorAlreadyScoped,
   stripMiddleGlobalPseudo,
@@ -33,6 +34,23 @@ describe('selector-scope 分支覆盖', () => {
     assert.equal(stripLeadingGlobal(':global', '.x'), '.x');
   });
 
+  it('stripLeadingGlobalFromAllSelectors 去掉逗号列表中每段行首 :global', () => {
+    const norm = (s) => s.replace(/,\s*/g, ', ');
+    assert.equal(
+      norm(stripLeadingGlobalFromAllSelectors(':global *, :global *::before, :global *::after')),
+      '*, *::before, *::after'
+    );
+    assert.equal(
+      norm(stripLeadingGlobalFromAllSelectors(':global html, :global body')),
+      'html, body'
+    );
+    assert.equal(
+      norm(stripLeadingGlobalFromAllSelectors('html, :global body')),
+      'html, body'
+    );
+    assert.equal(stripLeadingGlobalFromAllSelectors('html, body'), 'html, body');
+  });
+
   it('仅空白的选择器原样返回', () => {
     assert.equal(scopeSelector('   ', { id: 'v-w', isGlobal: false }), '   ');
   });
@@ -47,19 +65,19 @@ describe('selector-scope 分支覆盖', () => {
     assert.equal(out, '.btn.v-skip');
   });
 
-  it('在第一个 :global 前为兄弟组合符链加作用域', () => {
+  it('分隔式 :global 前插入 *.scopeId（兄弟组合符链）', () => {
     const out = scopeSelector('.a + .b :global .c', { id: 'v-plus', isGlobal: false });
-    assert.equal(out, '.a + .b.v-plus .c');
+    assert.equal(out, '.a + .b *.v-plus .c');
   });
 
-  it('在第一个 :global 前为子组合符加作用域', () => {
+  it('分隔式 :global 前插入 *.scopeId（子组合符）', () => {
     const out = scopeSelector('.parent > .child :global .ext', { id: 'v-gt', isGlobal: false });
-    assert.equal(out, '.parent > .child.v-gt .ext');
+    assert.equal(out, '.parent > .child *.v-gt .ext');
   });
 
-  it('为无空格的相邻兄弟组合符加作用域', () => {
+  it('分隔式 :global 前插入 *.scopeId（相邻兄弟无空格）', () => {
     const out = scopeSelector('.a+.b :global .c', { id: 'v-adj', isGlobal: false });
-    assert.equal(out, '.a+.b.v-adj .c');
+    assert.equal(out, '.a+.b *.v-adj .c');
   });
 
   it('不对 @-moz-keyframes 内规则加作用域', async () => {
@@ -109,10 +127,10 @@ describe('selector-scope 分支覆盖', () => {
     assert.equal(out, '.a+.b.v-adj-space');
   });
 
-  it('首个 :global 前仅有组合符时 scopeSelectorBeforeMiddleGlobal 不追加 scope', () => {
+  it('首个 :global 前仅有组合符时去掉 :global 且不注入 scope', () => {
     const sel = parseSelector('+ :global .inner');
     scopeSelectorBeforeMiddleGlobal(sel, 'v-nopre', false);
-    assert.equal(sel.toString(), '+ :global .inner');
+    assert.equal(sel.toString(), ' .inner');
   });
 
   it('通过 scopeSelector 处理「+ :global」前缀为空时不注入 scope', () => {
@@ -126,10 +144,38 @@ describe('selector-scope 分支覆盖', () => {
     assert.equal(sel.toString(), ':global .x');
   });
 
-  it('stripMiddleGlobalPseudo 去掉中间 :global 并合并前后片段', () => {
+  it('replaceMiddleGlobalWithStar stripOnly 时分隔式 :global 仅剥离标记', () => {
+    const { replaceMiddleGlobalWithStar } = require('../postcss/selector-scope');
     const sel = parseSelector('.a :global .b');
-    stripMiddleGlobalPseudo(sel);
+    replaceMiddleGlobalWithStar(sel, { stripOnly: true });
     assert.equal(sel.toString(), '.a .b');
+  });
+
+  it('replaceMiddleGlobalWithStar 分隔式 :global 插入 *.scopeId', () => {
+    const { replaceMiddleGlobalWithStar } = require('../postcss/selector-scope');
+    const sel = parseSelector('.a :global .b');
+    replaceMiddleGlobalWithStar(sel, { stripOnly: false, id: 'v-star', isGlobal: false });
+    assert.equal(sel.toString(), '.a *.v-star .b');
+  });
+
+  it('replaceMiddleGlobalWithStar stripOnly 时附着式 :global 仅剥离标记', () => {
+    const { replaceMiddleGlobalWithStar } = require('../postcss/selector-scope');
+    const sel = parseSelector('.card:global .title');
+    replaceMiddleGlobalWithStar(sel, { stripOnly: true });
+    assert.equal(sel.toString(), '.card .title');
+  });
+
+  it('replaceMiddleGlobalWithStar 附着式 :global 在前缀挂 scope', () => {
+    const { replaceMiddleGlobalWithStar } = require('../postcss/selector-scope');
+    const sel = parseSelector('.card:global .title');
+    replaceMiddleGlobalWithStar(sel, { stripOnly: false, id: 'v-att', isGlobal: false });
+    assert.equal(sel.toString(), '.card.v-att .title');
+  });
+
+  it('stripGlobalMarkersFromSelector 去掉附着式 .card:global', () => {
+    const { stripGlobalMarkersFromSelector } = require('../postcss/selector-scope');
+    const out = stripGlobalMarkersFromSelector('.card:global .title');
+    assert.equal(out, '.card .title');
   });
 
   it('global 模式 node.value 命中时判定已作用域（raws 不一致）', () => {

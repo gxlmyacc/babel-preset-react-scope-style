@@ -1,9 +1,16 @@
 const { createScopeQuery, isFunction } = require('../src/utils');
-const { scopeSelector } = require('./selector-scope');
+const { scopeSelector, stripGlobalMarkersFromSelector } = require('./selector-scope');
 const {
   runNestingPrepass,
   shouldApplyScope,
+  hasExplicitScopeControl,
+  isInGlobalSubtree,
+  isGlobalNestingWrapperSelector,
   replaceBareNestingMarkersWithAmpersand,
+  unwrapRootBareGlobalWrappers,
+  unwrapAllConsecutiveGlobalWrappers,
+  removeEmptyGlobalMarkerRules,
+  removeEffectivelyEmptyRules,
 } = require('./nesting-scope');
 
 const URL_PATTERNS = [
@@ -230,8 +237,23 @@ function rewriteImportUrls(root, ctx) {
  */
 function rewriteAllSelectors(root, scopeOpts) {
   runNestingPrepass(root);
+  removeEmptyGlobalMarkerRules(root);
 
   root.walkRules((rule) => {
+    if (!rule.selector) return;
+    if (isInGlobalSubtree(rule)) {
+      const marker = rule.selector.trim();
+      if (
+        !isGlobalNestingWrapperSelector(marker)
+        && hasExplicitScopeControl(rule.selector)
+      ) {
+        rule.selector = stripGlobalMarkersFromSelector(
+          rule.selector,
+          scopeOpts.globalSelector
+        );
+      }
+      return;
+    }
     if (!shouldApplyScope(rule, scopeOpts)) return;
     rule.selector = scopeSelector(rule.selector, {
       id: scopeOpts.id,
@@ -240,7 +262,10 @@ function rewriteAllSelectors(root, scopeOpts) {
     });
   });
 
+  unwrapAllConsecutiveGlobalWrappers(root);
+  unwrapRootBareGlobalWrappers(root);
   replaceBareNestingMarkersWithAmpersand(root, scopeOpts);
+  removeEffectivelyEmptyRules(root);
 }
 
 /**

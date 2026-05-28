@@ -63,6 +63,23 @@ describe('PostCSS 作用域插件', () => {
     assert.equal(css, '.container.v-abc .btn { color: red; }');
   });
 
+  it('附着式 .透传-class:scope 命中子组件内部选择器（扁平写法，className 透传）', async () => {
+    const css = await runPostcssScope(
+      [
+        '.skin-a:scope .child-card__body { background: #e8f5ff; }',
+        '.skin-b:scope .child-card__body { background: #ffebe9; }',
+      ].join('\n'),
+      { scoped: true, id: 'v-pass' }
+    );
+    assert.equal(
+      css,
+      [
+        '.skin-a.v-pass .child-card__body { background: #e8f5ff; }',
+        '.skin-b.v-pass .child-card__body { background: #ffebe9; }',
+      ].join('\n')
+    );
+  });
+
   it('为 @media 内规则加作用域', async () => {
     const css = await runPostcssScope('@media (min-width: 768px) { .panel { display: block; } }', {
       scoped: true,
@@ -103,12 +120,73 @@ describe('PostCSS 作用域插件', () => {
     assert.equal(css, ':global(.reset) { margin: 0; }');
   });
 
-  it('嵌套中仅对第一个 :global 前的部分加作用域', async () => {
+  it('嵌套中分隔式 :global 插入 *.scopeId', async () => {
     const css = await runPostcssScope('.container :global .ant-btn { color: red; }', {
       scoped: true,
       id: 'v-n',
     });
-    assert.equal(css, '.container.v-n .ant-btn { color: red; }');
+    assert.equal(css, '.container *.v-n .ant-btn { color: red; }');
+  });
+
+  describe('扁平中间 :global 与 &:global 嵌套对比', () => {
+    it('对比：.container :global .ant-btn vs &:global 嵌套', async () => {
+      const flat = await runPostcssScope('.container :global .ant-btn { color: red; }', {
+        scoped: true,
+        id: 'v-n',
+      });
+      const ampersand = await runPostcssScope(
+        '.container { &:global { .ant-btn { color: red; } } }',
+        { scoped: true, id: 'v-n' }
+      );
+      assert.equal(flat, '.container *.v-n .ant-btn { color: red; }');
+      assert.equal(ampersand, '.container { &.v-n { .ant-btn { color: red; } } }');
+      assert.notEqual(flat, ampersand);
+    });
+
+    it('对比：多段 :global 扁平 vs &:global 嵌套', async () => {
+      const flat = await runPostcssScope('.outer :global .mid :global .inner { color: red; }', {
+        scoped: true,
+        id: 'v-multi-global',
+      });
+      const ampersand = await runPostcssScope(
+        '.outer { &:global { .mid { &:global { .inner { color: red; } } } } }',
+        { scoped: true, id: 'v-multi-global' }
+      );
+      assert.equal(flat, '.outer *.v-multi-global .mid *.v-multi-global .inner { color: red; }');
+      assert.equal(
+        ampersand,
+        '.outer { &.v-multi-global { .mid { &.v-multi-global { .inner { color: red; } } } } }'
+      );
+      assert.notEqual(flat, ampersand);
+    });
+
+    it('对比：:scope + :global 扁平 vs &:global 嵌套', async () => {
+      const flat = await runPostcssScope('.wrap:scope :global .ext { color: blue; }', {
+        scoped: true,
+        id: 'v-s',
+      });
+      const ampersand = await runPostcssScope(
+        '.wrap:scope { &:global { .ext { color: blue; } } }',
+        { scoped: true, id: 'v-s' }
+      );
+      assert.equal(flat, '.wrap.v-s .ext { color: blue; }');
+      assert.equal(ampersand, '.wrap.v-s { &.v-s { .ext { color: blue; } } }');
+      assert.notEqual(flat, ampersand);
+    });
+
+    it('对比：.card.cell :global .inner vs &:global 嵌套', async () => {
+      const flat = await runPostcssScope('.card.cell :global .inner { color: teal; }', {
+        scoped: true,
+        id: 'v-cell',
+      });
+      const ampersand = await runPostcssScope(
+        '.card.cell { &:global { .inner { color: teal; } } }',
+        { scoped: true, id: 'v-cell' }
+      );
+      assert.equal(flat, '.card.cell *.v-cell .inner { color: teal; }');
+      assert.equal(ampersand, '.card.cell { &.v-cell { .inner { color: teal; } } }');
+      assert.notEqual(flat, ampersand);
+    });
   });
 
   it('同时存在 :scope 与 :global 时以 :scope 为准', async () => {
@@ -133,7 +211,7 @@ describe('PostCSS 作用域插件', () => {
         scoped: true,
         id: 'v-multi-global',
       });
-      assert.equal(css, '.outer.v-multi-global .mid .inner { color: red; }');
+      assert.equal(css, '.outer *.v-multi-global .mid *.v-multi-global .inner { color: red; }');
     });
 
     it('存在 :scope 时去掉所有中间 :global', async () => {
@@ -149,7 +227,7 @@ describe('PostCSS 作用域插件', () => {
         scoped: true,
         id: 'v-mix',
       });
-      assert.equal(css, '.a .v-mix .b .c { color: green; }');
+      assert.equal(css, '.a *.v-mix .b .c { color: green; }');
     });
 
     it('组合符链中在第一个 :global 前加作用域', async () => {
@@ -157,7 +235,7 @@ describe('PostCSS 作用域插件', () => {
         scoped: true,
         id: 'v-seg',
       });
-      assert.equal(css, '.a + .b.v-seg .c { color: navy; }');
+      assert.equal(css, '.a + .b *.v-seg .c { color: navy; }');
     });
 
     it('对 :global 前的多 class 片段加作用域', async () => {
@@ -165,7 +243,7 @@ describe('PostCSS 作用域插件', () => {
         scoped: true,
         id: 'v-cell',
       });
-      assert.equal(css, '.card.cell.v-cell .inner { color: teal; }');
+      assert.equal(css, '.card.cell *.v-cell .inner { color: teal; }');
     });
 
     it('逗号分隔的每个选择器独立应用 :scope', async () => {

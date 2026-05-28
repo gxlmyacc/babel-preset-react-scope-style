@@ -1,5 +1,5 @@
 const postcss = require('postcss');
-const { shouldSkipRule } = require('./selector-scope');
+const { shouldSkipRule, stripLeadingGlobalFromAllSelectors } = require('./selector-scope');
 
 /**
  * 判断 selector 是否含显式作用域控制（:scope / :global，不含已废弃的 >>>）。
@@ -9,9 +9,10 @@ const { shouldSkipRule } = require('./selector-scope');
 function hasExplicitScopeControl(selector) {
   const s = selector.trim();
   if (s.includes(':scope')) return true;
-  if (/^:global(?:\s|$)/.test(s) && !/^:global\s*\(/.test(s)) return true;
-  if (/(?:^|\s):global(?:\s|$)/.test(s)) return true;
-  return false;
+  if (!s.includes(':global') || /:global\s*\(/.test(s)) return false;
+  // 嵌套包装 .wrap:global { } 由 isAttachedGlobalNestingWrapper 处理，不在此走 scopeSelector
+  if (/^.+:global$/.test(s)) return false;
+  return true;
 }
 
 /**
@@ -28,13 +29,112 @@ function isRuleTreeLeaf(rule) {
 }
 
 /**
- * 是否为 global 嵌套包装块选择器（裸 :global、&:global 等，非 :global(...) 函数式）。
+ * 嵌套段标记类型：global 与 scope 在非根包装块上结构平行（裸 / 分隔 / &:），占位不同。
+ * @typedef {'global' | 'scope'} NestingMarkerKind
+ */
+
+/** 裸嵌套段选择器字面量 */
+const NESTING_BARE_MARKER = {
+  global: ':global',
+  scope: ':scope',
+};
+
+/** &: 附着嵌套段选择器字面量 */
+const NESTING_AMPERSAND_MARKER = {
+  global: '&:global',
+  scope: '&:scope',
+};
+
+/**
+ * 是否为裸嵌套段包装（:global / :scope，非 &: 形式）。
+ * @param {string} selector - 选择器文本
+ * @param {NestingMarkerKind} kind - 段类型
+ * @returns {boolean}
+ */
+function isBareNestingSelector(selector, kind) {
+  return selector.trim() === NESTING_BARE_MARKER[kind];
+}
+
+/**
+ * 是否为 & :marker 分隔式嵌套包装（占位同裸段，用 * / *.scope）。
+ * @param {string} selector - 选择器文本
+ * @param {NestingMarkerKind} kind - 段类型
+ * @returns {boolean}
+ */
+function isSpacedNestingSelector(selector, kind) {
+  const s = selector.trim();
+  if (kind === 'global') return s === '& :global';
+  return s === '& :scope' || /^&\s+:scope$/.test(s);
+}
+
+/**
+ * 是否为 &:marker 嵌套包装（占位用 & / &.scope）。
+ * @param {string} selector - 选择器文本
+ * @param {NestingMarkerKind} kind - 段类型
+ * @returns {boolean}
+ */
+function isAmpersandNestingSelector(selector, kind) {
+  return selector.trim() === NESTING_AMPERSAND_MARKER[kind];
+}
+
+/**
+ * 是否为 * 占位族嵌套包装（裸段与 & :marker 分隔式）。
+ * @param {string} selector - 选择器文本
+ * @param {NestingMarkerKind} kind - 段类型
+ * @returns {boolean}
+ */
+function isStarPlaceholderNestingSelector(selector, kind) {
+  return isBareNestingSelector(selector, kind) || isSpacedNestingSelector(selector, kind);
+}
+
+/** @param {string} selector @returns {boolean} */
+function isBareGlobalNestingSelector(selector) {
+  return isBareNestingSelector(selector, 'global');
+}
+
+/** @param {string} selector @returns {boolean} */
+function isSpacedGlobalNestingSelector(selector) {
+  return isSpacedNestingSelector(selector, 'global');
+}
+
+/** @param {string} selector @returns {boolean} */
+function isAmpersandGlobalNestingSelector(selector) {
+  return isAmpersandNestingSelector(selector, 'global');
+}
+
+/** @param {string} selector @returns {boolean} */
+function isStarPlaceholderGlobalNestingSelector(selector) {
+  return isStarPlaceholderNestingSelector(selector, 'global');
+}
+
+/** @param {string} selector @returns {boolean} */
+function isBareScopeNestingSelector(selector) {
+  return isBareNestingSelector(selector, 'scope');
+}
+
+/** @param {string} selector @returns {boolean} */
+function isSpacedScopeNestingSelector(selector) {
+  return isSpacedNestingSelector(selector, 'scope');
+}
+
+/** @param {string} selector @returns {boolean} */
+function isAmpersandScopeNestingSelector(selector) {
+  return isAmpersandNestingSelector(selector, 'scope');
+}
+
+/** @param {string} selector @returns {boolean} */
+function isStarPlaceholderScopeNestingSelector(selector) {
+  return isStarPlaceholderNestingSelector(selector, 'scope');
+}
+
+/**
+ * 是否为 global 嵌套包装块选择器（非 :global(...) 函数式）。
  * @param {string} selector - 选择器文本
  * @returns {boolean}
  */
 function isGlobalNestingWrapperSelector(selector) {
-  const s = selector.trim();
-  return s === ':global' || s === '&:global' || s === '& :global';
+  return isStarPlaceholderGlobalNestingSelector(selector)
+    || isAmpersandGlobalNestingSelector(selector);
 }
 
 /**
@@ -65,13 +165,18 @@ function stripAttachedGlobalFromSelector(selector) {
 }
 
 /**
- * 是否为仅作 global 段容器的包装 rule（含裸 :global / &:global 且含子 rule）。
+ * 是否为嵌套段包装 rule（含子 rule）：global 含 :global / &:global / & :global；scope 仅裸 :scope。
  * @param {import('postcss').Rule} rule - PostCSS 规则节点
+ * @param {NestingMarkerKind} kind - 段类型
  * @returns {boolean}
  */
-function isBareGlobalWrapper(rule) {
+function isNestingSegmentWrapper(rule, kind) {
   if (!rule.selector) return false;
-  if (!isGlobalNestingWrapperSelector(rule.selector)) return false;
+  const marker = rule.selector.trim();
+  const matchesWrapper = kind === 'global'
+    ? isGlobalNestingWrapperSelector(marker)
+    : marker === NESTING_BARE_MARKER.scope;
+  if (!matchesWrapper) return false;
   let hasChildRule = false;
   rule.each((child) => {
     if (child.type === 'rule') hasChildRule = true;
@@ -80,18 +185,21 @@ function isBareGlobalWrapper(rule) {
 }
 
 /**
+ * 是否为仅作 global 段容器的包装 rule（含 :global / &:global 等且含子 rule）。
+ * @param {import('postcss').Rule} rule - PostCSS 规则节点
+ * @returns {boolean}
+ */
+function isBareGlobalWrapper(rule) {
+  return isNestingSegmentWrapper(rule, 'global');
+}
+
+/**
  * 是否为仅作 :scope 段容器的包装 rule（selector 字面量为 :scope 且含子 rule）。
  * @param {import('postcss').Rule} rule - PostCSS 规则节点
  * @returns {boolean}
  */
 function isBareScopeWrapper(rule) {
-  if (!rule.selector) return false;
-  if (rule.selector.trim() !== ':scope') return false;
-  let hasChildRule = false;
-  rule.each((child) => {
-    if (child.type === 'rule') hasChildRule = true;
-  });
-  return hasChildRule;
+  return isNestingSegmentWrapper(rule, 'scope');
 }
 
 /**
@@ -106,7 +214,7 @@ function isBareScopeWrapper(rule) {
  */
 function isGlobalSegmentSelector(selector) {
   const s = selector.trim();
-  if (s === '&' || s === ':global') return true;
+  if (s === ':global') return true;
   if (s.includes(':global') && !/^:global\s*\(/.test(s)) return true;
   return false;
 }
@@ -185,11 +293,132 @@ function isUnderScopeAnchorAncestor(rule, scopeOpts = {}) {
 function shouldApplyScope(rule, scopeOpts = {}) {
   if (!rule.selector || shouldSkipRule(rule)) return false;
   if (isBareGlobalWrapper(rule) || isBareScopeWrapper(rule)) return false;
-  if (hasExplicitScopeControl(rule.selector)) return true;
+  if (isBareGlobalNestingSelector(rule.selector)) {
+    let hasChildRule = false;
+    rule.each((child) => {
+      if (child.type === 'rule') hasChildRule = true;
+    });
+    if (!hasChildRule) return false;
+  }
   if (isInGlobalSubtree(rule)) return false;
+  if (hasExplicitScopeControl(rule.selector)) return true;
   if (!isRuleTreeLeaf(rule)) return false;
   if (isUnderScopeAnchorAncestor(rule, scopeOpts)) return false;
   return true;
+}
+
+/**
+ * 规则是否无声明与子 rule、且仅含注释（Sass 展平 :global 时留下的占位块）。
+ * 纯空块 `{ }` 不视为可删，避免误伤测试与合法空规则。
+ * @param {import('postcss').Rule} rule - PostCSS 规则节点
+ * @returns {boolean}
+ */
+function isEffectivelyEmptyRule(rule) {
+  let hasDecl = false;
+  let hasChildRule = false;
+  let hasComment = false;
+  rule.each((child) => {
+    if (child.type === 'decl') hasDecl = true;
+    if (child.type === 'rule') hasChildRule = true;
+    if (child.type === 'comment') hasComment = true;
+  });
+  return !hasDecl && !hasChildRule && hasComment;
+}
+
+/**
+ * 移除仅含注释、无声明且无子 rule 的空规则（如 Sass 为 :global 子选择器生成的占位块）。
+ * @param {import('postcss').Root} root - CSS 根
+ * @returns {void}
+ */
+function removeEffectivelyEmptyRules(root) {
+  const toRemove = [];
+  root.walkRules((rule) => {
+    if (!rule.selector || !isEffectivelyEmptyRule(rule)) return;
+    toRemove.push(rule);
+  });
+  toRemove.forEach((rule) => {
+    rule.remove();
+  });
+}
+
+/**
+ * 移除 Sass 展开后仅含注释/声明、无子 rule 的裸 :global 占位块。
+ * @param {import('postcss').Root} root - CSS 根
+ * @returns {void}
+ */
+function removeEmptyGlobalMarkerRules(root) {
+  const toRemove = [];
+  root.walkRules((rule) => {
+    if (!rule.parent || rule.parent.type !== 'root') return;
+    if (!rule.selector || !isBareGlobalNestingSelector(rule.selector)) return;
+    let hasChildRule = false;
+    rule.each((child) => {
+      if (child.type === 'rule') hasChildRule = true;
+    });
+    if (!hasChildRule) toRemove.push(rule);
+  });
+  toRemove.forEach((rule) => {
+    rule.remove();
+  });
+}
+
+/**
+ * 上提 CSS 根下裸 :global 包装块的子节点（根级不能改为 & 占位，须展平为顶层规则）。
+ * @param {import('postcss').Root} root - CSS 根
+ * @returns {void}
+ */
+function unwrapRootBareGlobalWrappers(root) {
+  let changed = true;
+  while (changed) {
+    changed = false;
+    const toUnwrap = [];
+    root.each((child) => {
+      if (child.type !== 'rule' || !child.selector) return;
+      if (!isGlobalNestingWrapperWithChildRules(child)) return;
+      toUnwrap.push(child);
+    });
+    toUnwrap.forEach((wrapper) => {
+      const clones = [];
+      wrapper.each((grand) => {
+        clones.push(grand.clone());
+      });
+      clones.forEach((node) => {
+        if (node.type === 'rule' && node.selector) {
+          const sel = node.selector.trim();
+          if (!isGlobalNestingWrapperSelector(sel)) {
+            node.selector = stripLeadingGlobalFromAllSelectors(node.selector);
+          }
+        }
+        root.insertBefore(wrapper, node);
+      });
+      wrapper.remove();
+      changed = true;
+    });
+  }
+}
+
+/**
+ * rule 是否含至少一个子 rule。
+ * @param {import('postcss').Rule} rule - PostCSS 规则节点
+ * @returns {boolean}
+ */
+function ruleHasChildRule(rule) {
+  let hasChildRule = false;
+  rule.each((child) => {
+    if (child.type === 'rule') hasChildRule = true;
+  });
+  return hasChildRule;
+}
+
+/**
+ * 是否为带嵌套子 rule 的 global 包装块（:global / &:global / & :global）。
+ * @param {import('postcss').Rule} rule - PostCSS 规则节点
+ * @returns {boolean}
+ */
+function isGlobalNestingWrapperWithChildRules(rule) {
+  if (!rule.selector) return false;
+  if (!isGlobalNestingWrapperSelector(rule.selector.trim())) return false;
+  return ruleHasChildRule(rule);
 }
 
 /**
@@ -218,28 +447,68 @@ function unwrapBareMarkerWrapperUnder(parentRule, marker) {
 }
 
 /**
+ * 父级亦为 global 包装时，上提子级 global 包装内的 rule（连续 :global 合并去掉）。
+ * @param {import('postcss').Rule} parentRule - 父级 global 包装 rule
+ * @returns {void}
+ */
+function unwrapNestedGlobalWrappersUnder(parentRule) {
+  if (!parentRule.selector || parentRule.type !== 'rule') return;
+  if (!isGlobalNestingWrapperSelector(parentRule.selector.trim())) return;
+
+  let changed = true;
+  while (changed) {
+    changed = false;
+    const toUnwrap = [];
+    parentRule.each((child) => {
+      if (isGlobalNestingWrapperWithChildRules(child)) {
+        toUnwrap.push(child);
+      }
+    });
+    toUnwrap.forEach((child) => {
+      const clones = [];
+      child.each((grand) => {
+        clones.push(grand.clone());
+      });
+      clones.forEach((node) => {
+        if (node.type === 'rule' && node.selector) {
+          const sel = node.selector.trim();
+          if (!isGlobalNestingWrapperSelector(sel)) {
+            node.selector = stripLeadingGlobalFromAllSelectors(node.selector);
+          }
+        }
+        parentRule.insertBefore(child, node);
+      });
+      child.remove();
+      changed = true;
+    });
+  }
+}
+
+/**
+ * 递归展平连续嵌套的 global 包装（已废弃：仅根级裸 :global 由上提处理，与 :scope 一致不合并）。
+ * @param {import('postcss').Root} root - CSS 根
+ * @returns {void}
+ */
+function unwrapAllConsecutiveGlobalWrappers(root) {
+  void root;
+}
+
+/**
  * 在 global 子树内去掉冗余的嵌套 :global 包装（上提子节点）。
  * @param {import('postcss').Rule} parentRule - 父 rule
  * @returns {void}
  */
 function unwrapRedundantNestedGlobalUnder(parentRule) {
-  unwrapBareMarkerWrapperUnder(parentRule, ':global');
+  unwrapNestedGlobalWrappersUnder(parentRule);
 }
 
 /**
- * 递归处理全树的冗余嵌套 :global（scope 前：仅 global 子树内再嵌 :global）。
+ * 递归处理全树的冗余嵌套 :global（已废弃：非根级与 :scope 一致，不合并连续包装）。
  * @param {import('postcss').Root} root - CSS 根
  * @returns {void}
  */
 function unwrapAllRedundantNestedGlobal(root) {
-  root.walkRules((rule) => {
-    if (rule.selector && rule.selector.trim() === ':global') {
-      unwrapRedundantNestedGlobalUnder(rule);
-    }
-    if (isInGlobalSubtree(rule)) {
-      unwrapRedundantNestedGlobalUnder(rule);
-    }
-  });
+  void root;
 }
 
 /**
@@ -293,7 +562,7 @@ function wrapDeclsInAmpersandScope(rule) {
 }
 
 /**
- * 嵌套作用域 pre-pass：非叶子声明包入 &:scope（裸 :global/:scope 在 scope 后统一改为 &）。
+ * 嵌套作用域 pre-pass：非叶子声明包入 &:scope（裸 :global/:scope 在 scope 后统一改为 * / &.scope）。
  * @param {import('postcss').Root} root - CSS 根
  * @returns {void}
  */
@@ -303,16 +572,13 @@ function runNestingPrepass(root) {
   });
 }
 
-/** scope 后改为 & 占位的裸 :scope 包装（:global 类包装见 isGlobalNestingWrapperSelector） */
-const BARE_SCOPE_NESTING_MARKER = ':scope';
-
 /**
- * 裸 :scope 包装块替换为带 scope 的 &（与 &:scope 展平一致）；:global 仍为无 scope 的 &。
+ * &:scope / &:global 包装块替换为带 scope 的 &。
  * @param {string} scopeId - 作用域 id
  * @param {boolean} isGlobal - 是否 global 模式
  * @returns {string}
  */
-function bareScopeMarkerToAmpersand(scopeId, isGlobal) {
+function ampersandScopeMarkerWithScope(scopeId, isGlobal) {
   if (isGlobal) {
     return `&[class*=${scopeId}]`;
   }
@@ -320,27 +586,54 @@ function bareScopeMarkerToAmpersand(scopeId, isGlobal) {
 }
 
 /**
- * scope 后将裸 :global / :scope 包装块改为 & 占位（:scope 占位须带 scope class）。
+ * 裸 :scope / :global 嵌套占位：*.scopeId 或 *[class*=scopeId]。
+ * @param {string} scopeId - 作用域 id
+ * @param {boolean} isGlobal - 是否 global 模式
+ * @returns {string}
+ */
+function bareScopeMarkerToStar(scopeId, isGlobal) {
+  if (isGlobal) {
+    return `*[class*=${scopeId}]`;
+  }
+  return `*.${scopeId}`;
+}
+
+/** 裸嵌套段占位与 :scope 统一为 *.scopeId（global / scope 仅段内是否挂 scope 不同） */
+function replaceNestingSegmentMarker(rule, kind, scopeOpts = {}) {
+  const marker = rule.selector.trim();
+  const { id = '', isGlobal = false } = scopeOpts;
+
+  if (isStarPlaceholderNestingSelector(marker, kind)) {
+    if (kind === 'global' && rule.parent && rule.parent.type === 'root') return false;
+    if (!id) return false;
+    rule.selector = bareScopeMarkerToStar(id, isGlobal);
+    return true;
+  }
+
+  if (isAmpersandNestingSelector(marker, kind)) {
+    if (!id) return false;
+    rule.selector = ampersandScopeMarkerWithScope(id, isGlobal);
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * scope 后替换嵌套包装占位：根级裸 :global 由上提处理；裸 / &: 段 → * / &.scope。
  * @param {import('postcss').Root} root - CSS 根
  * @param {{ id?: string, isGlobal?: boolean }} [scopeOpts] - 与 scopeSelector 一致的 scope 参数
  * @returns {void}
  */
 function replaceBareNestingMarkersWithAmpersand(root, scopeOpts = {}) {
-  const { id = '', isGlobal = false } = scopeOpts;
   root.walkRules((rule) => {
     if (!rule.selector) return;
-    const marker = rule.selector.trim();
-    if (isGlobalNestingWrapperSelector(marker)) {
-      rule.selector = '&';
-      return;
-    }
+    if (replaceNestingSegmentMarker(rule, 'global', scopeOpts)) return;
     if (isAttachedGlobalNestingWrapper(rule)) {
-      rule.selector = stripAttachedGlobalFromSelector(marker);
+      rule.selector = stripAttachedGlobalFromSelector(rule.selector.trim());
       return;
     }
-    if (marker === BARE_SCOPE_NESTING_MARKER && id) {
-      rule.selector = bareScopeMarkerToAmpersand(id, isGlobal);
-    }
+    replaceNestingSegmentMarker(rule, 'scope', scopeOpts);
   });
 }
 
@@ -348,6 +641,20 @@ module.exports = {
   hasExplicitScopeControl,
   hasAttachedScopePseudo,
   isRuleTreeLeaf,
+  isBareNestingSelector,
+  isSpacedNestingSelector,
+  isAmpersandNestingSelector,
+  isStarPlaceholderNestingSelector,
+  replaceNestingSegmentMarker,
+  isNestingSegmentWrapper,
+  isBareGlobalNestingSelector,
+  isSpacedGlobalNestingSelector,
+  isStarPlaceholderGlobalNestingSelector,
+  isAmpersandGlobalNestingSelector,
+  isBareScopeNestingSelector,
+  isSpacedScopeNestingSelector,
+  isStarPlaceholderScopeNestingSelector,
+  isAmpersandScopeNestingSelector,
   isGlobalNestingWrapperSelector,
   isAttachedGlobalNestingWrapper,
   stripAttachedGlobalFromSelector,
@@ -361,7 +668,15 @@ module.exports = {
   unwrapRedundantNestedGlobalUnder,
   unwrapAllRedundantNestedGlobal,
   unwrapBareMarkerWrapperUnder,
-  bareScopeMarkerToAmpersand,
+  unwrapRootBareGlobalWrappers,
+  unwrapAllConsecutiveGlobalWrappers,
+  unwrapNestedGlobalWrappersUnder,
+  isGlobalNestingWrapperWithChildRules,
+  removeEmptyGlobalMarkerRules,
+  isEffectivelyEmptyRule,
+  removeEffectivelyEmptyRules,
+  bareScopeMarkerToStar,
+  ampersandScopeMarkerWithScope,
   replaceBareNestingMarkersWithAmpersand,
   wrapDeclsInAmpersandScope,
   runNestingPrepass,

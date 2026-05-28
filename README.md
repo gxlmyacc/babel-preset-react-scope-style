@@ -369,23 +369,34 @@ $border-radius: 4px;
 ```
 
 #### 2. Using :scope to Customize Position
-Use the `:scope` pseudo-class to control the placement of scope IDs:
 
-**⚠️ Important:** `:scope` can be used in two ways with different meanings:
+Use `:scope` to choose which part of a selector chain gets the scope ID. **Prefer attaching** `:scope` to a parent selector (or `&:scope` in nesting), not a bare `:scope` wrapper.
 
-1. **Attached to selector**: `.container:scope` → `.container.v-abc123` (scope ID attached to selector)
-2. **Independent selector**: `.container :scope` → `.container .v-abc123` (scope ID as independent selector)
+| Form | Compiled (concept) | Recommended |
+|------|-------------------|-------------|
+| **`.container:scope .button`** | `.container.v-abc123 .button` | ✅ Yes (flat) |
+| **`.container { &:scope .button {} }`** | `.container.v-abc123 .button` | ✅ Yes (nested) |
+| **`.container:scope { .button {} }`** | `.container.v-abc123 { .button {} }` | ✅ Yes (block) |
+| `.container :scope .button` | `.container .v-abc123 .button` | ⚠️ Avoid — extra level, often no match |
+| `:scope .header`, `.parent { :scope { .child {} } }` | `.v-abc123 .header`, etc. | ⚠️ Avoid — same issue |
+
+**Why avoid bare `:scope`?** Babel injects the scope class onto **existing** JSX nodes (same element as `className` / `wrapClassName`). Attached `.custom-modal:scope .ant-modal-content` means “scoped `.custom-modal` → child”. Forms like `.custom-modal :scope …` or `.custom-modal { :scope { … } }` imply an **extra** child that is only `.v-xxx`, which usually does not exist in the DOM, so rules often fail.
 
 ```scss
-/* Input SCSS */
-.container:scope .button { color: blue; }  /* ✅ Scope ID attached to .container */
-.container :scope .button { color: blue; } /* ✅ Scope ID as independent selector */
-:scope .header { font-size: 18px; }       /* ✅ Independent scope selector */
+/* ✅ Recommended */
+.container:scope .button { color: blue; }
 
-/* Generated CSS (using default prefix 'v-') */
-.container.v-abc123 .button { color: blue; } /* Scope ID on .container */
-.container .v-abc123 .button { color: blue; } /* Scope ID as independent element */
-.v-abc123 .header { font-size: 18px; }       /* Scope ID as root element */
+.container {
+  &:scope .button { color: blue; }
+}
+
+.custom-modal:scope {
+  .ant-modal-content { padding: 24px; }
+}
+
+/* ⚠️ Not recommended */
+.container :scope .button { color: blue; }
+:scope .header { font-size: 18px; }
 ```
 
 #### 3. Using :global (nesting boundary, not CSS Modules syntax)
@@ -438,34 +449,27 @@ When styles enter the plugin as a **nested Rule tree** (native `.css` nesting):
 .button { color: red; }
 /* Output: .button.v-abc123 { color: red; } */
 
-/* :scope - component-level scope (required for nested elements) */
-:scope .button { color: red; }
-/* Output: .v-abc123 .button { color: red; } */
-
-/* Using :scope to customize position - two different methods */
-.container:scope .button { color: blue; }
-/* Output: .container.v-abc123 .button { color: blue; } */
-
-.container :scope .button { color: blue; }
-/* Output: .container .v-abc123 .button { color: blue; } */
-
 /* :global - prevent scoping */
 :global .reset { margin: 0; }
 /* Output: .reset { margin: 0; } (no scope added) */
 
-/* Wrong - without :scope this won't work */
+/* Wrong - scope on last segment only; third-party inner nodes often don't match */
 .custom-modal .ant-modal-content { padding: 24px; }
 /* Output: .custom-modal.v-abc123 .ant-modal-content { padding: 24px; } */
-/* But selector can't match because .ant-modal-content isn't scoped! */
 
-/* Correct - use :scope for nested elements */
-.custom-modal {
-  :scope {
-    .ant-modal-content { padding: 24px; }
-  }
+/* Correct - attach :scope on the container / passed-in class */
+.custom-modal:scope {
+  .ant-modal-content { padding: 24px; }
 }
 /* Output: .custom-modal.v-abc123 .ant-modal-content { padding: 24px; } */
-/* Now it works because :scope ensures proper scoping */
+
+/* Or nested (equivalent) */
+.custom-modal {
+  &:scope .ant-modal-content { padding: 24px; }
+}
+
+.container:scope .button { color: blue; }
+/* Output: .container.v-abc123 .button { color: blue; } */
 ```
 
 **Key Transformation Notes:**
@@ -709,19 +713,15 @@ classAttrs: ['className']  // Default: only className gets scoped
   border: 1px solid #ddd;
 }
 
-.custom-modal {
-  :scope {
-    .ant-modal-content {
-      padding: 24px;
-    }
+.custom-modal:scope {
+  .ant-modal-content {
+    padding: 24px;
   }
 }
 
-.custom-dropdown {
-  :scope {
-    .ant-dropdown-menu {
-      border-radius: 6px;
-    }
+.custom-dropdown:scope {
+  .ant-dropdown-menu {
+    border-radius: 6px;
   }
 }
 ```
@@ -1190,7 +1190,7 @@ To opt a **rule** out of scoping, use a **leading** `:global` in that file’s s
 
 1. **Modify outer element styles**: Provide a `className` prop to the component, then use that className to modify the outer element styles.
 
-2. **Modify internal element styles**: Use the specified `className` with `:scope` pseudo-class to control scope ID positioning, then target internal element class names to modify their styles.
+2. **Modify internal element styles**: Use **attached** `:scope` on the passed `className` / `wrapClassName` (e.g. `.custom-modal:scope .ant-modal-content`), then target internal class names.
 
 **Example:**
 ```jsx
@@ -1205,16 +1205,14 @@ To opt a **rule** out of scoping, use a **leading** `:global` in that file’s s
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-// Internal element styling using :scope
-.custom-button {
-  :scope {
-    .ant-btn-inner {
-      font-weight: 600;
-    }
-    
-    .ant-btn-icon {
-      margin-right: 8px;
-    }
+// Internal elements: attach :scope on the parent (avoid bare :scope blocks)
+.custom-button:scope {
+  .ant-btn-inner {
+    font-weight: 600;
+  }
+
+  .ant-btn-icon {
+    margin-right: 8px;
   }
 }
 ```
@@ -1250,7 +1248,7 @@ To opt a **rule** out of scoping, use a **leading** `:global` in that file’s s
 **A:** The `className` attribute gets universal injection - it's added to ALL JSX elements (even those without a className), while other attributes (like `class` or `data-class`) only get scope ID injection if they already exist on the JSX element. This is why `className` is the default and recommended choice for comprehensive styling.
 
 ### Q: Why do I need to use :scope for nested element selectors?
-**A:** Scope styles do not automatically inherit to child elements. When you write `.custom-modal .ant-modal-content`, only `.custom-modal` gets the scope ID, but `.ant-modal-content` remains unscoped. Using `:scope` ensures that nested selectors are properly scoped and can match the generated HTML structure.
+**A:** By default, scope is added to the **last** segment of a chain. With `.custom-modal .ant-modal-content`, scope often lands on `.ant-modal-content`, while third-party inner nodes usually **lack** your injected scope class, so the rule misses. Use **`.custom-modal:scope .ant-modal-content`** (or `&:scope`) to anchor scope on the container class you pass in. Avoid bare `:scope { }` or `.custom-modal :scope .child` — they insert an extra `.v-xxx` level that usually does not match real DOM.
 
 ### Q: What's the difference between scopeAll: false and scopeAll: true?
 **A:** `scopeAll: false` (default) only generates scope IDs for JSX elements in files that import styles with `?scoped`, while `scopeAll: true` generates scope IDs for ALL JSX elements in the project, regardless of style file imports. Use `scopeAll: true` when you want consistent architecture or future-proofing for styling needs.
@@ -1258,9 +1256,7 @@ To opt a **rule** out of scoping, use a **leading** `:global` in that file’s s
 ### Q: How are scope IDs positioned in CSS selectors?
 **A:** By default, scope IDs are added to the **last segment** of each selector chain (before pseudo-classes, e.g. `.button.v-abc123:hover`). Use `:scope` to control position and `:global` for global fragments. For example, `.button` → `.button.v-abc123`, `.container:scope .button` → `.container.v-abc123 .button`.
 
-**⚠️ Important:** `:scope` can be used in two ways:
-1. **Attached**: `.container:scope` → `.container.v-abc123`
-2. **Standalone**: `.container :scope` → `.container .v-abc123`
+**⚠️ Important:** Prefer **attached** `.container:scope` / `&:scope` (→ `.container.v-abc123`). Bare `.container :scope` compiles but inserts a separate `.v-xxx` node; styles often do not apply.
 
 ### Q: How does native CSS nesting get scoped?
 **A:** Same as flat rules: only **Rule tree leaves** get scope by default, so `.card { .title {} }` becomes `.card .title.v-abc123` after flattening. Declarations alongside child rules are auto-wrapped in `&:scope`. Selectors inside `:global` are not scoped; `:scope` blocks inside `:global` still scope. Every JSX element still gets the same `v-xxx`; the selector must bind scope on the last segment so child components from other files are not affected.
@@ -1305,15 +1301,15 @@ shared/
 - Use `:global` sparingly for truly global fragments
 - Leverage CSS custom properties for theming
 
-**Understanding :scope positioning:**
-- **`.container:scope`**: Scope ID attached to the container (`.container.v-abc123`)
-- **`.container :scope`**: Scope ID as a separate element (`.container .v-abc123`)
-- **Choose based on your HTML structure and styling needs**
+**Understanding :scope (recommended order):**
+1. **`.container:scope .child`** — flat; common with passed `className`
+2. **`.container { &:scope .child {} }`** or **`.container:scope { .child {} }`** — nested SCSS
+3. **Avoid** `.container :scope .child`, `:scope .child`, `.container { :scope { .child {} } }` — extra node, often broken
 
-**Important Note about Scope Inheritance:**
-- **Scope styles do NOT automatically inherit to child elements**
-- **Use `:scope` to explicitly target nested elements**
-- **Without `:scope`, child element selectors won't match**
+**Nested child selectors:**
+- Scope does not apply to “ancestor-only” rules the way you might expect
+- Anchor scope on the element that has your `className` (`:scope` right after that selector)
+- Plain `.parent .child` often scopes `.child` only; third-party inner classes may not match
 
 ### 5. Performance Considerations
 - Scope only the styles you need

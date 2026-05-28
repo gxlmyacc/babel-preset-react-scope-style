@@ -1,0 +1,27 @@
+:global {
+  /* 应用级 global 样式（?global）— 页面级重置与跨场景共享 */
+  html,
+  body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  #root {
+    height: 100%;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+.shared-title {
+  margin: 0;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1f2328;
+}

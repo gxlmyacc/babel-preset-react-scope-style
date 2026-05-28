@@ -16,6 +16,9 @@ function reactScopeStyle(userOptions = {}) {
     name: 'react-scope-style',
     enforce: 'pre',
     async transform(code, id) {
+      // Vite 虚拟模块 id 含 \0，跳过以免 Babel 解析路径失败
+      if (id.includes('\0')) return null;
+
       if (JS_EXT_RE.test(id) && !id.includes('node_modules')) {
         const result = transformSync(code, {
           filename: id,

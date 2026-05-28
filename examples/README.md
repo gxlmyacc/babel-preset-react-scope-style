@@ -1,0 +1,51 @@
+# Examples
+
+Runnable demos for [babel-preset-react-scope-style](../../README.md).
+
+| Directory | Role |
+|-----------|------|
+| [shared](./shared/) | **Shared** React app (`src/`, styles, demo menu) |
+| [webpack](./webpack/) | Webpack 5 + Babel preset + scope loader |
+| [rspack](./rspack/) | Rspack + Babel preset + scope loader (Webpack-compatible chain) |
+| [vite](./vite/) | Vite + `babel-preset-react-scope-style/vite` |
+
+Application code lives only under `shared/`. Bundler folders differ only in config and `package.json`.
+
+## Setup
+
+From the repository root:
+
+```bash
+npm run build
+```
+
+Then pick a bundler:
+
+```bash
+cd examples/webpack   # or examples/rspack / examples/vite
+npm install
+npm run dev
+```
+
+- Webpack: http://localhost:3000
+- Rspack: http://localhost:3001
+- Vite: http://localhost:5173
+
+Both link the parent package via `"babel-preset-react-scope-style": "file:../.."`. Each bundler folder has `.npmrc` with `install-links=false` (copies instead of symlinks on Windows).
+
+## i18n
+
+The shared app supports **English** (default) and **Chinese**. Copy lives under `shared/src/i18n/locales/`. Use the language dropdown in the top bar; the choice is stored in `localStorage` (`react-scope-style-demo-locale`).
+
+## Demo menu
+
+| Scene | What it shows |
+|-------|----------------|
+| **基础 scoped** | `?scoped` import, default scope on last selector segment |
+| **共享 global** | `?global` import, `[class*=ex-]` shared styles |
+| **:scope 选择器** | Default vs `.box:scope` vs `.box :scope` |
+| **:global 选择器** | Leading `:global` and nested `:global .external-widget` |
+| **透传子组件** | Parent `className` + `.skin-a:scope` targeting child inner nodes |
+| **自定义 classAttrs** | `wrapClassName` on mock modal |
+
+Scope options are defined once in `shared/scope-style-options.cjs`.

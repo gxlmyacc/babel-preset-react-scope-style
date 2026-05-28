@@ -1,12 +1,16 @@
 module.exports = {
   root: true,
+  parser: '@babel/eslint-parser',
   parserOptions: {
-    parser: 'babel-eslint',
-    ecmaVersion: 2018,
+    requireConfigFile: false,
+    ecmaVersion: 'latest',
     sourceType: 'module',
     ecmaFeatures: {
-      jsx: true
-    }
+      jsx: true,
+    },
+    babelOptions: {
+      presets: ['@babel/preset-env', '@babel/preset-react'],
+    },
   },
   env: {
     browser: true,
@@ -20,9 +24,23 @@ module.exports = {
   extends: [
     'airbnb-base'
   ],
-  plugins: [],
+  plugins: ['react'],
   settings: {
+    react: {
+      version: 'detect',
+    },
   },
+  overrides: [
+    {
+      files: ['**/*.{jsx,tsx}'],
+      rules: {
+        'react/jsx-uses-vars': 'error',
+        'react/react-in-jsx-scope': 'off',
+        'import/extensions': 'off',
+        'no-unused-vars': ['error', { args: 'none', varsIgnorePattern: '^React$' }],
+      },
+    },
+  ],
   globals: {
   },
   rules: {

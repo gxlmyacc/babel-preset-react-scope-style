@@ -176,6 +176,8 @@ export function C() { return <div className="c" />; }
 
     const skip = await plugin.transform('code', '/project/node_modules/pkg/index.js');
     assert.equal(skip, null);
+    const skipVirtual = await plugin.transform('code', '\0vite/modulepreload-polyfill.js');
+    assert.equal(skipVirtual, null);
     const skipCss = await plugin.transform('.x{}', '/project/x.css');
     assert.equal(skipCss, null);
 

@@ -16,5 +16,7 @@ esm/
 */demo/out/
 coverage/
 .nyc_output/
+examples/**/dist/
+examples/**/node_modules/
 
 

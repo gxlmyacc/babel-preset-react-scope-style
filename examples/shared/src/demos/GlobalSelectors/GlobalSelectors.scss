@@ -1,0 +1,42 @@
+/* 行首 :global — 整条规则不加 scope */
+:global .utility-reset-box {
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #fff8c5;
+  border: 1px dashed #bf8700;
+  font-size: 0.875rem;
+}
+
+.global-sel-demo {
+  display: grid;
+  gap: 20px;
+
+  &__caption {
+    margin: 0 0 8px;
+    font-size: 0.8125rem;
+    color: #656d76;
+  }
+}
+
+.wrapper-box {
+  padding: 12px;
+  border: 1px dashed #d0d7de;
+  border-radius: 8px;
+
+  &__scoped {
+    margin-bottom: 10px;
+    padding: 6px 10px;
+    border-radius: 4px;
+    background: #ddf4ff;
+    font-size: 0.875rem;
+  }
+
+  /* &:global 展平为 .wrapper-box:global .ext — scope 在 .wrapper-box，无 * 占位 */
+  &:global .external-widget {
+    padding: 8px 10px;
+    border-radius: 4px;
+    background: #ffebe9;
+    color: #cf222e;
+    font-size: 0.875rem;
+  }
+}

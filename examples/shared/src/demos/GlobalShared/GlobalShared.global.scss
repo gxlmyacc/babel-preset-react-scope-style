@@ -1,0 +1,33 @@
+/* ?global：选择器使用属性匹配 [class*=ex-] */
+.shared-chip {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 4px 10px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: 999px;
+  background: #fff8c5;
+  color: #9a6700;
+
+  &--accent {
+    background: #ffebe9;
+    color: #cf222e;
+  }
+}
+
+.global-demo {
+  display: grid;
+  gap: 16px;
+
+  &__block {
+    padding: 12px;
+    border-radius: 8px;
+    background: #f6f8fa;
+
+    p {
+      margin: 0;
+      font-size: 0.875rem;
+      color: #57606a;
+    }
+  }
+}
