@@ -44,15 +44,39 @@ function normalizeOpts(opts) {
 }
 
 /**
- * 规范化 @import 参数作为去重 key（去掉 scope-style query，同一资源只保留一条）。
+ * 判断 @import 是否已注入 scope-style（由样式内 ?scoped 改写而来）。
+ * @param {string} params - @import 的 params 字符串
+ * @returns {boolean}
+ */
+function importHasScopeStyle(params) {
+  return /\?scope-style/.test(params);
+}
+
+/**
+ * 规范化 @import 参数作为去重 key。
+ * 普通 import 去掉 scope-style 后按资源路径去重；已带 scope-style 的 import 按完整 params 区分（多 scope 时每个 id 各保留一条）。
  * @param {string} params - @import 的 params 字符串
  * @returns {string}
  */
 function importParamsDedupeKey(params) {
+  if (importHasScopeStyle(params)) {
+    return params.replace(/\s+/g, ' ').trim();
+  }
   return params
     .replace(/\?scope-style[^'");\s]*/g, '')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+/**
+ * 比较两条 @import 的排序权重：保持合并前在 AST 中的先后顺序（含 ?scoped 与普通 import 混排）。
+ * @param {import('postcss').AtRule} a - @import 节点
+ * @param {import('postcss').AtRule} b - @import 节点
+ * @param {Map<import('postcss').AtRule, number>} importOrder - 各节点首次出现下标
+ * @returns {number}
+ */
+function compareImportAtRules(a, b, importOrder) {
+  return importOrder.get(a) - importOrder.get(b);
 }
 
 /**
@@ -61,39 +85,87 @@ function importParamsDedupeKey(params) {
  * @returns {void}
  */
 function normalizeNodes(nodes) {
-  nodes.sort((a, b) => {
-    const aImport = a.type === 'atrule' && a.name === 'import';
-    const bImport = b.type === 'atrule' && b.name === 'import';
-    if (aImport && !bImport) return -1;
-    if (!aImport && bImport) return 1;
-    return 0;
-  });
   const map = {};
   for (let i = nodes.length - 1; i >= 0; i--) {
     const node = nodes[i];
     if (node.type === 'atrule' && node.name === 'import' && node.params) {
       const key = importParamsDedupeKey(node.params);
       if (map[key]) {
-        /* c8 ignore next 2 — 合并多 scope 时去重重复 @import */
         nodes.splice(i, 1);
         continue;
       }
       map[key] = true;
     }
   }
+
+  const imports = [];
+  const rest = [];
+  const importOrder = new Map();
+  for (let i = 0; i < nodes.length; i++) {
+    const node = nodes[i];
+    if (node.type === 'atrule' && node.name === 'import') {
+      imports.push(node);
+      if (!importOrder.has(node)) importOrder.set(node, i);
+    } else {
+      rest.push(node);
+    }
+  }
+  imports.sort((a, b) => compareImportAtRules(a, b, importOrder));
+  nodes.length = 0;
+  nodes.push(...imports, ...rest);
 }
 
 /**
- * 从 CSS 文本中移除 @import（多 scope 克隆块不应重复携带 import）。
- * @param {string} cssText - 已作用域化的一份 CSS 文本
+ * 取 @import 的资源路径 key（去掉 scope-style query，用于定位同一 ?scoped 资源槽位）。
+ * @param {string} params - @import 的 params 字符串
  * @returns {string}
  */
-function stripImportAtRules(cssText) {
-  if (!cssText || !cssText.includes('@import')) return cssText;
-  const postcss = require('postcss');
-  const root = postcss.parse(cssText, { from: undefined });
-  root.walkAtRules('import', (rule) => rule.remove());
-  return root.toString().trim();
+function importResourceKey(params) {
+  return importParamsDedupeKey(
+    params.replace(/\?scope-style[^'");\s]*/g, '')
+  );
+}
+
+/**
+ * 将追加 scope 块中的 scope-style @import 插入到根 AST 上同名资源的 import 组末尾（保持源文件中的相对位置）。
+ * @param {import('postcss').Root} root - 合并后的根节点
+ * @param {import('postcss').AtRule} rule - 待插入的 @import 节点
+ * @returns {void}
+ */
+function insertScopeStyleImportAfterAnchor(root, rule) {
+  const resourceKey = importResourceKey(rule.params);
+  let anchorIdx = -1;
+  for (let j = 0; j < root.nodes.length; j++) {
+    const node = root.nodes[j];
+    if (
+      anchorIdx === -1
+      && node.type === 'atrule'
+      && node.name === 'import'
+      && importResourceKey(node.params) === resourceKey
+    ) {
+      anchorIdx = j;
+    }
+  }
+  const cloned = rule.clone();
+  cloned.raws.before = '\n';
+  if (anchorIdx === -1) {
+    root.prepend(cloned);
+    return;
+  }
+  let insertAfterIdx = anchorIdx;
+  while (insertAfterIdx + 1 < root.nodes.length) {
+    const next = root.nodes[insertAfterIdx + 1];
+    if (
+      next.type === 'atrule'
+      && next.name === 'import'
+      && importResourceKey(next.params) === resourceKey
+    ) {
+      insertAfterIdx++;
+    } else {
+      break;
+    }
+  }
+  root.insertAfter(root.nodes[insertAfterIdx], cloned);
 }
 
 /**
@@ -130,7 +202,6 @@ function rewriteImportUrls(root, ctx) {
           }));
           return `${before}${nextUrl}${after}`;
         }
-        /* c8 ignore next — scopeFn 未改写时保留原 matched */
         return matched;
       }
 
@@ -173,6 +244,26 @@ function rewriteAllSelectors(root, scopeOpts) {
 }
 
 /**
+ * 对一份 AST 按单个 scope 上下文改写 @import 与选择器。
+ * @param {import('postcss').Root} root - CSS 根节点
+ * @param {PluginOptions} opt - 单个 scope 配置
+ * @param {object} options - 包级 options（scopeRegx、scopeFn）
+ * @returns {void}
+ */
+function applyScopeOptionToRoot(root, opt, options) {
+  const { scoped, id = '', global: isGlobal, globalSelector = '' } = opt;
+  rewriteImportUrls(root, {
+    id,
+    isGlobal,
+    scopeRegx: options.scopeRegx,
+    scopeFn: options.scopeFn || null,
+  });
+  if (!scoped || !id) return;
+  rewriteAllSelectors(root, { id, isGlobal, globalSelector });
+}
+
+
+/**
  * @typedef {{
  *   scoped?: boolean,
  *   global?: boolean,
@@ -198,50 +289,58 @@ const plugin = function (pluginOptions) {
     normalizeOpts(opts);
 
     const options = require('../src/options');
-    const scopeTemplateList = [];
+    const packageOptions = {
+      scopeRegx: options.scopeRegx,
+      scopeFn: options.scopeFn || (isFunction(options.scope) ? options.scope : null),
+    };
 
-    opts.forEach((opt) => {
-      const { scoped, id = '', global: isGlobal, globalSelector = '' } = opt;
-      const scopeTemplate = scopeTemplateList[0];
+    const effectiveOpts = opts.filter((o) => o && o.scoped && o.id);
 
-      if (scopeTemplate) {
-        scopeTemplateList.push({
-          opt,
-          result: scopeTemplate.result.replaceAll(scopeTemplate.opt.id, id),
-        });
-        return;
-      }
+    if (effectiveOpts.length <= 1) {
+      if (effectiveOpts[0]) applyScopeOptionToRoot(root, effectiveOpts[0], packageOptions);
+      return;
+    }
 
-      const { scopeRegx } = options;
-      const scopeFn = options.scopeFn || (isFunction(options.scope) ? options.scope : null);
-
-      rewriteImportUrls(root, { id, isGlobal, scopeRegx, scopeFn });
-
-      if (!scoped || !id) return;
-
-      rewriteAllSelectors(root, { id, isGlobal, globalSelector });
-
-      if (opt.id && !opt.global) {
-        scopeTemplateList.push({ opt, result: root.toString() });
-      }
+    const postcss = require('postcss');
+    const parse = (helpers && helpers.parse) || postcss.parse;
+    const baseline = root.clone();
+    const scopedRoots = effectiveOpts.map((opt) => {
+      const work = baseline.clone();
+      applyScopeOptionToRoot(work, opt, packageOptions);
+      return work;
     });
 
-    if (scopeTemplateList.length > 1) {
-      const appendResult = scopeTemplateList
-        .map((v, i) => (i ? stripImportAtRules(v.result) : ''))
-        .filter(Boolean)
-        .join('\n')
-        .trim();
-      const parse = (helpers && helpers.parse)
-        || require('postcss').parse;
-      const nodes = parse(`\n${appendResult}`);
-      root.nodes = root.nodes.concat(nodes.nodes);
-      normalizeNodes(root.nodes);
+    root.removeAll();
+    scopedRoots[0].each((node) => {
+      root.append(node.clone());
+    });
+
+    for (let i = 1; i < scopedRoots.length; i++) {
+      const work = scopedRoots[i];
+      work.walkAtRules('import', (rule) => {
+        if (!importHasScopeStyle(rule.params)) return;
+        insertScopeStyleImportAfterAnchor(root, rule);
+      });
+      const rulesOnly = [];
+      work.each((node) => {
+        if (node.type === 'atrule' && node.name === 'import') return;
+        rulesOnly.push(node.toString());
+      });
+      if (rulesOnly.length) {
+        const fragment = parse(`\n${rulesOnly.join('\n')}`);
+        fragment.each((node) => {
+          root.append(node);
+        });
+      }
     }
+
+    normalizeNodes(root.nodes);
   };
 };
 
 plugin.id = 'postcss-scope-style-add-id';
 plugin.normalizeNodes = normalizeNodes;
+plugin.insertScopeStyleImportAfterAnchor = insertScopeStyleImportAfterAnchor;
+plugin.applyScopeOptionToRoot = applyScopeOptionToRoot;
 
 module.exports = plugin;

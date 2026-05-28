@@ -22,6 +22,7 @@
     "src",
     "esm",
     "postcss",
+    "stylelint",
     "loader",
     "lib",
     "vite",
@@ -37,6 +38,7 @@
     "./postcss": "./postcss/postcss8.js",
     "./vite": "./vite/index.js",
     "./rspack": "./rspack/index.js",
+    "./stylelint": "./stylelint/index.js",
     "./package.json": "./package.json"
   },
   "scripts": {
@@ -46,7 +48,8 @@
     "debug:test": "node --inspect-brk=9229 scripts/debug-test.js test/postcss-nesting.test.js",
     "debug:test:file": "node --inspect-brk=9229 scripts/debug-test.js",
     "test:coverage": "c8 node scripts/run-tests.js",
-    "test:coverage:report": "c8 report --reporter=text"
+    "test:coverage:report": "c8 report --reporter=text",
+    "lint:style": "stylelint \"**/*.{css,scss}\" --config stylelint.config.cjs --ignore-path .stylelintignore"
   },
   "repository": {
     "type": "git",
@@ -114,6 +117,7 @@
     "eslint-plugin-react": "^7.14.3",
     "eslint-plugin-react-hooks": "^1.6.0",
     "find-up": "^4.1.0",
-    "postcss-cli": "^8.3.0"
+    "postcss-cli": "^8.3.0",
+    "stylelint": "^16.14.0"
   }
 }

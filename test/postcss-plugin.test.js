@@ -1,10 +1,6 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
-const {
-  runPostcssScope,
-  multiScopeContexts,
-  splitScopedCssBlocks,
-} = require('./helpers');
+const { runPostcssScope, multiScopeContexts, resetScopeOptions } = require('./helpers');
 
 describe('PostCSS 作用域插件', () => {
   it('为选择器追加组件 scope class', async () => {
@@ -21,6 +17,25 @@ describe('PostCSS 作用域插件', () => {
       id: 'v-x',
     });
     assert.equal(css, '.a.v-x, .b.v-x { color: red; }');
+  });
+
+  it('扁平选择器将 scope class 插在伪类（如 :hover）之前', async () => {
+    const css = await runPostcssScope(
+      [
+        '.btn:hover { color: red; }',
+        '.btn:focus-visible { outline: none; }',
+        '.link:active, .link:visited { text-decoration: underline; }',
+      ].join('\n'),
+      { scoped: true, id: 'v-ph' }
+    );
+    assert.equal(
+      css,
+      [
+        '.btn.v-ph:hover { color: red; }',
+        '.btn.v-ph:focus-visible { outline: none; }',
+        '.link.v-ph:active, .link.v-ph:visited { text-decoration: underline; }',
+      ].join('\n')
+    );
   });
 
   it('global 作用域使用 attribute 选择器', async () => {
@@ -184,9 +199,6 @@ describe('PostCSS 作用域插件', () => {
 
     it('同一输出文件为每个引用方生成一份 scoped 副本', async () => {
       const css = await runPostcssScope(sharedCss, multiScopeContexts([importerA, importerB]));
-      const blocks = splitScopedCssBlocks(css);
-
-      assert.equal(blocks.length, 4);
       assert.equal(
         css,
         [
@@ -210,7 +222,6 @@ describe('PostCSS 作用域插件', () => {
           '.chip.v-ccc333 { padding: 4px; }',
         ].join('\n')
       );
-      assert.equal(splitScopedCssBlocks(css).length, 3);
     });
 
     it('为每个 scope 上下文复制 @media 规则', async () => {
@@ -233,15 +244,17 @@ describe('PostCSS 作用域插件', () => {
       );
 
       assert.equal(css, '.box.v-7f3a9c2e { margin: 0; }');
-      assert.equal(splitScopedCssBlocks(css).length, 1);
     });
 
     it('首份 scoped 块留在根节点并追加克隆块', async () => {
       const css = await runPostcssScope('.only { opacity: 1; }', multiScopeContexts([importerA, importerB]));
-      const idxA = css.indexOf(`.only.${importerA}`);
-      const idxB = css.indexOf(`.only.${importerB}`);
-
-      assert.ok(idxA >= 0 && idxB > idxA, 'importer B block should follow importer A');
+      assert.equal(
+        css,
+        [
+          `.only.${importerA} { opacity: 1; }`,
+          `.only.${importerB} { opacity: 1; }`,
+        ].join('\n')
+      );
     });
 
     it('合并多 scope 时 @import 仅保留在文件头部一份', async () => {
@@ -251,15 +264,6 @@ describe('PostCSS 作用域插件', () => {
         '.btn { color: red; }',
       ].join('\n');
       const css = await runPostcssScope(input, multiScopeContexts([importerA, importerB]));
-      const blocks = splitScopedCssBlocks(css);
-
-      assert.equal((css.match(/@import/g) || []).length, 2);
-      assert.equal(blocks[0], '@import \'./vars.css\';');
-      assert.equal(blocks[1], '@import \'./theme.css\';');
-      assert.ok(
-        blocks.findIndex((line) => line.startsWith('.btn.')) > 1,
-        'scoped rules should follow all @import lines'
-      );
       assert.equal(
         css,
         [
@@ -267,6 +271,100 @@ describe('PostCSS 作用域插件', () => {
           "@import './theme.css';",
           `.btn.${importerA} { color: red; }`,
           `.btn.${importerB} { color: red; }`,
+        ].join('\n')
+      );
+    });
+
+    it('合并多 scope 时 @import url 的 ?scoped 按各 scope id 各生成一条 scope-style import', async () => {
+      resetScopeOptions();
+      const input = [
+        "@import url('./partial.scss?scoped');",
+        "@import './theme.css';",
+        '.btn { color: red; }',
+      ].join('\n');
+      const css = await runPostcssScope(input, multiScopeContexts([importerA, importerB]));
+      assert.equal(
+        css,
+        [
+          `@import url('./partial.scss?scope-style&scoped=true&id=${importerA}');`,
+          `@import url('./partial.scss?scope-style&scoped=true&id=${importerB}');`,
+          "@import './theme.css';",
+          `.btn.${importerA} { color: red; }`,
+          `.btn.${importerB} { color: red; }`,
+        ].join('\n')
+      );
+    });
+
+    it('?scoped 的 @import 不在首位时，各 scope 的 scope-style import 仍插在源位置', async () => {
+      resetScopeOptions();
+      const input = [
+        "@import './vars.css';",
+        "@import url('./partial.scss?scoped');",
+        "@import './theme.css';",
+        '.btn { color: red; }',
+      ].join('\n');
+      const css = await runPostcssScope(input, multiScopeContexts([importerA, importerB]));
+      assert.equal(
+        css,
+        [
+          "@import './vars.css';",
+          `@import url('./partial.scss?scope-style&scoped=true&id=${importerA}');`,
+          `@import url('./partial.scss?scope-style&scoped=true&id=${importerB}');`,
+          "@import './theme.css';",
+          `.btn.${importerA} { color: red; }`,
+          `.btn.${importerB} { color: red; }`,
+        ].join('\n')
+      );
+    });
+
+    it('同时存在 global 与 local scope 时，?scoped 的 @import 按各上下文分别改写', async () => {
+      resetScopeOptions();
+      const input = [
+        "@import url('./partial.scss?scoped');",
+        '.g { color: red; }',
+      ].join('\n');
+      const css = await runPostcssScope(input, [
+        { scoped: true, global: true, id: 'v-' },
+        { scoped: true, global: false, id: importerA },
+        { scoped: true, global: false, id: importerB },
+      ]);
+      assert.equal(
+        css,
+        [
+          "@import url('./partial.scss?scope-style&scoped=true&global=true&id=v-');",
+          `@import url('./partial.scss?scope-style&scoped=true&id=${importerA}');`,
+          `@import url('./partial.scss?scope-style&scoped=true&id=${importerB}');`,
+          '.g[class*=v-] { color: red; }',
+          `.g.${importerA} { color: red; }`,
+          `.g.${importerB} { color: red; }`,
+        ].join('\n')
+      );
+    });
+
+    it('global 与 local 混排且 ?scoped 不在首位时，scope-style import 插在 vars 与 theme 之间', async () => {
+      resetScopeOptions();
+      const input = [
+        "@import './vars.css';",
+        "@import url('./partial.scss?scoped');",
+        "@import './theme.css';",
+        '.g { color: red; }',
+      ].join('\n');
+      const css = await runPostcssScope(input, [
+        { scoped: true, global: true, id: 'v-' },
+        { scoped: true, global: false, id: importerA },
+        { scoped: true, global: false, id: importerB },
+      ]);
+      assert.equal(
+        css,
+        [
+          "@import './vars.css';",
+          "@import url('./partial.scss?scope-style&scoped=true&global=true&id=v-');",
+          `@import url('./partial.scss?scope-style&scoped=true&id=${importerA}');`,
+          `@import url('./partial.scss?scope-style&scoped=true&id=${importerB}');`,
+          "@import './theme.css';",
+          '.g[class*=v-] { color: red; }',
+          `.g.${importerA} { color: red; }`,
+          `.g.${importerB} { color: red; }`,
         ].join('\n')
       );
     });

@@ -134,6 +134,47 @@ describe('PostCSS 边界情况', () => {
     assert.equal(nodes.filter((n) => n.type === 'atrule' && n.name === 'import').length, 1);
   });
 
+  it('normalizeNodes 保留 scope-style id 不同的 @import', () => {
+    const postcss = require('postcss');
+    const { normalizeNodes } = require('../postcss/plugin');
+    const nodes = [
+      postcss.atRule({
+        name: 'import',
+        params: 'url("./partial.scss?scope-style&scoped=true&id=v-a")',
+      }),
+      postcss.atRule({
+        name: 'import',
+        params: 'url("./partial.scss?scope-style&scoped=true&id=v-b")',
+      }),
+      postcss.atRule({ name: 'import', params: '"dup.css"' }),
+      postcss.atRule({ name: 'import', params: '"dup.css"' }),
+    ];
+    normalizeNodes(nodes);
+    assert.equal(
+      nodes.filter((n) => n.type === 'atrule' && n.name === 'import').map((n) => n.params).join('\n'),
+      [
+        'url("./partial.scss?scope-style&scoped=true&id=v-a")',
+        'url("./partial.scss?scope-style&scoped=true&id=v-b")',
+        '"dup.css"',
+      ].join('\n')
+    );
+  });
+
+  it('合并多 scope 时 ?scoped 的 @import 按各 scope id 各保留一条', async () => {
+    resetScopeOptions();
+    const input = '@import url("./partial.scss?scoped");\n.btn { color: red; }';
+    const css = await runPostcssScope(input, multiScopeContexts(['v-a', 'v-b']));
+    assert.equal(
+      css,
+      [
+        '@import url("./partial.scss?scope-style&scoped=true&id=v-a");',
+        '@import url("./partial.scss?scope-style&scoped=true&id=v-b");',
+        '.btn.v-a { color: red; }',
+        '.btn.v-b { color: red; }',
+      ].join('\n')
+    );
+  });
+
   it('无 ?scoped 后缀时 scopeFn 仍可改写 import url', async () => {
     resetScopeOptions({
       scopeFn: (p1) => `${p1}?custom`,
@@ -148,16 +189,30 @@ describe('PostCSS 边界情况', () => {
   it('合并多 scope 时对重复 @import 去重', async () => {
     const input = '@import "./dup.css";\n.btn { color: red; }';
     const css = await runPostcssScope(input, multiScopeContexts(['v-a', 'v-b']));
-    assert.equal((css.match(/@import/g) || []).length, 1);
+    assert.equal(
+      css,
+      '@import "./dup.css";\n.btn.v-a { color: red; }\n.btn.v-b { color: red; }'
+    );
   });
 
-  it('normalizeOpts 对重复 global scope 去重', async () => {
-    const css = await runPostcssScope('.g { }', [
+  it('normalizeOpts 对重复 global scope 去重，且 global 与 local 各生成独立副本', async () => {
+    const css = await runPostcssScope('.g { color: red; }', [
       { scoped: true, global: true, id: 'v-' },
       { scoped: true, global: true, id: 'v-' },
       { scoped: true, id: 'v-local' },
     ]);
-    assert.equal(css, '.g[class*=v-].v-local { }');
+    assert.equal(
+      css,
+      '.g[class*=v-] { color: red; }\n.g.v-local { color: red; }'
+    );
+  });
+
+  it('normalizeOpts 仅重复 global 时只保留一份 global 输出', async () => {
+    const css = await runPostcssScope('.g { }', [
+      { scoped: true, global: true, id: 'v-' },
+      { scoped: true, global: true, id: 'v-' },
+    ]);
+    assert.equal(css, '.g[class*=v-] { }');
   });
 
   it('options.scope 函数充当 scopeFn', async () => {
@@ -195,7 +250,7 @@ describe('PostCSS 边界情况', () => {
       scoped: true,
       id: 'v-x',
     });
-    assert.equal(css.match(/\.v-x/g).length, 1);
+    assert.equal(css, '.btn.v-x { color: red; }');
   });
 
   describe('PostCSS 7 包装层', () => {

@@ -3,15 +3,18 @@ const assert = require('node:assert/strict');
 const postcss = require('postcss');
 const {
   hasExplicitScopeControl,
+  hasAttachedScopePseudo,
   isRuleTreeLeaf,
   isBareGlobalWrapper,
   isBareScopeWrapper,
+  isAttachedGlobalNestingWrapper,
   isInGlobalSubtree,
   isScopeAnchorSelector,
   isUnderScopeAnchorAncestor,
   shouldApplyScope,
   unwrapRedundantNestedGlobalUnder,
   unwrapAllRedundantNestedGlobal,
+  bareScopeMarkerToAmpersand,
   replaceBareNestingMarkersWithAmpersand,
   wrapDeclsInAmpersandScope,
   runNestingPrepass,
@@ -63,6 +66,26 @@ describe('nesting-scope 单元', () => {
     const bare = postcss.rule();
     bare.selector = undefined;
     assert.equal(shouldApplyScope(bare), false);
+  });
+
+  it('hasAttachedScopePseudo：裸 :scope 为 false，附着式为 true', () => {
+    assert.equal(hasAttachedScopePseudo(':scope'), false);
+    assert.equal(hasAttachedScopePseudo('&:scope'), true);
+    assert.equal(hasAttachedScopePseudo('.wrap:scope'), true);
+    assert.equal(hasAttachedScopePseudo('.plain'), false);
+  });
+
+  it('isScopeAnchorSelector：global 模式识别 [class*=] 锚点', () => {
+    const opts = { id: 'v-g', isGlobal: true };
+    assert.equal(isScopeAnchorSelector('.x[class*=v-g]', opts), true);
+    assert.equal(isScopeAnchorSelector('.x[class*="v-g"]', opts), true);
+    assert.equal(isScopeAnchorSelector('.x.v-g', opts), false);
+    assert.equal(isScopeAnchorSelector('.card', { id: '', isGlobal: false }), false);
+  });
+
+  it('bareScopeMarkerToAmpersand：global 与 local 占位', () => {
+    assert.equal(bareScopeMarkerToAmpersand('v-g', true), '&[class*=v-g]');
+    assert.equal(bareScopeMarkerToAmpersand('v-local', false), '&.v-local');
   });
 
   it('isUnderScopeAnchorAncestor：链上任意 :scope 锚点后代不再挂 scope', () => {
@@ -152,6 +175,37 @@ describe('nesting-scope 单元', () => {
     assert.equal(root2.toString(), '.a { :global { .y {} } }');
   });
 
+  it('isAttachedGlobalNestingWrapper：否定分支与附着式包装', () => {
+    const bareGlobal = postcss.rule({ selector: ':global' });
+    bareGlobal.append(postcss.rule({ selector: '.x' }));
+    assert.equal(isAttachedGlobalNestingWrapper(bareGlobal), false);
+
+    const fnGlobal = postcss.rule({ selector: ':global(.x)' });
+    fnGlobal.append(postcss.rule({ selector: '.y' }));
+    assert.equal(isAttachedGlobalNestingWrapper(fnGlobal), false);
+
+    const noSelector = postcss.rule();
+    noSelector.selector = undefined;
+    assert.equal(isAttachedGlobalNestingWrapper(noSelector), false);
+
+    const attached = postcss.parse('.card { .wrap:global { .ext {} } }').first.nodes[0];
+    assert.equal(isAttachedGlobalNestingWrapper(attached), true);
+
+    const declOnly = postcss.rule({ selector: '.wrap:global' });
+    declOnly.append(postcss.decl({ prop: 'color', value: 'red' }));
+    assert.equal(isAttachedGlobalNestingWrapper(declOnly), false);
+  });
+
+  it('replaceBareNestingMarkersWithAmpersand：无 selector 的 rule 跳过', () => {
+    const root = postcss.root();
+    const bare = postcss.rule();
+    bare.selector = undefined;
+    root.append(bare);
+    replaceBareNestingMarkersWithAmpersand(root, { id: 'v-skip' });
+    assert.equal(root.nodes.length, 1);
+    assert.equal(root.nodes[0].selector, undefined);
+  });
+
   it('replaceBareNestingMarkersWithAmpersand：附着式 .wrap:global 去掉 :global', () => {
     const root = postcss.parse('.card { .wrap:global { .ext { color: red; } } }');
     replaceBareNestingMarkersWithAmpersand(root, { id: 'v-nest' });
@@ -183,6 +237,13 @@ describe('nesting-scope 单元', () => {
     assert.equal(
       scopeRoot.toString(),
       '.card { &.v-nest { .inner { margin: 0; } } }'
+    );
+
+    const globalScopeRoot = postcss.parse('.card { :scope { .inner { padding: 0; } } }');
+    replaceBareNestingMarkersWithAmpersand(globalScopeRoot, { id: 'v-g', isGlobal: true });
+    assert.equal(
+      globalScopeRoot.toString(),
+      '.card { &[class*=v-g] { .inner { padding: 0; } } }'
     );
   });
 

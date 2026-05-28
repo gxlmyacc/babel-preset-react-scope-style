@@ -135,6 +135,126 @@ describe('分支覆盖 — PostCSS 插件', () => {
     );
     assert.equal(css, '@import url("./lib.css?global");\n.x.v-url { }');
   });
+
+  it('normalizeNodes 合并时去掉重复的普通 @import', () => {
+    const pluginCore = require('../postcss/plugin');
+    const nodes = [
+      postcss.atRule({ name: 'import', params: "'./dup.css'" }),
+      postcss.atRule({ name: 'import', params: "'./dup.css'" }),
+      postcss.rule({ selector: '.a', nodes: [] }),
+    ];
+    pluginCore.normalizeNodes(nodes);
+    assert.equal(nodes.filter((n) => n.type === 'atrule' && n.name === 'import').length, 1);
+    assert.equal(nodes[0].type, 'atrule');
+    assert.equal(nodes[1].selector, '.a');
+  });
+
+  it('insertScopeStyleImportAfterAnchor 无锚点时 prepend', () => {
+    const pluginCore = require('../postcss/plugin');
+    const root = postcss.parse('.x { color: red; }');
+    const rule = postcss.atRule({
+      name: 'import',
+      params: "url('./orphan.scss?scope-style&scoped=true&id=v-orphan')",
+    });
+    pluginCore.insertScopeStyleImportAfterAnchor(root, rule);
+    assert.equal(root.nodes[0].name, 'import');
+    assert.match(root.nodes[0].params, /id=v-orphan/);
+    assert.equal(root.nodes[1].selector, '.x');
+  });
+
+  it('insertScopeStyleImportAfterAnchor 插入到同名 import 组末尾', () => {
+    const pluginCore = require('../postcss/plugin');
+    const root = postcss.parse(
+      [
+        "@import url('./partial.scss?scope-style&scoped=true&id=v-a');",
+        "@import url('./partial.scss?scope-style&scoped=true&id=v-b');",
+        '.x { }',
+      ].join('\n')
+    );
+    const rule = postcss.atRule({
+      name: 'import',
+      params: "url('./partial.scss?scope-style&scoped=true&id=v-c')",
+    });
+    pluginCore.insertScopeStyleImportAfterAnchor(root, rule);
+    const imports = root.nodes.filter((n) => n.type === 'atrule' && n.name === 'import');
+    assert.equal(imports.length, 3);
+    assert.match(imports[2].params, /id=v-c/);
+    assert.equal(root.nodes[3].selector, '.x');
+  });
+
+  it('pluginOptions 为函数时按 root 返回配置', () => {
+    const pluginCore = require('../postcss/plugin');
+    const root = postcss.parse('.fn { opacity: 1; }');
+    const runner = pluginCore(() => ({ scoped: true, id: 'v-fn-root' }));
+    runner(root);
+    assert.equal(root.toString(), '.fn.v-fn-root { opacity: 1; }');
+  });
+
+  it('多 scope 合并未传入 helpers.parse 时使用 postcss.parse', () => {
+    const pluginCore = require('../postcss/plugin');
+    const root = postcss.parse('.dual { gap: 0; }');
+    pluginCore(multiScopeContexts(['v-d1', 'v-d2']))(root);
+    assert.equal(
+      root.toString(),
+      '.dual.v-d1 { gap: 0; }\n.dual.v-d2 { gap: 0; }'
+    );
+  });
+
+  it('applyScopeOptionToRoot：scoped 为 false 时仅处理 import', () => {
+    const pluginCore = require('../postcss/plugin');
+    const pkgOpts = require('../src/options');
+    const root = postcss.parse('.only-import { color: red; }');
+    pluginCore.applyScopeOptionToRoot(
+      root,
+      { scoped: false, id: 'v-skip-sel' },
+      {
+        scopeRegx: pkgOpts.scopeRegx,
+        scopeFn: null,
+      }
+    );
+    assert.equal(root.toString(), '.only-import { color: red; }');
+  });
+
+  it('import url 不匹配 scopeRegx 时保持原样', async () => {
+    resetScopeOptions();
+    const css = await runPostcssScope(
+      '@import url("https://cdn.example.com/fonts.woff");\n.box { }',
+      { scoped: true, id: 'v-cdn' }
+    );
+    assert.equal(
+      css,
+      '@import url("https://cdn.example.com/fonts.woff");\n.box.v-cdn { }'
+    );
+  });
+
+  it('options.scope 作为 scopeFn 改写 ?scoped import', async () => {
+    resetScopeOptions({
+      scope: (p1, query, meta) => {
+        assert.equal(meta.scopeId, 'v-scope-opt');
+        return p1 + query;
+      },
+    });
+    const css = await runPostcssScope(
+      '@import url("./via-scope-opt.scss?scoped");\n.r { }',
+      { scoped: true, id: 'v-scope-opt' }
+    );
+    assert.equal(
+      css,
+      '@import url("./via-scope-opt.scss?scope-style&scoped=true&id=v-scope-opt");\n.r.v-scope-opt { }'
+    );
+  });
+
+  it('同时配置 scopeFn 与 scope 时优先使用 scopeFn', async () => {
+    resetScopeOptions({
+      scopeFn: (p1) => `${p1}?from-scopeFn`,
+      scope: (p1) => `${p1}?from-scope`,
+    });
+    const css = await runPostcssScope(
+      '@import url("./pri.scss?global");\n.z { }',
+      { scoped: true, id: 'v-pri' }
+    );
+    assert.equal(css, '@import url("./pri.scss?from-scopeFn");\n.z.v-pri { }');
+  });
 });
 
 describe('分支覆盖 — utils', () => {
