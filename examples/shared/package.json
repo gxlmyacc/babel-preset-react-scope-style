@@ -2,7 +2,7 @@
   "name": "react-scope-style-demo-shared",
   "private": true,
   "version": "0.0.0",
-  "description": "Shared demo app sources for webpack/vite examples",
+  "description": "Shared demo app sources for bundler examples",
   "sideEffects": [
     "**/*.scss",
     "**/*.sass",

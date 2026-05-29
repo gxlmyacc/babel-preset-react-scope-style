@@ -1,6 +1,6 @@
 # babel-preset-react-scope-style
 
-一个为 React 组件提供样式作用域化的综合解决方案，包含 Babel 插件、PostCSS 插件，以及 Webpack / Rspack loader 与 Vite 插件等构建集成。
+一个为 React 组件提供样式作用域化的综合解决方案，包含 Babel 插件、PostCSS 插件，以及 Webpack / Rspack loader、Vite 与 esbuild 插件等构建集成。
 
 [![NPM version](https://img.shields.io/npm/v/babel-preset-react-scope-style.svg?style=flat)](https://npmjs.com/package/babel-preset-react-scope-style)
 [![NPM downloads](https://img.shields.io/npm/dm/babel-preset-react-scope-style.svg?style=flat)](https://npmjs.com/package/babel-preset-react-scope-style)
@@ -13,6 +13,7 @@
 - **PostCSS插件**: 处理CSS文件的作用域隔离，支持全局/局部作用域
 - **Webpack Loader**: 与webpack构建流程集成，实现无缝的样式作用域化
 - **Vite 插件**: 开箱即用的 Vite 集成，处理 JSX 与作用域 CSS
+- **esbuild 插件**: esbuild 集成，处理 JSX 与作用域 CSS（可选编译 Sass/Less）
 - **Rspack 支持**: 兼容 Webpack 的 loader 与配置辅助函数
 - **灵活配置**: 可自定义作用域前缀、属性和作用域策略
 - **React组件支持**: 针对React组件优化，自动处理className属性
@@ -52,7 +53,7 @@ yarn add babel-preset-react-scope-style
 
 在 webpack 配置中添加 loader（将 `babel-preset-react-scope-style/loader` 放在 `css-loader` 之后、 `sass-loader` 等预处理器之前）：
 
-> **注意：** 若使用 **Vite**、**Rspack** 或 **纯 PostCSS**，请参阅下文 [Vite / Rspack / PostCSS](#vite--rspack--postcss非-webpack-场景)。
+> **注意：** 若使用 **Vite**、**esbuild**、**Rspack** 或 **纯 PostCSS**，请参阅下文 [Vite / esbuild / Rspack / PostCSS](#vite--esbuild--rspack--postcss非-webpack-场景)。
 
 ```javascript
 module.exports = {
@@ -92,7 +93,7 @@ module.exports = {
 };
 ```
 
-## Vite / Rspack / PostCSS（非 Webpack 场景）
+## Vite / esbuild / Rspack / PostCSS（非 Webpack 场景）
 
 各工具链使用相同的导入语法（`?scoped`、`?global`）和 Babel 配置项，区别仅在于 **CSS 处理链路**。
 
@@ -100,6 +101,7 @@ module.exports = {
 |------|-------------|--------------|
 | **Webpack** | `babel.config.js` 中的 preset | `css-loader` 之后的 `.../loader` |
 | **Vite** | `babel-preset-react-scope-style/vite` 插件 | 由 Vite 插件内部调用 PostCSS |
+| **esbuild** | `babel-preset-react-scope-style/esbuild` 插件 | 由 esbuild 插件内部调用 PostCSS（可选 `sass` / `less`） |
 | **Rspack** | `babel.config.js` 中的 preset | 与 Webpack 相同的 loader |
 | **自定义** | preset 或 `@babel/core` API | `babel-preset-react-scope-style/postcss` 并手动传参 |
 
@@ -111,6 +113,8 @@ module.exports = {
 | `babel-preset-react-scope-style/loader` | Webpack / Rspack loader |
 | `babel-preset-react-scope-style/postcss` | PostCSS 8 插件 |
 | `babel-preset-react-scope-style/vite` | Vite 插件 |
+| `babel-preset-react-scope-style/esbuild` | esbuild 插件 |
+| `babel-preset-react-scope-style/esbuild/cli` | esbuild CLI（`react-scope-style`） |
 | `babel-preset-react-scope-style/rspack` | Rspack 配置辅助 |
 
 ### Vite
@@ -149,6 +153,111 @@ import './theme.scss?global';
 ```
 
 SCSS/Less 仍按 Vite 常规方式配置预处理器（`css.preprocessorOptions`），**无需**为作用域单独配置 PostCSS。
+
+### esbuild
+
+需安装 peer：`@babel/core`、`esbuild`；若使用动态 `className` 表达式，还需 `classnames` 或 `clsx`。处理 `.scss` / `.sass` 需安装 `sass`；处理 `.less` 需安装 `less`。
+
+#### 纯 CLI（推荐，对齐 build-react-esm-project）
+
+安装后可用 bin 命令 `react-scope-style`（或 `npx react-scope-style`）：
+
+```bash
+# 应用 bundle 构建
+react-scope-style build \
+  --bundle \
+  --entry src/main.jsx \
+  --out ./dist \
+  --scope-style \
+  --scope-namespace my-app \
+  --sourcemap
+
+# 开发 watch + serve
+react-scope-style start \
+  --config esbuild-scope.config.js \
+  --scope-style \
+  --serve-port 3002
+
+# 库模式（默认：多文件 ESM，类似 react-esm-project）
+react-scope-style build \
+  --src ./src \
+  --out ./esm \
+  --scope-style \
+  --scope-style-version \
+  --typescript \
+  --sourcemap
+```
+
+配置文件（可选）`esbuild-scope.config.js`：
+
+```javascript
+module.exports = {
+  entry: { main: 'src/main.jsx' },
+  out: './dist',
+  bundle: true,
+  scopeStyle: true,
+  scopeNamespace: 'my-app',
+  scopeStyleOptions: { scopePrefix: 'v-', classNameLibrary: 'auto' },
+  jsx: 'automatic',
+  sourcemap: true,
+  servedir: 'public',
+  servePort: 3002,
+};
+```
+
+| CLI 参数 | 说明 |
+|----------|------|
+| `--root` | 项目根目录 |
+| `--config` | 配置文件路径 |
+| `--entry` | 入口（bundle 模式） |
+| `--src` / `--out` | 源码 / 输出目录 |
+| `--bundle` | SPA 打包模式（默认：库模式 / no-bundle） |
+| `--no-config` | 跳过 `esbuild-scope.config.js` 自动发现 |
+| `--scope-style` | 启用 JSX + CSS 作用域（默认开启） |
+| `--no-scope-style` | 关闭 JSX + CSS 作用域 |
+| `--scope-style-version` | scope id 含 package version |
+| `--scope-namespace` | 命名空间前缀 |
+| `--sourcemap` | 生成 sourcemap |
+| `--typescript` | 库模式 glob 含 ts/tsx |
+| `--serve-port` / `--servedir` | start 命令静态服务 |
+
+子路径：`babel-preset-react-scope-style/esbuild/cli`、`babel-preset-react-scope-style/esbuild/run`
+
+#### 编程式插件
+
+```javascript
+// esbuild.config.mjs
+import * as esbuild from 'esbuild';
+import reactScopeStyle from 'babel-preset-react-scope-style/esbuild';
+
+await esbuild.build({
+  entryPoints: ['src/main.jsx'],
+  bundle: true,
+  jsx: 'automatic',
+  plugins: [
+    reactScopeStyle({
+      scopePrefix: 'v-',
+      classNameLibrary: 'auto',
+    }),
+  ],
+});
+```
+
+**工作流程（bundle 模式）**
+
+1. esbuild 插件对 `.js` / `.jsx` / `.ts` / `.tsx` 执行与本 preset 相同的 Babel 转换。
+2. `import './Button.scss?scoped'` 会被改写为带 `scope-style&scoped=true&id=v-xxx` 的 URL。
+3. 当 esbuild 加载 URL 中包含上述 query 的 CSS/SCSS/Less/Sass 时，插件按需编译预处理器并执行 PostCSS 作用域转换。
+
+**库模式（默认）**：预扫描 JS 填充 `StyleScoped` 桥接表（与 Gulp 版 build-react-esm-project 相同），import 改写为 plain `.css`，样式按桥接表作用域化。SPA 打包请使用 `--bundle`。
+
+**路径别名**：配置项 `alias` 为 esbuild **原生 alias**（与 `esbuild-scope.config.js` / CLI 的 `alias` 字段一致）。**bundle 模式**直接交给 esbuild；**库模式**通过 `onResolve` 插件与样式 PostCSS 映射实现同等效果。若目标项目另外安装了 [`babel-plugin-alias-config`](https://github.com/gxlmyacc/babel-plugin-alias-config) 与 [`postcss-alias-config`](https://github.com/gxlmyacc/postcss-alias-config)，会在原生 `alias` 之外**自动补充**对 `alias.config.js` / `jsconfig.json` 等配置文件的解析（默认 `aliasConfig: true`、`findConfig: true`）。JS 由 Babel 插件改写 import；样式在 scope 转换前由 PostCSS 处理 `@import` / `url()`。`aliasConfig: false` 可仅关闭后两者。
+
+组件中的写法与 Webpack 一致：`import './Button.scss?scoped'`、`import './theme.scss?global'`。
+
+esbuild 会将汇总后的样式输出为独立 CSS 文件（如 `main.css`），请在 HTML 中引用或确保入口依赖链能加载该文件。
+
+可运行示例：[examples/esbuild-bundle](../examples/esbuild-bundle/)（SPA bundle，端口 3002）、[examples/esbuild-lib](../examples/esbuild-lib/)（库模式多文件 ESM）。
 
 ### Rspack
 
@@ -1262,13 +1371,13 @@ className={classNames('btn', variant && `btn-${variant}`) + ' v-abc123'}
 **重要说明：** 默认情况下，仅存在`?scoped`后缀的文件中的jsx的className才会生成作用域id。即使某个文件中的jsx不需要配置样式，但如果你希望也为它们生成作用域id（或者让通过`?global`引用的全局作用域样式生效），你可以添加个空白的样式文件然后通过`?scoped`后缀进行引用。
 
 ### Q: 我可以在没有webpack的情况下使用此插件吗？
-**A:** 可以。请使用 **[Vite 插件](#vite)**（`babel-preset-react-scope-style/vite`）、**[Rspack loader](#rspack)**（与 Webpack 相同），或 **[独立 PostCSS](#纯-postcss独立使用)**。也可使用 [build-react-esm-project](https://github.com/gxlmyacc/build-react-esm-project) 做基于 Gulp 的 React ESM 构建。
+**A:** 可以。请使用 **[Vite 插件](#vite)**（`babel-preset-react-scope-style/vite`）、**[esbuild 插件](#esbuild)**（`babel-preset-react-scope-style/esbuild`）、**[Rspack loader](#rspack)**（与 Webpack 相同），或 **[独立 PostCSS](#纯-postcss独立使用)**。也可使用 [build-react-esm-project](https://github.com/gxlmyacc/build-react-esm-project) 做基于 Gulp 的 React ESM 构建。
 
 ### Q: 插件如何处理多个作用域配置？
 **A:** 当提供多个作用域配置时，PostCSS插件会多次处理输入的CSS文件，生成一个包含所有作用域版本的单一输出文件。这允许相同的样式在不同的上下文中工作（全局、组件特定等），而不会产生冲突。
 
 ### Q: 我需要配置PostCSS插件吗？
-**A:** **Webpack / Vite：** 无需手动配置 PostCSS，loader 或 Vite 插件会自动处理。**独立 PostCSS：** 需要在 `postcss.config.js` 中添加 `babel-preset-react-scope-style/postcss`，并自行设置 `scoped`、`global`、`id`（见 [纯 PostCSS](#纯-postcss独立使用)）。
+**A:** **Webpack / Vite / esbuild：** 无需手动配置 PostCSS，loader 或插件会自动处理。**独立 PostCSS：** 需要在 `postcss.config.js` 中添加 `babel-preset-react-scope-style/postcss`，并自行设置 `scoped`、`global`、`id`（见 [纯 PostCSS](#纯-postcss独立使用)）。
 
 ### Q: className和classAttrs中其他属性有什么区别？
 **A:** `className`属性获得全局注入 - 它被添加到所有JSX元素中（即使那些没有className的元素），而其他属性（如`class`或`data-class`）只有在JSX元素上已经存在时才会获得作用域ID注入。这就是为什么`className`是全面样式的默认且推荐选择。

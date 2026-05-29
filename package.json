@@ -1,6 +1,6 @@
 {
   "name": "babel-preset-react-scope-style",
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-alpha.3",
   "description": "A babel plugin that scope style for style files in react component",
   "keywords": [
     "babel",
@@ -9,7 +9,8 @@
     "react",
     "postcss",
     "vite",
-    "rspack"
+    "rspack",
+    "esbuild"
   ],
   "sideEffects": false,
   "main": "esm/index.js",
@@ -27,8 +28,13 @@
     "lib",
     "vite",
     "rspack",
+    "esbuild",
+    "bin",
     "types"
   ],
+  "bin": {
+    "react-scope-style": "./bin/react-scope-style.js"
+  },
   "exports": {
     ".": {
       "types": "./types/index.d.ts",
@@ -38,6 +44,9 @@
     "./postcss": "./postcss/postcss8.js",
     "./vite": "./vite/index.js",
     "./rspack": "./rspack/index.js",
+    "./esbuild": "./esbuild/index.js",
+    "./esbuild/cli": "./esbuild/cli.js",
+    "./esbuild/run": "./esbuild/run-build.js",
     "./stylelint": "./stylelint/index.js",
     "./package.json": "./package.json"
   },
@@ -64,13 +73,16 @@
     "loader-utils": "^2.0.4",
     "postcss": "^8",
     "postcss-selector-parser": "^6.0.6",
-    "qs": "^6.11.0"
+    "qs": "^6.11.0",
+    "commander": "^12.1.0",
+    "glob": "^11.0.0"
   },
   "peerDependencies": {
     "@babel/core": "^7.0.0",
     "classnames": "^2.2.6",
     "clsx": ">=1.0.0",
-    "webpack": "^4.0.0 || ^5.0.0"
+    "webpack": "^4.0.0 || ^5.0.0",
+    "esbuild": "^0.19.0 || ^0.20.0 || ^0.21.0 || ^0.22.0 || ^0.23.0 || ^0.24.0 || ^0.25.0"
   },
   "peerDependenciesMeta": {
     "classnames": {
@@ -80,6 +92,9 @@
       "optional": true
     },
     "webpack": {
+      "optional": true
+    },
+    "esbuild": {
       "optional": true
     }
   },
@@ -115,6 +130,7 @@
     "eslint-plugin-react": "^7.37.5",
     "find-up": "^4.1.0",
     "postcss-cli": "^8.3.0",
-    "stylelint": "^16.14.0"
+    "stylelint": "^16.14.0",
+    "esbuild": "^0.25.0"
   }
 }

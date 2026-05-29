@@ -36,12 +36,14 @@ module.exports = function ({ types: t, template }) {
   return {
     visitor: {
       Program: {
-        enter(path,
+        enter(
+          path,
           {
             file: {
               opts: { filename }
             },
-          }) {
+          }
+        ) {
           const ctx = {
             globalId: '',
             scopeId: scopeAll
@@ -125,9 +127,10 @@ module.exports = function ({ types: t, template }) {
                 }).expression);
               }
             } else if (classAttrName === 'className') {
-              path.get('openingElement').unshiftContainer('attributes', t.jsxAttribute(
-                t.jsxIdentifier(classAttrName), t.stringLiteral(this.scopeId)
-              ));
+              path.get('openingElement').unshiftContainer(
+                'attributes',
+                t.jsxAttribute(t.jsxIdentifier(classAttrName), t.stringLiteral(this.scopeId))
+              );
             }
           }
 

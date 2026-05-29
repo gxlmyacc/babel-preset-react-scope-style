@@ -1,4 +1,5 @@
 *.ejs
+*.html
 *.min.js
 node_modules/
 **/node_modules/

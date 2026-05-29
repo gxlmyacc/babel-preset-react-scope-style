@@ -1,6 +1,6 @@
 # babel-preset-react-scope-style
 
-A comprehensive solution for scoping styles in React components, with Babel and PostCSS plugins plus build integrations for Webpack, Rspack (loader), and Vite.
+A comprehensive solution for scoping styles in React components, with Babel and PostCSS plugins plus build integrations for Webpack, Rspack (loader), Vite, and esbuild.
 
 [![NPM version](https://img.shields.io/npm/v/babel-preset-react-scope-style.svg?style=flat)](https://npmjs.com/package/babel-preset-react-scope-style)
 [![NPM downloads](https://img.shields.io/npm/dm/babel-preset-react-scope-style.svg?style=flat)](https://npmjs.com/package/babel-preset-react-scope-style)
@@ -13,6 +13,7 @@ A comprehensive solution for scoping styles in React components, with Babel and 
 - **PostCSS Plugin**: Processes CSS files with scope isolation and supports global/local scoping
 - **Webpack Loader**: Integrates with webpack build process for seamless style scoping
 - **Vite Plugin**: First-class Vite integration for JSX and scoped CSS
+- **esbuild Plugin**: esbuild integration for JSX and scoped CSS (with optional Sass/Less compile)
 - **Rspack Support**: Webpack-compatible loader and config helper
 - **Flexible Configuration**: Customizable scope prefixes, attributes, and scoping strategies
 - **React Component Support**: Optimized for React components with automatic className handling
@@ -50,7 +51,7 @@ Add the preset to your `.babelrc` or `babel.config.js`:
 
 Add the loader to your webpack configuration (place `babel-preset-react-scope-style/loader` after `css-loader` and before other preprocessors such as `sass-loader`):
 
-> **Note:** For **Vite**, **Rspack**, or **standalone PostCSS**, see [Vite / Rspack / PostCSS](#vite--rspack--postcss-without-webpack) below.
+> **Note:** For **Vite**, **esbuild**, **Rspack**, or **standalone PostCSS**, see [Vite / esbuild / Rspack / PostCSS](#vite--esbuild--rspack--postcss-without-webpack) below.
 
 ```javascript
 module.exports = {
@@ -90,7 +91,7 @@ module.exports = {
 };
 ```
 
-## Vite / Rspack / PostCSS (without Webpack)
+## Vite / esbuild / Rspack / PostCSS (without Webpack)
 
 The same import syntax (`?scoped`, `?global`) and Babel options apply across toolchains. Only the **CSS pipeline** differs.
 
@@ -98,6 +99,7 @@ The same import syntax (`?scoped`, `?global`) and Babel options apply across too
 |------|-------------|-------------|
 | **Webpack** | preset in `babel.config.js` | `babel-preset-react-scope-style/loader` after `css-loader` |
 | **Vite** | `babel-preset-react-scope-style/vite` plugin | handled by the Vite plugin (PostCSS internally) |
+| **esbuild** | `babel-preset-react-scope-style/esbuild` plugin | handled by the esbuild plugin (PostCSS internally; optional `sass` / `less`) |
 | **Rspack** | preset in `babel.config.js` | same loader as Webpack (Rspack-compatible) |
 | **Custom** | preset or `@babel/core` API | `babel-preset-react-scope-style/postcss` with explicit options |
 
@@ -109,6 +111,8 @@ The same import syntax (`?scoped`, `?global`) and Babel options apply across too
 | `babel-preset-react-scope-style/loader` | Webpack / Rspack loader |
 | `babel-preset-react-scope-style/postcss` | PostCSS 8 plugin |
 | `babel-preset-react-scope-style/vite` | Vite plugin |
+| `babel-preset-react-scope-style/esbuild` | esbuild plugin |
+| `babel-preset-react-scope-style/esbuild/cli` | esbuild CLI (`react-scope-style` bin) |
 | `babel-preset-react-scope-style/rspack` | Rspack config helper |
 
 ### Vite
@@ -147,6 +151,111 @@ import './theme.scss?global';
 ```
 
 SCSS/Less still use Vite’s normal preprocessor settings (`css.preprocessorOptions`); no extra PostCSS config is required for scoping.
+
+### esbuild
+
+Install peers: `@babel/core`, `esbuild`, and `classnames` or `clsx` when using dynamic `className` expressions. For `.scss` / `.sass`, install `sass`; for `.less`, install `less`.
+
+#### Pure CLI (recommended, aligned with build-react-esm-project)
+
+After install, use the `react-scope-style` bin (or `npx react-scope-style`):
+
+```bash
+# App bundle (SPA)
+react-scope-style build \
+  --bundle \
+  --entry src/main.jsx \
+  --out ./dist \
+  --scope-style \
+  --scope-namespace my-app \
+  --sourcemap
+
+# Dev watch + serve
+react-scope-style start \
+  --config esbuild-scope.config.js \
+  --scope-style \
+  --serve-port 3002
+
+# Library mode (default: multi-file ESM, like react-esm-project)
+react-scope-style build \
+  --src ./src \
+  --out ./esm \
+  --scope-style \
+  --scope-style-version \
+  --typescript \
+  --sourcemap
+```
+
+Optional config file `esbuild-scope.config.js`:
+
+```javascript
+module.exports = {
+  entry: { main: 'src/main.jsx' },
+  out: './dist',
+  bundle: true,
+  scopeStyle: true,
+  scopeNamespace: 'my-app',
+  scopeStyleOptions: { scopePrefix: 'v-', classNameLibrary: 'auto' },
+  jsx: 'automatic',
+  sourcemap: true,
+  servedir: 'public',
+  servePort: 3002,
+};
+```
+
+| CLI flag | Purpose |
+|----------|---------|
+| `--root` | Project root |
+| `--config` | Config file path |
+| `--entry` | Entry (bundle mode) |
+| `--src` / `--out` | Source / output dirs |
+| `--bundle` | SPA bundle mode (default: lib / no-bundle) |
+| `--no-config` | Skip `esbuild-scope.config.js` auto-discovery |
+| `--scope-style` | Enable JSX + CSS scoping (default: on) |
+| `--no-scope-style` | Disable JSX + CSS scoping |
+| `--scope-style-version` | Include package version in scope id |
+| `--scope-namespace` | Namespace prefix |
+| `--sourcemap` | Emit sourcemaps |
+| `--typescript` | Include ts/tsx in lib glob |
+| `--serve-port` / `--servedir` | Static server for `start` |
+
+Exports: `babel-preset-react-scope-style/esbuild/cli`, `babel-preset-react-scope-style/esbuild/run`
+
+#### Programmatic plugin
+
+```javascript
+// esbuild.config.mjs
+import * as esbuild from 'esbuild';
+import reactScopeStyle from 'babel-preset-react-scope-style/esbuild';
+
+await esbuild.build({
+  entryPoints: ['src/main.jsx'],
+  bundle: true,
+  jsx: 'automatic',
+  plugins: [
+    reactScopeStyle({
+      scopePrefix: 'v-',
+      classNameLibrary: 'auto',
+    }),
+  ],
+});
+```
+
+**How it works (bundle mode)**
+
+1. The esbuild plugin runs Babel with this preset on `.js` / `.jsx` / `.ts` / `.tsx` (same as Vite).
+2. Style imports like `import './Button.scss?scoped'` are rewritten to include `scope-style&scoped=true&id=v-xxx`.
+3. When esbuild loads CSS/SCSS/Less/Sass whose URL contains that query, the plugin compiles preprocessors (if needed) and runs the PostCSS scope transform.
+
+**Library mode (default)**: pre-scans JS to fill a `StyleScoped` bridge (same idea as Gulp `build-react-esm-project`), rewrites imports to plain `.css`, and scopes styles via that map. Use `--bundle` for SPA bundle mode.
+
+**Path aliases**: the `alias` field is esbuild’s **native alias** (same as in `esbuild-scope.config.js`). In **bundle** mode it is passed to esbuild directly; in **lib** mode it is applied via an `onResolve` plugin plus PostCSS for styles. When [`babel-plugin-alias-config`](https://github.com/gxlmyacc/babel-plugin-alias-config) and [`postcss-alias-config`](https://github.com/gxlmyacc/postcss-alias-config) are also installed in the target project, they **supplement** native `alias` by resolving `alias.config.js`, `jsconfig.json`, etc. (`aliasConfig: true`, `findConfig: true` by default). Set `aliasConfig: false` to disable only those packages.
+
+Component imports are unchanged: `import './Button.scss?scoped'`, `import './theme.scss?global'`.
+
+esbuild emits bundled CSS as a separate file (e.g. `main.css`); reference it from your HTML or ensure your entry graph imports it.
+
+Runnable demos: [examples/esbuild-bundle](../examples/esbuild-bundle/) (SPA, port 3002), [examples/esbuild-lib](../examples/esbuild-lib/) (library mode).
 
 ### Rspack
 
@@ -1236,13 +1345,13 @@ To opt a **rule** out of scoping, use a **leading** `:global` in that file’s s
 **Important Note:** By default, only JSX elements in files that import styles with the `?scoped` suffix will generate scope IDs. Even if JSX elements in a file don't need styling, if you want to generate scope IDs for them (or make global scope styles referenced via `?global` take effect), you can add an empty style file and reference it with the `?scoped` suffix.
 
 ### Q: Can I use this plugin without webpack?
-**A:** Yes. Use the **[Vite plugin](#vite)** (`babel-preset-react-scope-style/vite`), **[Rspack loader](#rspack)** (same as Webpack), or **[standalone PostCSS](#pure-postcss-standalone)**. You can also use [build-react-esm-project](https://github.com/gxlmyacc/build-react-esm-project) for Gulp-based React ESM builds.
+**A:** Yes. Use the **[Vite plugin](#vite)** (`babel-preset-react-scope-style/vite`), **[esbuild plugin](#esbuild)** (`babel-preset-react-scope-style/esbuild`), **[Rspack loader](#rspack)** (same as Webpack), or **[standalone PostCSS](#pure-postcss-standalone)**. You can also use [build-react-esm-project](https://github.com/gxlmyacc/build-react-esm-project) for Gulp-based React ESM builds.
 
 ### Q: How does the plugin handle multiple scope configurations?
 **A:** When multiple scope configurations are provided, the PostCSS plugin processes the input CSS file multiple times, generating a single output file that contains all scoped versions. This allows the same styles to work in different contexts (global, component-specific, etc.) without conflicts.
 
 ### Q: Do I need to configure the PostCSS plugin?
-**A:** **Webpack / Vite:** No manual PostCSS setup — the loader or Vite plugin applies scoping automatically. **Standalone PostCSS:** Yes — add `babel-preset-react-scope-style/postcss` to `postcss.config.js` and set `scoped`, `global`, and `id` yourself (see [Pure PostCSS](#pure-postcss-standalone)).
+**A:** **Webpack / Vite / esbuild:** No manual PostCSS setup — the loader or plugin applies scoping automatically. **Standalone PostCSS:** Yes — add `babel-preset-react-scope-style/postcss` to `postcss.config.js` and set `scoped`, `global`, and `id` yourself (see [Pure PostCSS](#pure-postcss-standalone)).
 
 ### Q: What's the difference between className and other attributes in classAttrs?
 **A:** The `className` attribute gets universal injection - it's added to ALL JSX elements (even those without a className), while other attributes (like `class` or `data-class`) only get scope ID injection if they already exist on the JSX element. This is why `className` is the default and recommended choice for comprehensive styling.

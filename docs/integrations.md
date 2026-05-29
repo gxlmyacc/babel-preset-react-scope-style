@@ -51,6 +51,43 @@ Optional: `require('babel-preset-react-scope-style/rspack').withReactScopeStyle(
 
 Runnable demo: [examples/rspack](../examples/rspack/) (shared app, port 3001).
 
+## esbuild
+
+### Pure CLI (`react-scope-style`)
+
+Install peers: `@babel/core`, `esbuild`, and `classnames` or `clsx` when using dynamic `className`. For SCSS install `sass`; for Less install `less`.
+
+```bash
+react-scope-style build --bundle --entry src/main.jsx --out ./dist --scope-style --sourcemap
+react-scope-style start --config esbuild-scope.config.js --scope-style --serve-port 3002
+
+# Library mode (default: multi-file ESM, like react-esm-project)
+react-scope-style build --src ./src --out ./esm --scope-style --typescript
+```
+
+Config file: `esbuild-scope.config.js` — see README esbuild section for full CLI flags.
+
+Runnable demos: [examples/esbuild-bundle](../examples/esbuild-bundle/) (SPA, port 3002), [examples/esbuild-lib](../examples/esbuild-lib/) (library mode).
+
+### Programmatic plugin
+
+```js
+import reactScopeStyle from 'babel-preset-react-scope-style/esbuild';
+
+export default {
+  entryPoints: ['src/main.jsx'],
+  bundle: true,
+  jsx: 'automatic',
+  plugins: [
+    reactScopeStyle({ scopePrefix: 'v-', classNameLibrary: 'auto' }),
+  ],
+};
+```
+
+1. The plugin runs Babel with this preset on `.js` / `.jsx` / `.ts` / `.tsx` (same as Vite).
+2. Style imports like `import './Button.scss?scoped'` are rewritten to include `scope-style&scoped=true&id=v-xxx` (bundle mode) or plain `.css` (lib mode with `StyleScoped` bridge).
+3. When esbuild loads scoped styles, the plugin compiles preprocessors (if needed) and runs the PostCSS scope transform.
+
 ## Pure PostCSS
 
 Only when **not** using the Webpack loader or Vite plugin:

@@ -1,0 +1,1 @@
+Static asset copied to output by esbuild lib-mode build (not processed by esbuild).

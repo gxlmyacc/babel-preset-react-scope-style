@@ -8,8 +8,10 @@ Runnable demos for [babel-preset-react-scope-style](../../README.md).
 | [webpack](./webpack/) | Webpack 5 + Babel preset + scope loader |
 | [rspack](./rspack/) | Rspack + Babel preset + scope loader (Webpack-compatible chain) |
 | [vite](./vite/) | Vite + `babel-preset-react-scope-style/vite` |
+| [esbuild-bundle](./esbuild-bundle/) | esbuild CLI — **bundle** 模式（SPA，shared 应用） |
+| [esbuild-lib](./esbuild-lib/) | esbuild CLI — **lib** 模式（多文件 ESM，shared 应用） |
 
-Application code lives only under `shared/`. Bundler folders differ only in config and `package.json`.
+Application code for all bundler examples lives under `shared/`.
 
 ## Setup
 
@@ -22,7 +24,7 @@ npm run build
 Then pick a bundler:
 
 ```bash
-cd examples/webpack   # or examples/rspack / examples/vite
+cd examples/webpack   # or examples/rspack / examples/vite / examples/esbuild-bundle / examples/esbuild-lib
 npm install
 npm run dev
 ```
@@ -30,6 +32,7 @@ npm run dev
 - Webpack: http://localhost:3000
 - Rspack: http://localhost:3001
 - Vite: http://localhost:5173
+- esbuild bundle: http://localhost:3002
 
 Both link the parent package via `"babel-preset-react-scope-style": "file:../.."`. Each bundler folder has `.npmrc` with `install-links=false` (copies instead of symlinks on Windows).
 
