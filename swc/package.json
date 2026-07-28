@@ -1,0 +1,12 @@
+{
+  "name": "swc-plugin-react-scope-style",
+  "version": "0.1.0-alpha.0",
+  "private": true,
+  "description": "SWC WASM build output for babel-preset-react-scope-style (Phase B1)",
+  "license": "MIT",
+  "main": "swc_plugin_react_scope_style.wasm",
+  "files": [
+    "swc_plugin_react_scope_style.wasm",
+    "README.md"
+  ]
+}

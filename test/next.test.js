@@ -107,4 +107,44 @@ describe('Next.js withReactScopeStyle', () => {
     injectScopeLoader(config);
     assert.equal(config.module.rules[0].use.length, 2);
   });
+
+  it('swcPlugin: true 时注入 experimental.swcPlugins', () => {
+    const withReactScopeStyle = require('../next');
+    const wasmPath = withReactScopeStyle.resolveBundledSwcPluginPath();
+    if (!wasmPath) {
+      // WASM 未构建时跳过（CI 无 Rust 时仍可通过其它用例）
+      return;
+    }
+    const wrapped = withReactScopeStyle(
+      { reactStrictMode: true },
+      {
+        swcPlugin: true,
+        swcPluginOptions: {
+          scopePrefix: 'v-',
+          pkg: { name: 'test-app', version: '0.0.0' },
+        },
+      }
+    );
+    assert.ok(Array.isArray(wrapped.experimental.swcPlugins));
+    assert.equal(wrapped.experimental.swcPlugins.length, 1);
+    assert.equal(wrapped.experimental.swcPlugins[0][0], wasmPath);
+    assert.equal(wrapped.experimental.swcPlugins[0][1].scopePrefix, 'v-');
+    assert.equal(wrapped.experimental.swcPlugins[0][1].pkg.name, 'test-app');
+  });
+
+  it('swcPlugin 不会重复追加同一 WASM', () => {
+    const withReactScopeStyle = require('../next');
+    const wasmPath = withReactScopeStyle.resolveBundledSwcPluginPath();
+    if (!wasmPath) return;
+    const wrapped = withReactScopeStyle(
+      {
+        experimental: {
+          swcPlugins: [[wasmPath, { scopePrefix: 'x-' }]],
+        },
+      },
+      { swcPlugin: true }
+    );
+    assert.equal(wrapped.experimental.swcPlugins.length, 1);
+    assert.equal(wrapped.experimental.swcPlugins[0][1].scopePrefix, 'x-');
+  });
 });

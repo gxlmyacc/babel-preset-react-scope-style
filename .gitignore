@@ -12,6 +12,7 @@ preset1/
 demo-out/
 plugin/
 esm/
+/target/
 .history/
 */demo/out/
 coverage/
@@ -20,5 +21,7 @@ coverage/
 examples/**/dist/
 examples/**/node_modules/
 examples/**/.next/
+crates/**/target/
+swc/*.wasm
 
 

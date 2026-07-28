@@ -1,0 +1,8 @@
+{
+  "id": "scope-fn-unsupported-note",
+  "description": "Documents that custom scopeFn (esbuild lib bridge) is out of SWC Phase B1 scope — fixture is metadata only",
+  "kind": "unsupported",
+  "feature": "scopeFn",
+  "swcPhase": "deferred",
+  "notes": "Babel scopeFn writes StyleScoped / rewrites import path for lib mode. SWC B1 will not implement scopeFn; keep Babel or esbuild libMode for that path."
+}

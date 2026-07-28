@@ -1,0 +1,8 @@
+{
+  "id": "transform-class-clsx-library",
+  "description": "classNameLibrary clsx wraps array className with clsx",
+  "filename": "/project/src/Component.jsx",
+  "options": { "classNameLibrary": "clsx" },
+  "input": "import React from 'react';\nimport './x.scss?scoped';\n\nexport function Card() {\n  return <div className={['a', 'b']} />;\n}\n",
+  "expected": "import clsx from \"clsx\";\nimport React from 'react';\nimport \"./x.scss?scope-style&scoped=true&id={scopeId}\";\nexport function Card() {\n  return <div className={clsx([\"{scopeId}\", ['a', 'b']])} />;\n}"
+}

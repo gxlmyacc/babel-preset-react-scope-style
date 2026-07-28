@@ -1,0 +1,8 @@
+{
+  "id": "classnames-merge",
+  "description": "Merge scope id into existing classnames() call",
+  "filename": "/project/src/Component.jsx",
+  "options": {},
+  "input": "import React from 'react';\nimport classnames from 'classnames';\nimport './a.scss?scoped';\n\nexport function Box({ on }) {\n  return <div className={classnames({ active: on })} />;\n}\n",
+  "expected": "import React from 'react';\nimport classnames from 'classnames';\nimport \"./a.scss?scope-style&scoped=true&id={scopeId}\";\nexport function Box({\n  on\n}) {\n  return <div className={classnames([\"{scopeId}\", {\n    active: on\n  }])} />;\n}"
+}

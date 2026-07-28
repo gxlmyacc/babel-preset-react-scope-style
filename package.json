@@ -88,6 +88,7 @@
   },
   "scripts": {
     "smoke:runtime": "node scripts/smoke-runtime.js",
+    "build:swc-plugin": "node scripts/build-swc-plugin.js",
     "test": "node scripts/run-tests.js",
     "debug:test": "node --inspect-brk=9229 scripts/debug-test.js test/postcss-nesting.test.js",
     "debug:test:file": "node --inspect-brk=9229 scripts/debug-test.js",

@@ -14,6 +14,7 @@ Runnable demos for [babel-preset-react-scope-style](../README.md).
 | [esbuild-lib](./esbuild-lib/) | esbuild CLI — **lib** mode (multi-file ESM, shared app) |
 | [next](./next/) | Next.js **Pages Router** + `babel-preset-react-scope-style/next` |
 | [next-app](./next-app/) | Next.js **App Router** + Babel + `withReactScopeStyle` (not SWC-only / not Turbopack) |
+| [next-swc-poc](./next-swc-poc/) | Phase **B1**: App Router + SWC plugin + webpack CSS (no Babel) |
 
 Application code for all bundler examples lives under `shared/`.
 

@@ -104,6 +104,7 @@ Full support matrix (App Router, Turbopack, CSS Modules limits): [docs/support-m
 | Transform examples | [docs/transform-examples.md](./docs/transform-examples.md) | [docs/transform-examples.zh-CN.md](./docs/transform-examples.zh-CN.md) |
 | FAQ & troubleshooting | [docs/faq.md](./docs/faq.md) | [docs/faq.zh-CN.md](./docs/faq.zh-CN.md) |
 | Support matrix | [docs/support-matrix.md](./docs/support-matrix.md) | [docs/support-matrix.md](./docs/support-matrix.md) |
+| Phase B (SWC / Turbopack) | [docs/phase-b-swc.md](./docs/phase-b-swc.md) | [docs/phase-b-swc.md](./docs/phase-b-swc.md) |
 | Runnable demos | [examples/README.md](./examples/README.md) | [examples/README_CN.md](./examples/README_CN.md) |
 
 ## Stylelint

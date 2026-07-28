@@ -1,0 +1,17 @@
+{
+  "id": "multi-importer-shared-css",
+  "description": "Two JS files importing the same ?scoped CSS get distinct scope ids; PostCSS emits two scoped copies",
+  "kind": "multi-importer",
+  "styleImport": "./styles/shared.scss?scoped",
+  "sharedCss": ".panel { display: block; }",
+  "importers": [
+    {
+      "filename": "/project/src/Button.jsx",
+      "jsx": "export function Button() { return <button className=\"btn\">OK</button>; }"
+    },
+    {
+      "filename": "/project/src/Card.jsx",
+      "jsx": "export function Card() { return <div className=\"card\">Hi</div>; }"
+    }
+  ]
+}

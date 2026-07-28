@@ -14,6 +14,7 @@
 | [esbuild-lib](./esbuild-lib/) | esbuild CLI — **lib** 模式（多文件 ESM，shared 应用） |
 | [next](./next/) | Next.js **Pages Router** + `babel-preset-react-scope-style/next` |
 | [next-app](./next-app/) | Next.js **App Router** + Babel + `withReactScopeStyle`（非 SWC / 非 Turbopack） |
+| [next-swc-poc](./next-swc-poc/) | Phase **B1**：App Router + SWC 插件 + webpack CSS（无 Babel） |
 
 各 bundler 示例的应用代码都在 `shared/` 下。
 

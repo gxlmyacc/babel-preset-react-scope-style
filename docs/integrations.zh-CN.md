@@ -12,7 +12,7 @@
 | **Webpack** | `babel.config.js` 中的 preset | `babel-preset-react-scope-style/webpack` 插件自动注入，或手动配置 `.../loader` |
 | **Vite** | `babel-preset-react-scope-style/vite` 插件 | 由 Vite 插件内部调用 PostCSS |
 | **esbuild** | `babel-preset-react-scope-style/esbuild` 插件 | 由 esbuild 插件内部调用 PostCSS（可选 `sass` / `less`） |
-| **Next.js** | `babel.config.js`（`next/babel` + 本 preset）；Pages **与** App Router；**不支持纯 SWC / Turbopack** | `babel-preset-react-scope-style/next` 注入 webpack loader |
+| **Next.js** | Babel（`next/babel` + 本 preset）或 SWC 插件（`swcPlugin: true`）；**暂不支持 Turbopack** | `babel-preset-react-scope-style/next` 注入 webpack loader |
 | **Rspack** | `babel.config.js` 中的 preset，或插件 `babel` 选项 | `ReactScopeStyleRspackPlugin`（与 Webpack 相同注入逻辑） |
 | **自定义** | preset 或 `@babel/core` API | `babel-preset-react-scope-style/postcss` 并手动传参 |
 
@@ -209,10 +209,10 @@ module.exports = {
 
 **要求与限制**
 
-- 必须提供含 `next/babel` **与**本 preset 的 `babel.config.js`，Next 才会走 Babel（而非纯 SWC）。
-- **Pages Router 与 App Router 均支持**（同一套 Babel + webpack 配置）。
-- **不支持 Turbopack**（`next dev --turbo`），因依赖 webpack loader 注入。
-- 尚无 SWC 插件；纯 SWC-only Next 不受支持。
+- **Babel 路径（默认）：** 提供含 `next/babel` **与**本 preset 的 `babel.config.js`。
+- **纯 SWC 路径（Phase B1）：** 省略 Babel 配置，使用 `withReactScopeStyle(nextConfig, { swcPlugin: true })` — 见 [phase-b-swc.md](./phase-b-swc.md) / [examples/next-swc-poc](../examples/next-swc-poc/)。
+- **Pages Router 与 App Router** 均支持 Babel + webpack，或 SWC 插件 + webpack。
+- **暂不支持 Turbopack**（`next dev --turbo`；B2 规划中）。
 - 详见 [support-matrix.md](./support-matrix.md)。
 
 配置 Babel 后，用 `withReactScopeStyle` 包装 `next.config.js`：

@@ -1,0 +1,6 @@
+# Local cargo config for SWC WASM plugin builds (host imports resolved by Next/SWC runtime)
+[target.wasm32-wasip1]
+rustflags = ["-C", "link-arg=--allow-undefined"]
+
+[target.wasm32-wasi]
+rustflags = ["-C", "link-arg=--allow-undefined"]

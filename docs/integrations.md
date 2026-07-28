@@ -12,7 +12,7 @@ The same import syntax (`?scoped`, `?global`) and Babel options apply across too
 | **Webpack** | preset in `babel.config.js` | `babel-preset-react-scope-style/webpack` plugin auto-inject, or manual `.../loader` |
 | **Vite** | `babel-preset-react-scope-style/vite` plugin | handled by the Vite plugin (PostCSS internally) |
 | **esbuild** | `babel-preset-react-scope-style/esbuild` plugin | handled by the esbuild plugin (PostCSS internally; optional `sass` / `less`) |
-| **Next.js** | `babel.config.js` (`next/babel` + this preset); Pages **and** App Router; **not SWC-only / Turbopack** | `babel-preset-react-scope-style/next` injects the webpack loader |
+| **Next.js** | Babel (`next/babel` + this preset) or SWC plugin (`swcPlugin: true`); **not Turbopack yet** | `babel-preset-react-scope-style/next` injects the webpack loader |
 | **Rspack** | preset in `babel.config.js` or plugin `babel` option | `ReactScopeStyleRspackPlugin` (same inject logic as Webpack) |
 | **Custom** | preset or `@babel/core` API | `babel-preset-react-scope-style/postcss` with explicit options |
 
@@ -209,10 +209,10 @@ Peers: `next`, `@babel/core`; add `classnames` or `clsx` for dynamic `className`
 
 **Requirements / limits**
 
-- A `babel.config.js` with `next/babel` **and** this preset is required so Next uses Babel (not a SWC-only pipeline).
-- **Pages Router and App Router are both supported** with that Babel + webpack setup.
-- **Turbopack** (`next dev --turbo`) is **not** supported (webpack loader injection).
-- There is no SWC plugin yet — pure SWC-only Next is unsupported.
+- **Babel path (default):** a `babel.config.js` with `next/babel` **and** this preset so Next uses Babel.
+- **SWC-only path (Phase B1):** omit Babel config and use `withReactScopeStyle(nextConfig, { swcPlugin: true })` — see [phase-b-swc.md](./phase-b-swc.md) / [examples/next-swc-poc](../examples/next-swc-poc/).
+- **Pages Router and App Router** are supported with Babel + webpack, or SWC plugin + webpack.
+- **Turbopack** (`next dev --turbo`) is **not** supported yet (webpack loader injection; B2 planned).
 - See [support-matrix.md](./support-matrix.md).
 
 Configure Babel, then wrap `next.config.js` with `withReactScopeStyle`:

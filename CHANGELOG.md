@@ -16,6 +16,9 @@ All notable changes to this project are documented in this file.
 
 - CI `examples-build` job (webpack / vite / next-app / esbuild-bundle / esbuild-lib).
 - Coverage gate includes `esbuild/**` (excluding CLI `esbuild/cli.js` and `esbuild/run-build.js`); expanded unit tests for branch coverage.
+- Phase B0: Babel golden fixtures under `test/fixtures/phase-b/`, [docs/phase-b-swc.md](docs/phase-b-swc.md), SWC noop plugin crate + `examples/next-swc-poc`.
+- Phase B1: SWC plugin implements `inject-scope` + `transform-class` parity; `withReactScopeStyle({ swcPlugin: true })` for Next SWC-only (webpack CSS still required).
+- SWC WASM output flattened to `swc/` (removed unused `packages/` monorepo layer).
 
 ## [0.1.0-alpha.4] - 2026-07-28
 

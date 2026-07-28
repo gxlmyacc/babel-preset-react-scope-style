@@ -124,14 +124,29 @@ export class ReactScopeStyleRspackPlugin {
   apply(compiler: { options: Record<string, unknown> }): void;
 }
 
+/** Next.js `withReactScopeStyle` 选项 */
+export interface WithReactScopeStyleNextOptions {
+  /** 传给 scope loader 的 options（如 sourceMap） */
+  loaderOptions?: Record<string, unknown>;
+  /**
+   * 启用 Phase B SWC WASM：`true` 使用包内构建产物；字符串为自定义 `.wasm` 路径。
+   * 纯 SWC 场景请勿再放 `babel.config.js`。
+   */
+  swcPlugin?: boolean | string;
+  /** 传给 SWC 插件的 camelCase 选项（如 scopePrefix、pkg、classNameLibrary） */
+  swcPluginOptions?: ScopeStyleOptions;
+}
+
 /**
  * Next.js 配置包装器：向 webpack 样式链路注入 scope-style loader。
  * @param nextConfig 原始 next.config
  * @param options.loaderOptions 传给 scope loader 的 options
+ * @param options.swcPlugin 是否挂载 experimental.swcPlugins（Phase B1）
+ * @param options.swcPluginOptions SWC 插件选项
  */
 export function withReactScopeStyleNext(
   nextConfig?: Record<string, unknown>,
-  options?: { loaderOptions?: Record<string, unknown> }
+  options?: WithReactScopeStyleNextOptions
 ): Record<string, unknown>;
 
 export const postcssScopeStyle: (options?: Record<string, unknown>) => Plugin;

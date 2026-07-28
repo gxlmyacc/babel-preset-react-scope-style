@@ -104,6 +104,7 @@ import './theme.scss?global';
 | 转换示例 | [docs/transform-examples.md](./docs/transform-examples.md) | [docs/transform-examples.zh-CN.md](./docs/transform-examples.zh-CN.md) |
 | 常见问题与故障排除 | [docs/faq.md](./docs/faq.md) | [docs/faq.zh-CN.md](./docs/faq.zh-CN.md) |
 | 支持矩阵 | [docs/support-matrix.md](./docs/support-matrix.md) | [docs/support-matrix.md](./docs/support-matrix.md) |
+| Phase B（SWC / Turbopack） | [docs/phase-b-swc.md](./docs/phase-b-swc.md) | [docs/phase-b-swc.md](./docs/phase-b-swc.md) |
 | 可运行示例 | [examples/README.md](./examples/README.md) | [examples/README_CN.md](./examples/README_CN.md) |
 
 ## Stylelint

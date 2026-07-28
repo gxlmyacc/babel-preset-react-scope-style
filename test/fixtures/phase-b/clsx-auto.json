@@ -1,0 +1,8 @@
+{
+  "id": "clsx-auto",
+  "description": "With classNameLibrary auto, prefer already-imported clsx",
+  "filename": "/project/src/Component.jsx",
+  "options": { "classNameLibrary": "auto" },
+  "input": "import React from 'react';\nimport clsx from 'clsx';\nimport './a.scss?scoped';\n\nexport function Box({ on }) {\n  return <div className={clsx({ active: on })} />;\n}\n",
+  "expected": "import React from 'react';\nimport clsx from 'clsx';\nimport \"./a.scss?scope-style&scoped=true&id={scopeId}\";\nexport function Box({\n  on\n}) {\n  return <div className={clsx([\"{scopeId}\", {\n    active: on\n  }])} />;\n}"
+}

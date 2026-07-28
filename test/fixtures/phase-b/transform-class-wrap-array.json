@@ -1,0 +1,8 @@
+{
+  "id": "transform-class-wrap-array",
+  "description": "Wrap array className with classnames and prepend scope id",
+  "filename": "/project/src/Component.jsx",
+  "options": {},
+  "input": "import React from 'react';\nimport './x.scss?scoped';\n\nexport function Card() {\n  return <div className={['a', 'b']} />;\n}\n",
+  "expected": "import classNames from \"classnames\";\nimport React from 'react';\nimport \"./x.scss?scope-style&scoped=true&id={scopeId}\";\nexport function Card() {\n  return <div className={classNames([\"{scopeId}\", ['a', 'b']])} />;\n}"
+}

@@ -1,0 +1,5 @@
+# Workspace for Phase B SWC plugin crates
+
+[workspace]
+members = ["crates/swc-plugin-react-scope-style"]
+resolver = "2"
