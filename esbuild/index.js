@@ -105,7 +105,8 @@ async function compileStylePreprocessor(filePath, rawContent) {
  * @returns {import('esbuild').Plugin}
  */
 function reactScopeStyle(userOptions = {}) {
-  const preset = require('../src/index');
+  const { loadScopePreset } = require('../lib/resolve-preset');
+  const preset = loadScopePreset();
   const {
     libMode = false,
     styleScoped = null,

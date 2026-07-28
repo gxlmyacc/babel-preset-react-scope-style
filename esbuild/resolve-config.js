@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { globSync } = require('glob');
+const { globSync } = require('../lib/glob-sync');
 
 const DEFAULT_CONFIG_FILES = [
   'esbuild-scope.config.js',

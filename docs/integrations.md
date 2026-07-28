@@ -1,12 +1,43 @@
 # Build tool integrations
 
-See also the full sections in [README.md](../README.md#vite--rspack--postcss-without-webpack) and [README_CN.md](../README_CN.md#vite--rspack--postcss非-webpack-场景).
+See also:
+
+- Full sections in [README.md](../README.md#vite--esbuild--next--rspack--postcss-without-webpack) / [README_CN.md](../README_CN.md#vite--esbuild--next--rspack--postcss非-webpack-场景)
+- [Support matrix](./support-matrix.md) (Next/SWC/Turbopack/App Router limits)
 
 ## Webpack (default)
 
-Use the Babel preset and place `babel-preset-react-scope-style/loader` after `css-loader` (see main README).
+**Recommended:** use the Webpack plugin to inject the scope loader **and** the Babel preset into `babel-loader`:
 
-`webpack` is an optional peer dependency — only required when using the loader.
+```js
+const ReactScopeStyleWebpackPlugin = require('babel-preset-react-scope-style/webpack');
+
+module.exports = {
+  module: {
+    rules: [
+      { test: /\.(js|jsx)$/, use: 'babel-loader' },
+      { test: /\.s[ac]ss$/, use: ['style-loader', 'css-loader', 'sass-loader'] },
+      { test: /\.css$/, use: ['style-loader', 'css-loader'] },
+    ],
+  },
+  plugins: [
+    new ReactScopeStyleWebpackPlugin({
+      sourceMap: true,
+      babel: { scopePrefix: 'v-', classNameLibrary: 'auto' },
+    }),
+  ],
+};
+```
+
+Compatibility: skips loader injection if already present; skips Babel injection if `babel-loader` options / `configFile` / project `babel.config.*` already includes this preset. Set `babel: false` to only inject the loader.
+
+Or call `withReactScopeStyle(config, options)`.
+
+Manual loader: place `babel-preset-react-scope-style/loader` after `css-loader` (see main README).
+
+`webpack` is an optional peer dependency — only required when using the loader / plugin.
+
+Runnable demo: [examples/webpack](../examples/webpack/) (port 3000).
 
 ## Vite
 
@@ -30,26 +61,29 @@ Component imports stay the same: `import './Button.scss?scoped'`.
 
 ## Rspack
 
-Same loader order as Webpack. Example:
+**Recommended:** same plugin API as Webpack (`ReactScopeStyleRspackPlugin` / `withReactScopeStyle`):
 
 ```js
-const scopeLoader = require.resolve('babel-preset-react-scope-style/loader');
+const ReactScopeStyleRspackPlugin = require('babel-preset-react-scope-style/rspack');
 
 module.exports = {
   module: {
     rules: [
-      {
-        test: /\.s[ac]ss$/,
-        use: ['style-loader', 'css-loader', { loader: scopeLoader }, 'sass-loader'],
-      },
+      { test: /\.(js|jsx)$/, use: 'babel-loader' },
+      { test: /\.s[ac]ss$/, use: ['style-loader', 'css-loader', 'sass-loader'] },
+      { test: /\.css$/, use: ['style-loader', 'css-loader'] },
     ],
   },
+  plugins: [
+    new ReactScopeStyleRspackPlugin({
+      sourceMap: true,
+      babel: { scopePrefix: 'v-', classNameLibrary: 'auto' },
+    }),
+  ],
 };
 ```
 
-Optional: `require('babel-preset-react-scope-style/rspack').withReactScopeStyle(config)`.
-
-Runnable demo: [examples/rspack](../examples/rspack/) (shared app, port 3001).
+Manual loader order remains Webpack-compatible. Runnable demo: [examples/rspack](../examples/rspack/) (port 3001).
 
 ## esbuild
 
@@ -87,6 +121,31 @@ export default {
 1. The plugin runs Babel with this preset on `.js` / `.jsx` / `.ts` / `.tsx` (same as Vite).
 2. Style imports like `import './Button.scss?scoped'` are rewritten to include `scope-style&scoped=true&id=v-xxx` (bundle mode) or plain `.css` (lib mode with `StyleScoped` bridge).
 3. When esbuild loads scoped styles, the plugin compiles preprocessors (if needed) and runs the PostCSS scope transform.
+
+## Next.js
+
+```js
+// babel.config.js
+module.exports = {
+  presets: [
+    'next/babel',
+    ['babel-preset-react-scope-style', { scopePrefix: 'v-', classNameLibrary: 'auto' }],
+  ],
+};
+
+// next.config.js
+const withReactScopeStyle = require('babel-preset-react-scope-style/next');
+
+module.exports = withReactScopeStyle({
+  // your Next config
+}, {
+  loaderOptions: { sourceMap: true },
+});
+```
+
+**Limits:** Babel config is required (not SWC-only). Turbopack is not supported. **Pages and App Router are both supported** with Babel + webpack. Details: [support-matrix.md](./support-matrix.md).
+
+Runnable demos: [examples/next](../examples/next/) (Pages, port 3003), [examples/next-app](../examples/next-app/) (App Router, port 3004).
 
 ## Pure PostCSS
 

@@ -14,7 +14,6 @@ const {
   isAmpersandGlobalNestingSelector,
   isBareScopeNestingSelector,
   isSpacedScopeNestingSelector,
-  isStarPlaceholderScopeNestingSelector,
   isAmpersandScopeNestingSelector,
   isInGlobalSubtree,
   isScopeAnchorSelector,

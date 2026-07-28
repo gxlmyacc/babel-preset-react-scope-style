@@ -12,3 +12,6 @@ demo/
 demo*/
 types/
 **/*.d.ts
+examples/
+.history/
+.eslintrc.js

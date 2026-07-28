@@ -111,7 +111,7 @@ export function C() { return <div className="c" />; }
     fs.writeFileSync(path.join(srcDir, 'app.css'), '.box { color: red; }');
     fs.writeFileSync(
       path.join(srcDir, 'main.js'),
-      `import './app.css?scoped';\nexport const ok = true;\n`
+      'import \'./app.css?scoped\';\nexport const ok = true;\n'
     );
 
     const outFile = path.join(tmpDir, 'bundle.js');

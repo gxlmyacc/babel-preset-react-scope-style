@@ -17,10 +17,12 @@ const utils = require('../src/utils');
  * @param {string} request - 请求
  * @param {object} [opts] - 选项
  * @param {object|null} [meta] - meta
- * @param {() => object|undefined} [opts.getOptions] - getOptions 实现
+ * @param {(() => object)|undefined} [getOptions] - getOptions 实现
  * @returns {Promise<{ css: string, meta?: object }>}
  */
-function runLoader(content, request, opts = {}, meta = null, getOptions) {
+function runLoader(content, request, opts, meta, getOptions) {
+  const loaderOpts = opts || {};
+  const loaderMeta = meta == null ? null : meta;
   const loader = require('../loader/index');
   const dir = path.join(process.cwd(), 'fixtures');
   const resource = request.split('?')[0];
@@ -45,12 +47,12 @@ function runLoader(content, request, opts = {}, meta = null, getOptions) {
       remainingRequest: absolute,
       getRemainingRequest: () => absolute,
       getCurrentRequest: () => fullRequest,
-      getOptions: getOptions || (() => opts),
+      getOptions: getOptions || (() => loaderOpts),
       emitWarning() {},
       async: () => done,
       callback: done,
     };
-    loader.call(ctx, content, null, meta);
+    loader.call(ctx, content, null, loaderMeta);
   });
 }
 

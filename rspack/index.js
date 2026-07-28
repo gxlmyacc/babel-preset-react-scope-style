@@ -1,28 +1,53 @@
-const path = require('path');
+const {
+  applyReactScopeStyle,
+  normalizePluginOptions,
+  injectScopeLoader,
+  injectBabelPreset,
+  getScopeLoaderPath,
+  getScopePresetPath,
+} = require('../webpack');
 
 /**
- * 为 Rspack 配置追加 scope-style loader 规则（与 Webpack 链式顺序一致）。
- * @param {import('@rspack/core').Configuration} config - Rspack 配置对象
- * @param {object} [loaderOptions={}] - 传给 loader 的 options
- * @returns {import('@rspack/core').Configuration} 原 config（便于链式调用）
+ * Rspack 插件：与 Webpack 插件共用注入逻辑（scope loader + Babel preset）。
+ * 若用户已手动配置 loader / preset（含 babel.config / configFile），则跳过对应注入。
  */
-function withReactScopeStyle(config, loaderOptions = {}) {
-  const loaderPath = path.join(__dirname, '../loader/index.js');
-  const rule = {
-    test: /\.(css|scss|sass|less)$/i,
-    use: [
-      {
-        loader: loaderPath,
-        options: loaderOptions,
-      },
-    ],
-  };
+class ReactScopeStyleRspackPlugin {
 
-  if (!config.module) config.module = {};
-  if (!config.module.rules) config.module.rules = [];
-  config.module.rules.push(rule);
-  return config;
+  /**
+   * @param {object} [options={}] - 同 Webpack 插件：`babel`、`loaderOptions` 等
+   */
+  constructor(options = {}) {
+    this.options = options;
+  }
+
+  /**
+   * 注册到 Rspack/webpack-compatible compiler，在构建前完成注入。
+   * @param {{ options: import('@rspack/core').Configuration }} compiler - Rspack compiler
+   * @returns {void}
+   */
+  apply(compiler) {
+    applyReactScopeStyle(compiler.options, this.options);
+  }
+
 }
 
-module.exports = withReactScopeStyle;
-module.exports.default = withReactScopeStyle;
+/**
+ * 配置辅助：等价于插件的注入逻辑（不挂载插件实例）。
+ * @param {import('@rspack/core').Configuration} config - Rspack 配置对象
+ * @param {object} [options={}] - 同插件构造参数
+ * @returns {import('@rspack/core').Configuration} 原 config（便于链式调用）
+ */
+function withReactScopeStyle(config, options = {}) {
+  return applyReactScopeStyle(config, options);
+}
+
+module.exports = ReactScopeStyleRspackPlugin;
+module.exports.default = ReactScopeStyleRspackPlugin;
+module.exports.ReactScopeStyleRspackPlugin = ReactScopeStyleRspackPlugin;
+module.exports.withReactScopeStyle = withReactScopeStyle;
+module.exports.applyReactScopeStyle = applyReactScopeStyle;
+module.exports.normalizePluginOptions = normalizePluginOptions;
+module.exports.injectScopeLoader = injectScopeLoader;
+module.exports.injectBabelPreset = injectBabelPreset;
+module.exports.getScopeLoaderPath = getScopeLoaderPath;
+module.exports.getScopePresetPath = getScopePresetPath;

@@ -114,8 +114,9 @@ function preScanJsForStyleScoped({
 }) {
   const fs = require('fs');
   const { transformSync } = require('@babel/core');
-  const { globSync } = require('glob');
-  const preset = require('../src/index');
+  const { globSync } = require('../lib/glob-sync');
+  const { loadScopePreset } = require('../lib/resolve-preset');
+  const preset = loadScopePreset();
   const { buildBabelTransformOptions } = require('../lib/alias-config');
 
   const exts = typescript
@@ -176,7 +177,7 @@ function resolveStyleSourcePath(filePath) {
  */
 async function buildLibStyles(config, styleScoped) {
   const fs = require('fs');
-  const { globSync } = require('glob');
+  const { globSync } = require('../lib/glob-sync');
   const { processScopeStyleCss } = require('../lib/process-scope-css');
   const { processStyleCss } = require('../lib/alias-config');
   const { compileStylePreprocessor } = require('./index');
@@ -224,7 +225,7 @@ const LIB_SKIP_COPY_EXT_RE = /\.(js|jsx|mjs|cjs|ts|tsx|mts|cts|css|scss|sass|les
  */
 function copyLibStaticAssets(config) {
   const fs = require('fs');
-  const { globSync } = require('glob');
+  const { globSync } = require('../lib/glob-sync');
 
   const srcRel = path.relative(config.rootDir, config.srcDir) || '.';
   const ignorePatterns = config.ignore.length

@@ -1,0 +1,22 @@
+{
+  "name": "react-scope-style-next-app-example",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Next.js App Router example for babel-preset-react-scope-style",
+  "scripts": {
+    "dev": "next dev -p 3004",
+    "build": "next build",
+    "start": "next start -p 3004"
+  },
+  "dependencies": {
+    "babel-preset-react-scope-style": "file:../..",
+    "classnames": "^2.5.1",
+    "next": "^14.2.18",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "sass": "^1.81.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.26.0"
+  }
+}

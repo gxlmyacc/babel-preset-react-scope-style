@@ -1,7 +1,7 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const ReactScopeStyleRspackPlugin = require('babel-preset-react-scope-style/rspack');
 
-const scopeLoader = require.resolve('babel-preset-react-scope-style/loader');
 const sharedRoot = path.resolve(__dirname, '../shared');
 const rspackModules = path.resolve(__dirname, 'node_modules');
 
@@ -40,7 +40,6 @@ module.exports = {
         use: [
           'style-loader',
           'css-loader',
-          { loader: scopeLoader },
           'sass-loader',
         ],
       },
@@ -50,7 +49,6 @@ module.exports = {
         use: [
           'style-loader',
           'css-loader',
-          { loader: scopeLoader },
         ],
       },
     ],
@@ -58,6 +56,11 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
       template: path.join(sharedRoot, 'public/index.html'),
+    }),
+    // babel: false — 本示例已在 babel.config.js 配置 preset，插件只注入 scope loader
+    new ReactScopeStyleRspackPlugin({
+      sourceMap: true,
+      babel: false,
     }),
   ],
   devServer: {

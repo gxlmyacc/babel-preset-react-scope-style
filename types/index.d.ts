@@ -94,7 +94,44 @@ export interface EsbuildScopeConfig {
 
 export function withReactScopeStyle(
   config: Record<string, unknown>,
-  loaderOptions?: Record<string, unknown>
+  options?: ReactScopeStyleWebpackPluginOptions | Record<string, unknown>
+): Record<string, unknown>;
+
+/** Webpack 插件选项 */
+export interface ReactScopeStyleWebpackPluginOptions {
+  /** 是否向 babel-loader 注入本 preset；`false` 关闭；对象为 ScopeStyleOptions */
+  babel?: boolean | ScopeStyleOptions;
+  /** 传给 scope loader 的 options；未设置时其余字段视为 loaderOptions */
+  loaderOptions?: ScopeStyleLoaderOptions & Record<string, unknown>;
+  sourceMap?: boolean;
+  [key: string]: unknown;
+}
+
+/**
+ * Webpack 插件：自动注入 scope-style loader，并向 babel-loader 注入本 Babel preset。
+ * 若已手动配置 loader / preset（含 babel.config / configFile），则跳过对应注入。
+ */
+export class ReactScopeStyleWebpackPlugin {
+  constructor(options?: ReactScopeStyleWebpackPluginOptions);
+  apply(compiler: import('webpack').Compiler): void;
+}
+
+/**
+ * Rspack 插件：与 Webpack 插件共用注入逻辑（scope loader + Babel preset）。
+ */
+export class ReactScopeStyleRspackPlugin {
+  constructor(options?: ReactScopeStyleWebpackPluginOptions);
+  apply(compiler: { options: Record<string, unknown> }): void;
+}
+
+/**
+ * Next.js 配置包装器：向 webpack 样式链路注入 scope-style loader。
+ * @param nextConfig 原始 next.config
+ * @param options.loaderOptions 传给 scope loader 的 options
+ */
+export function withReactScopeStyleNext(
+  nextConfig?: Record<string, unknown>,
+  options?: { loaderOptions?: Record<string, unknown> }
 ): Record<string, unknown>;
 
 export const postcssScopeStyle: (options?: Record<string, unknown>) => Plugin;

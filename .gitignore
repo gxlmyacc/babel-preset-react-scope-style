@@ -16,7 +16,9 @@ esm/
 */demo/out/
 coverage/
 .nyc_output/
+.codegraph/
 examples/**/dist/
 examples/**/node_modules/
+examples/**/.next/
 
 

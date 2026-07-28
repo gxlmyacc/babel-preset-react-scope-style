@@ -10,7 +10,8 @@ const JS_EXT_RE = /\.(m?[jt]sx?)$/;
  * @returns {import('vite').Plugin}
  */
 function reactScopeStyle(userOptions = {}) {
-  const preset = require('../src/index');
+  const { loadScopePreset } = require('../lib/resolve-preset');
+  const preset = loadScopePreset();
 
   return {
     name: 'react-scope-style',

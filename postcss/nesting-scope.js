@@ -1,3 +1,4 @@
+/* eslint-disable no-use-before-define, no-loop-func, no-void */
 const postcss = require('postcss');
 const { shouldSkipRule, stripLeadingGlobalFromAllSelectors } = require('./selector-scope');
 

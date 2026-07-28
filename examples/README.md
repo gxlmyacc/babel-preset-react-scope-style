@@ -5,11 +5,13 @@ Runnable demos for [babel-preset-react-scope-style](../../README.md).
 | Directory | Role |
 |-----------|------|
 | [shared](./shared/) | **Shared** React app (`src/`, styles, demo menu) |
-| [webpack](./webpack/) | Webpack 5 + Babel preset + scope loader |
-| [rspack](./rspack/) | Rspack + Babel preset + scope loader (Webpack-compatible chain) |
+| [webpack](./webpack/) | Webpack 5 + Babel preset + `ReactScopeStyleWebpackPlugin` |
+| [rspack](./rspack/) | Rspack + Babel preset + `ReactScopeStyleRspackPlugin` |
 | [vite](./vite/) | Vite + `babel-preset-react-scope-style/vite` |
 | [esbuild-bundle](./esbuild-bundle/) | esbuild CLI — **bundle** 模式（SPA，shared 应用） |
 | [esbuild-lib](./esbuild-lib/) | esbuild CLI — **lib** 模式（多文件 ESM，shared 应用） |
+| [next](./next/) | Next.js **Pages Router** + `babel-preset-react-scope-style/next` |
+| [next-app](./next-app/) | Next.js **App Router** + Babel + `withReactScopeStyle`（非 SWC / 非 Turbopack） |
 
 Application code for all bundler examples lives under `shared/`.
 
@@ -24,7 +26,7 @@ npm run build
 Then pick a bundler:
 
 ```bash
-cd examples/webpack   # or examples/rspack / examples/vite / examples/esbuild-bundle / examples/esbuild-lib
+cd examples/webpack   # or rspack / vite / esbuild-bundle / esbuild-lib / next / next-app
 npm install
 npm run dev
 ```
@@ -33,6 +35,8 @@ npm run dev
 - Rspack: http://localhost:3001
 - Vite: http://localhost:5173
 - esbuild bundle: http://localhost:3002
+- Next.js Pages: http://localhost:3003
+- Next.js App Router: http://localhost:3004
 
 Both link the parent package via `"babel-preset-react-scope-style": "file:../.."`. Each bundler folder has `.npmrc` with `install-links=false` (copies instead of symlinks on Windows).
 

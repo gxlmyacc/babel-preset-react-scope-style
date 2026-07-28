@@ -1,3 +1,4 @@
+/* eslint-disable no-use-before-define */
 const selectorParser = require('postcss-selector-parser');
 const { unescapeValue } = require('postcss-selector-parser/dist/selectors/attribute');
 

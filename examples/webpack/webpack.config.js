@@ -1,9 +1,10 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const ReactScopeStyleWebpackPlugin = require('babel-preset-react-scope-style/webpack');
 
-const scopeLoader = require.resolve('babel-preset-react-scope-style/loader');
 const sharedRoot = path.resolve(__dirname, '../shared');
 const webpackModules = path.resolve(__dirname, 'node_modules');
+const scopeStyleOptions = require('../shared/scope-style-options.cjs');
 
 module.exports = {
   context: sharedRoot,
@@ -29,6 +30,7 @@ module.exports = {
         use: {
           loader: 'babel-loader',
           options: {
+            // env / react 仍走本地 babel.config；scope preset 由插件注入
             configFile: path.resolve(__dirname, 'babel.config.js'),
           },
         },
@@ -39,7 +41,6 @@ module.exports = {
         use: [
           'style-loader',
           'css-loader',
-          { loader: scopeLoader },
           'sass-loader',
         ],
       },
@@ -49,12 +50,15 @@ module.exports = {
         use: [
           'style-loader',
           'css-loader',
-          { loader: scopeLoader },
         ],
       },
     ],
   },
   plugins: [
+    new ReactScopeStyleWebpackPlugin({
+      sourceMap: true,
+      babel: scopeStyleOptions,
+    }),
     new HtmlWebpackPlugin({
       template: path.join(sharedRoot, 'public/index.html'),
     }),

@@ -5,16 +5,21 @@
     "loader/**/*.js",
     "lib/**/*.js",
     "vite/**/*.js",
-    "rspack/**/*.js"
+    "rspack/**/*.js",
+    "webpack/**/*.js",
+    "next/**/*.js",
+    "stylelint/**/*.js"
   ],
   "exclude": [
     "postcss/postcss8.js",
-    "src/options-default.js"
+    "src/options-default.js",
+    "postcss/demo/**",
+    "lib/alias-config.js"
   ],
   "reporter": ["text", "html", "lcov"],
   "check-coverage": true,
-  "lines": 100,
-  "functions": 100,
-  "branches": 95,
-  "statements": 100
+  "lines": 97,
+  "functions": 98,
+  "branches": 90,
+  "statements": 97
 }

@@ -1,6 +1,6 @@
 # babel-preset-react-scope-style
 
-一个为 React 组件提供样式作用域化的综合解决方案，包含 Babel 插件、PostCSS 插件，以及 Webpack / Rspack loader、Vite 与 esbuild 插件等构建集成。
+一个为 React 组件提供样式作用域化的综合解决方案，包含 Babel 插件、PostCSS 插件，以及 Webpack / Rspack loader、Vite / esbuild / Next.js 插件等构建集成。
 
 [![NPM version](https://img.shields.io/npm/v/babel-preset-react-scope-style.svg?style=flat)](https://npmjs.com/package/babel-preset-react-scope-style)
 [![NPM downloads](https://img.shields.io/npm/dm/babel-preset-react-scope-style.svg?style=flat)](https://npmjs.com/package/babel-preset-react-scope-style)
@@ -11,10 +11,11 @@
 
 - **Babel插件**: 自动向JSX元素注入作用域ID，并转换className表达式
 - **PostCSS插件**: 处理CSS文件的作用域隔离，支持全局/局部作用域
-- **Webpack Loader**: 与webpack构建流程集成，实现无缝的样式作用域化
+- **Webpack 插件 / Loader**: `ReactScopeStyleWebpackPlugin` 自动注入 scope loader；也可手动配置 loader
 - **Vite 插件**: 开箱即用的 Vite 集成，处理 JSX 与作用域 CSS
 - **esbuild 插件**: esbuild 集成，处理 JSX 与作用域 CSS（可选编译 Sass/Less）
-- **Rspack 支持**: 兼容 Webpack 的 loader 与配置辅助函数
+- **Next.js 集成**: `withReactScopeStyle` 包装 next.config，注入 webpack scope loader
+- **Rspack 支持**: `ReactScopeStyleRspackPlugin` 与 Webpack 共用注入逻辑
 - **灵活配置**: 可自定义作用域前缀、属性和作用域策略
 - **React组件支持**: 针对React组件优化，自动处理className属性
 - **CSS-in-JS支持**: 兼容classnames、clsx等工具库
@@ -51,9 +52,44 @@ yarn add babel-preset-react-scope-style
 
 ### 2. Webpack配置
 
-在 webpack 配置中添加 loader（将 `babel-preset-react-scope-style/loader` 放在 `css-loader` 之后、 `sass-loader` 等预处理器之前）：
+**推荐**：使用 Webpack 插件自动注入 scope loader，并向 `babel-loader` 注入本 Babel preset（已手动配置时会跳过，避免重复）：
 
-> **注意：** 若使用 **Vite**、**esbuild**、**Rspack** 或 **纯 PostCSS**，请参阅下文 [Vite / esbuild / Rspack / PostCSS](#vite--esbuild--rspack--postcss非-webpack-场景)。
+```javascript
+// webpack.config.js
+const ReactScopeStyleWebpackPlugin = require('babel-preset-react-scope-style/webpack');
+
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.(js|jsx)$/,
+        use: 'babel-loader',
+      },
+      {
+        test: /\.s[ac]ss$/,
+        use: ['style-loader', 'css-loader', 'sass-loader'],
+      },
+      {
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader'],
+      },
+    ],
+  },
+  plugins: [
+    new ReactScopeStyleWebpackPlugin({
+      sourceMap: true,
+      // false 可关闭 Babel 注入；也可传入 ScopeStyleOptions
+      babel: { scopePrefix: 'v-', classNameLibrary: 'auto' },
+    }),
+  ],
+};
+```
+
+也可使用配置辅助函数 `withReactScopeStyle(config, options)`，效果相同。
+
+**手动配置 loader**（将 `babel-preset-react-scope-style/loader` 放在 `css-loader` 之后、预处理器之前）：
+
+> **注意：** 若使用 **Vite**、**esbuild**、**Next.js**、**Rspack** 或 **纯 PostCSS**，请参阅下文 [Vite / esbuild / Next / Rspack / PostCSS](#vite--esbuild--next--rspack--postcss非-webpack-场景)。
 
 ```javascript
 module.exports = {
@@ -93,29 +129,34 @@ module.exports = {
 };
 ```
 
-## Vite / esbuild / Rspack / PostCSS（非 Webpack 场景）
+## Vite / esbuild / Next / Rspack / PostCSS（非 Webpack 场景）
 
 各工具链使用相同的导入语法（`?scoped`、`?global`）和 Babel 配置项，区别仅在于 **CSS 处理链路**。
 
 | 工具 | Babel / JSX | CSS 作用域化 |
 |------|-------------|--------------|
-| **Webpack** | `babel.config.js` 中的 preset | `css-loader` 之后的 `.../loader` |
+| **Webpack** | `babel.config.js` 中的 preset | `babel-preset-react-scope-style/webpack` 插件自动注入，或手动配置 `.../loader` |
 | **Vite** | `babel-preset-react-scope-style/vite` 插件 | 由 Vite 插件内部调用 PostCSS |
 | **esbuild** | `babel-preset-react-scope-style/esbuild` 插件 | 由 esbuild 插件内部调用 PostCSS（可选 `sass` / `less`） |
-| **Rspack** | `babel.config.js` 中的 preset | 与 Webpack 相同的 loader |
+| **Next.js** | `babel.config.js`（`next/babel` + 本 preset）；Pages **与** App Router；**不支持纯 SWC / Turbopack** | `babel-preset-react-scope-style/next` 注入 webpack loader |
+| **Rspack** | `babel.config.js` 中的 preset，或插件 `babel` 选项 | `ReactScopeStyleRspackPlugin`（与 Webpack 相同注入逻辑） |
 | **自定义** | preset 或 `@babel/core` API | `babel-preset-react-scope-style/postcss` 并手动传参 |
+
+完整支持矩阵（App Router、Turbopack、CSS Modules 限制）：[docs/support-matrix.md](docs/support-matrix.md)。
 
 ### 子路径导出
 
 | 导入路径 | 用途 |
 |----------|------|
 | `babel-preset-react-scope-style` | Babel preset（JSX + import 改写） |
-| `babel-preset-react-scope-style/loader` | Webpack / Rspack loader |
+| `babel-preset-react-scope-style/loader` | Webpack / Rspack / Next loader |
+| `babel-preset-react-scope-style/webpack` | Webpack 插件（自动注入 loader + 可选 Babel preset） |
 | `babel-preset-react-scope-style/postcss` | PostCSS 8 插件 |
 | `babel-preset-react-scope-style/vite` | Vite 插件 |
 | `babel-preset-react-scope-style/esbuild` | esbuild 插件 |
 | `babel-preset-react-scope-style/esbuild/cli` | esbuild CLI（`react-scope-style`） |
-| `babel-preset-react-scope-style/rspack` | Rspack 配置辅助 |
+| `babel-preset-react-scope-style/next` | Next.js `withReactScopeStyle` 配置包装器 |
+| `babel-preset-react-scope-style/rspack` | Rspack 插件（与 Webpack 相同注入逻辑） |
 
 ### Vite
 
@@ -261,44 +302,77 @@ esbuild 会将汇总后的样式输出为独立 CSS 文件（如 `main.css`）�
 
 ### Rspack
 
-Rspack 支持 Webpack 风格 loader，**顺序与 Webpack 相同**：`style-loader` → `css-loader` → **`babel-preset-react-scope-style/loader`** → `sass-loader`（如有）。
+Rspack 支持 Webpack 风格 loader。**推荐**使用 `ReactScopeStyleRspackPlugin`（与 Webpack 插件共用注入逻辑）：
 
 ```javascript
 // rspack.config.js
-const scopeLoader = require.resolve('babel-preset-react-scope-style/loader');
+const ReactScopeStyleRspackPlugin = require('babel-preset-react-scope-style/rspack');
 
 module.exports = {
   module: {
     rules: [
-      {
-        test: /\.s[ac]ss$/,
-        use: [
-          'style-loader',
-          'css-loader',
-          { loader: scopeLoader },
-          'sass-loader',
-        ],
-      },
-      {
-        test: /\.css$/,
-        use: ['style-loader', 'css-loader', { loader: scopeLoader }],
-      },
+      { test: /\.(js|jsx)$/, use: 'babel-loader' },
+      { test: /\.s[ac]ss$/, use: ['style-loader', 'css-loader', 'sass-loader'] },
+      { test: /\.css$/, use: ['style-loader', 'css-loader'] },
     ],
   },
+  plugins: [
+    new ReactScopeStyleRspackPlugin({
+      sourceMap: true,
+      babel: { scopePrefix: 'v-', classNameLibrary: 'auto' },
+    }),
+  ],
 };
 ```
 
-可选辅助函数（追加 loader 规则，需与现有 `module.rules` 合并）：
-
-```javascript
-const { withReactScopeStyle } = require('babel-preset-react-scope-style/rspack');
-
-module.exports = withReactScopeStyle({
-  // 你的 rspack 配置 — 仍需在 babel.config.js 中配置 preset
-});
-```
+也可调用 `withReactScopeStyle(config, options)`。手动配置时顺序仍为：`style-loader` → `css-loader` → **`babel-preset-react-scope-style/loader`** → `sass-loader`（如有）。
 
 仅在使用 loader 时需安装可选 peer `webpack`（Webpack 或 Rspack 场景）。
+
+### Next.js
+
+需安装 peer：`next`、`@babel/core`；若使用动态 `className`，还需 `classnames` 或 `clsx`。处理 SCSS 时安装 `sass`。
+
+**要求与限制**
+
+- 必须提供含 `next/babel` **与**本 preset 的 `babel.config.js`，Next 才会走 Babel（而非纯 SWC）。
+- **Pages Router 与 App Router 均支持**（同一套 Babel + webpack 配置）。
+- **不支持 Turbopack**（`next dev --turbo`），因依赖 webpack loader 注入。
+- 尚无 SWC 插件；纯 SWC-only Next 不受支持。
+- 详见 [docs/support-matrix.md](docs/support-matrix.md)。
+
+配置 Babel 后，用 `withReactScopeStyle` 包装 `next.config.js`：
+
+```javascript
+// babel.config.js
+module.exports = {
+  presets: [
+    'next/babel',
+    ['babel-preset-react-scope-style', { scopePrefix: 'v-', classNameLibrary: 'auto' }],
+  ],
+};
+```
+
+```javascript
+// next.config.js
+const withReactScopeStyle = require('babel-preset-react-scope-style/next');
+
+module.exports = withReactScopeStyle(
+  {
+    // 你的 Next 配置
+  },
+  {
+    loaderOptions: { sourceMap: true },
+  }
+);
+```
+
+包装器会向 Next 的 webpack 样式规则注入 `babel-preset-react-scope-style/loader`（插在预处理器之前）。组件写法与 Webpack 一致：`import './Button.scss?scoped'`。
+
+可运行示例：
+
+- Pages Router：[examples/next](../examples/next/)（端口 3003）
+- App Router：[examples/next-app](../examples/next-app/)（端口 3004）
 
 ### 纯 PostCSS（独立使用）
 
@@ -1371,7 +1445,7 @@ className={classNames('btn', variant && `btn-${variant}`) + ' v-abc123'}
 **重要说明：** 默认情况下，仅存在`?scoped`后缀的文件中的jsx的className才会生成作用域id。即使某个文件中的jsx不需要配置样式，但如果你希望也为它们生成作用域id（或者让通过`?global`引用的全局作用域样式生效），你可以添加个空白的样式文件然后通过`?scoped`后缀进行引用。
 
 ### Q: 我可以在没有webpack的情况下使用此插件吗？
-**A:** 可以。请使用 **[Vite 插件](#vite)**（`babel-preset-react-scope-style/vite`）、**[esbuild 插件](#esbuild)**（`babel-preset-react-scope-style/esbuild`）、**[Rspack loader](#rspack)**（与 Webpack 相同），或 **[独立 PostCSS](#纯-postcss独立使用)**。也可使用 [build-react-esm-project](https://github.com/gxlmyacc/build-react-esm-project) 做基于 Gulp 的 React ESM 构建。
+**A:** 可以。请使用 **[Vite 插件](#vite)**（`babel-preset-react-scope-style/vite`）、**[esbuild 插件](#esbuild)**（`babel-preset-react-scope-style/esbuild`）、**[Next.js 集成](#nextjs)**（`babel-preset-react-scope-style/next`）、**[Rspack loader](#rspack)**（与 Webpack 相同），或 **[独立 PostCSS](#纯-postcss独立使用)**。也可使用 [build-react-esm-project](https://github.com/gxlmyacc/build-react-esm-project) 做基于 Gulp 的 React ESM 构建。
 
 ### Q: 插件如何处理多个作用域配置？
 **A:** 当提供多个作用域配置时，PostCSS插件会多次处理输入的CSS文件，生成一个包含所有作用域版本的单一输出文件。这允许相同的样式在不同的上下文中工作（全局、组件特定等），而不会产生冲突。
@@ -1508,10 +1582,18 @@ npm test
 
 ## 开发
 
+使用已发布的包需要 **Node >= 14.17**。单元测试需要 **Node >= 18**（`node:test`）；详见 [docs/support-matrix.md](docs/support-matrix.md#nodejs)。
+
 ### 构建
 
 ```bash
 npm run build
+```
+
+### 运行时冒烟（Node 14.17+）
+
+```bash
+npm run smoke:runtime
 ```
 
 ### 演示

@@ -18,7 +18,6 @@ npm install
 
 ## Config
 
-- `webpack.config.js` — `context: ../shared`，`resolveLoader` 指向本目录 `node_modules`
-- `../shared/package.json` — 声明样式文件 `sideEffects`，避免生产构建摇掉 `import '*.scss'`
-- `babel.config.js` — preset + options from `../shared/scope-style-options.cjs`
-- Loader order: `style-loader` → `css-loader` → scope loader → `sass-loader`
+- `webpack.config.js` — `ReactScopeStyleWebpackPlugin` 自动注入 scope loader + Babel preset
+- `babel.config.js` — 仅 `@babel/preset-env` / `@babel/preset-react`（scope preset 由插件注入）
+- 插件注入后的 loader 顺序：`style-loader` → `css-loader` → scope loader → `sass-loader`

@@ -1,6 +1,6 @@
 # babel-preset-react-scope-style
 
-A comprehensive solution for scoping styles in React components, with Babel and PostCSS plugins plus build integrations for Webpack, Rspack (loader), Vite, and esbuild.
+A comprehensive solution for scoping styles in React components, with Babel and PostCSS plugins plus build integrations for Webpack, Rspack (loader), Vite, esbuild, and Next.js.
 
 [![NPM version](https://img.shields.io/npm/v/babel-preset-react-scope-style.svg?style=flat)](https://npmjs.com/package/babel-preset-react-scope-style)
 [![NPM downloads](https://img.shields.io/npm/dm/babel-preset-react-scope-style.svg?style=flat)](https://npmjs.com/package/babel-preset-react-scope-style)
@@ -11,10 +11,11 @@ A comprehensive solution for scoping styles in React components, with Babel and 
 
 - **Babel Plugin**: Automatically injects scope IDs into JSX elements and transforms className expressions
 - **PostCSS Plugin**: Processes CSS files with scope isolation and supports global/local scoping
-- **Webpack Loader**: Integrates with webpack build process for seamless style scoping
+- **Webpack plugin / loader**: `ReactScopeStyleWebpackPlugin` auto-injects the scope loader; manual loader config still supported
 - **Vite Plugin**: First-class Vite integration for JSX and scoped CSS
 - **esbuild Plugin**: esbuild integration for JSX and scoped CSS (with optional Sass/Less compile)
-- **Rspack Support**: Webpack-compatible loader and config helper
+- **Next.js helper**: `withReactScopeStyle` wraps `next.config` and injects the webpack scope loader
+- **Rspack Support**: `ReactScopeStyleRspackPlugin` shares Webpack injection logic
 - **Flexible Configuration**: Customizable scope prefixes, attributes, and scoping strategies
 - **React Component Support**: Optimized for React components with automatic className handling
 - **CSS-in-JS Support**: Works with classnames, clsx, and other utility libraries
@@ -49,9 +50,44 @@ Add the preset to your `.babelrc` or `babel.config.js`:
 
 ### 2. Webpack Configuration
 
-Add the loader to your webpack configuration (place `babel-preset-react-scope-style/loader` after `css-loader` and before other preprocessors such as `sass-loader`):
+**Recommended:** use the Webpack plugin to inject the scope loader and the Babel preset into `babel-loader` (skips if already configured, to avoid duplicates):
 
-> **Note:** For **Vite**, **esbuild**, **Rspack**, or **standalone PostCSS**, see [Vite / esbuild / Rspack / PostCSS](#vite--esbuild--rspack--postcss-without-webpack) below.
+```javascript
+// webpack.config.js
+const ReactScopeStyleWebpackPlugin = require('babel-preset-react-scope-style/webpack');
+
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.(js|jsx)$/,
+        use: 'babel-loader',
+      },
+      {
+        test: /\.s[ac]ss$/,
+        use: ['style-loader', 'css-loader', 'sass-loader'],
+      },
+      {
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader'],
+      },
+    ],
+  },
+  plugins: [
+    new ReactScopeStyleWebpackPlugin({
+      sourceMap: true,
+      // set false to disable Babel injection; or pass ScopeStyleOptions
+      babel: { scopePrefix: 'v-', classNameLibrary: 'auto' },
+    }),
+  ],
+};
+```
+
+You can also call `withReactScopeStyle(config, options)` for the same injection without a plugin instance.
+
+**Manual loader** (place `babel-preset-react-scope-style/loader` after `css-loader` and before preprocessors such as `sass-loader`):
+
+> **Note:** For **Vite**, **esbuild**, **Next.js**, **Rspack**, or **standalone PostCSS**, see [Vite / esbuild / Next / Rspack / PostCSS](#vite--esbuild--next--rspack--postcss-without-webpack) below.
 
 ```javascript
 module.exports = {
@@ -91,29 +127,34 @@ module.exports = {
 };
 ```
 
-## Vite / esbuild / Rspack / PostCSS (without Webpack)
+## Vite / esbuild / Next / Rspack / PostCSS (without Webpack)
 
 The same import syntax (`?scoped`, `?global`) and Babel options apply across toolchains. Only the **CSS pipeline** differs.
 
 | Tool | Babel / JSX | CSS scoping |
 |------|-------------|-------------|
-| **Webpack** | preset in `babel.config.js` | `babel-preset-react-scope-style/loader` after `css-loader` |
+| **Webpack** | preset in `babel.config.js` | `babel-preset-react-scope-style/webpack` plugin auto-inject, or manual `.../loader` |
 | **Vite** | `babel-preset-react-scope-style/vite` plugin | handled by the Vite plugin (PostCSS internally) |
 | **esbuild** | `babel-preset-react-scope-style/esbuild` plugin | handled by the esbuild plugin (PostCSS internally; optional `sass` / `less`) |
-| **Rspack** | preset in `babel.config.js` | same loader as Webpack (Rspack-compatible) |
+| **Next.js** | `babel.config.js` (`next/babel` + this preset); Pages **and** App Router; **not SWC-only / Turbopack** | `babel-preset-react-scope-style/next` injects the webpack loader |
+| **Rspack** | preset in `babel.config.js` or plugin `babel` option | `ReactScopeStyleRspackPlugin` (same inject logic as Webpack) |
 | **Custom** | preset or `@babel/core` API | `babel-preset-react-scope-style/postcss` with explicit options |
+
+Full support matrix (App Router, Turbopack, CSS Modules limits): [docs/support-matrix.md](docs/support-matrix.md).
 
 ### Package entry points
 
 | Import path | Purpose |
 |-------------|---------|
 | `babel-preset-react-scope-style` | Babel preset (JSX + import rewriting) |
-| `babel-preset-react-scope-style/loader` | Webpack / Rspack loader |
+| `babel-preset-react-scope-style/loader` | Webpack / Rspack / Next loader |
+| `babel-preset-react-scope-style/webpack` | Webpack plugin (auto-injects loader + optional Babel preset) |
 | `babel-preset-react-scope-style/postcss` | PostCSS 8 plugin |
 | `babel-preset-react-scope-style/vite` | Vite plugin |
 | `babel-preset-react-scope-style/esbuild` | esbuild plugin |
 | `babel-preset-react-scope-style/esbuild/cli` | esbuild CLI (`react-scope-style` bin) |
-| `babel-preset-react-scope-style/rspack` | Rspack config helper |
+| `babel-preset-react-scope-style/next` | Next.js `withReactScopeStyle` config wrapper |
+| `babel-preset-react-scope-style/rspack` | Rspack plugin (same inject logic as Webpack) |
 
 ### Vite
 
@@ -259,44 +300,77 @@ Runnable demos: [examples/esbuild-bundle](../examples/esbuild-bundle/) (SPA, por
 
 ### Rspack
 
-Rspack supports Webpack-style loaders. Use the **same loader order** as Webpack: `style-loader` → `css-loader` → **`babel-preset-react-scope-style/loader`** → `sass-loader` (if any).
+Rspack supports Webpack-style loaders. **Recommended:** use `ReactScopeStyleRspackPlugin` (same injection logic as the Webpack plugin):
 
 ```javascript
 // rspack.config.js
-const scopeLoader = require.resolve('babel-preset-react-scope-style/loader');
+const ReactScopeStyleRspackPlugin = require('babel-preset-react-scope-style/rspack');
 
 module.exports = {
   module: {
     rules: [
-      {
-        test: /\.s[ac]ss$/,
-        use: [
-          'style-loader',
-          'css-loader',
-          { loader: scopeLoader },
-          'sass-loader',
-        ],
-      },
-      {
-        test: /\.css$/,
-        use: ['style-loader', 'css-loader', { loader: scopeLoader }],
-      },
+      { test: /\.(js|jsx)$/, use: 'babel-loader' },
+      { test: /\.s[ac]ss$/, use: ['style-loader', 'css-loader', 'sass-loader'] },
+      { test: /\.css$/, use: ['style-loader', 'css-loader'] },
     ],
   },
+  plugins: [
+    new ReactScopeStyleRspackPlugin({
+      sourceMap: true,
+      babel: { scopePrefix: 'v-', classNameLibrary: 'auto' },
+    }),
+  ],
 };
 ```
 
-Optional helper (appends a loader rule; merge with your existing `module.rules` as needed):
-
-```javascript
-const { withReactScopeStyle } = require('babel-preset-react-scope-style/rspack');
-
-module.exports = withReactScopeStyle({
-  // your rspack config — still add Babel preset in babel.config.js
-});
-```
+Or call `withReactScopeStyle(config, options)`. Manual loader order remains: `style-loader` → `css-loader` → **`babel-preset-react-scope-style/loader`** → `sass-loader` (if any).
 
 `webpack` is an optional peer dependency; install it only when using the loader (Webpack or Rspack).
+
+### Next.js
+
+Peers: `next`, `@babel/core`; add `classnames` or `clsx` for dynamic `className`, and `sass` for SCSS.
+
+**Requirements / limits**
+
+- A `babel.config.js` with `next/babel` **and** this preset is required so Next uses Babel (not a SWC-only pipeline).
+- **Pages Router and App Router are both supported** with that Babel + webpack setup.
+- **Turbopack** (`next dev --turbo`) is **not** supported (webpack loader injection).
+- There is no SWC plugin yet — pure SWC-only Next is unsupported.
+- See [docs/support-matrix.md](docs/support-matrix.md).
+
+Configure Babel, then wrap `next.config.js` with `withReactScopeStyle`:
+
+```javascript
+// babel.config.js
+module.exports = {
+  presets: [
+    'next/babel',
+    ['babel-preset-react-scope-style', { scopePrefix: 'v-', classNameLibrary: 'auto' }],
+  ],
+};
+```
+
+```javascript
+// next.config.js
+const withReactScopeStyle = require('babel-preset-react-scope-style/next');
+
+module.exports = withReactScopeStyle(
+  {
+    // your Next config
+  },
+  {
+    loaderOptions: { sourceMap: true },
+  }
+);
+```
+
+The helper injects `babel-preset-react-scope-style/loader` into Next’s webpack style rules (before preprocessors). Component imports stay the same: `import './Button.scss?scoped'`.
+
+Runnable demos:
+
+- Pages Router: [examples/next](../examples/next/) (port 3003)
+- App Router: [examples/next-app](../examples/next-app/) (port 3004)
 
 ### Pure PostCSS (standalone)
 
@@ -1345,7 +1419,7 @@ To opt a **rule** out of scoping, use a **leading** `:global` in that file’s s
 **Important Note:** By default, only JSX elements in files that import styles with the `?scoped` suffix will generate scope IDs. Even if JSX elements in a file don't need styling, if you want to generate scope IDs for them (or make global scope styles referenced via `?global` take effect), you can add an empty style file and reference it with the `?scoped` suffix.
 
 ### Q: Can I use this plugin without webpack?
-**A:** Yes. Use the **[Vite plugin](#vite)** (`babel-preset-react-scope-style/vite`), **[esbuild plugin](#esbuild)** (`babel-preset-react-scope-style/esbuild`), **[Rspack loader](#rspack)** (same as Webpack), or **[standalone PostCSS](#pure-postcss-standalone)**. You can also use [build-react-esm-project](https://github.com/gxlmyacc/build-react-esm-project) for Gulp-based React ESM builds.
+**A:** Yes. Use the **[Vite plugin](#vite)** (`babel-preset-react-scope-style/vite`), **[esbuild plugin](#esbuild)** (`babel-preset-react-scope-style/esbuild`), **[Next.js helper](#nextjs)** (`babel-preset-react-scope-style/next`), **[Rspack loader](#rspack)** (same as Webpack), or **[standalone PostCSS](#pure-postcss-standalone)**. You can also use [build-react-esm-project](https://github.com/gxlmyacc/build-react-esm-project) for Gulp-based React ESM builds.
 
 ### Q: How does the plugin handle multiple scope configurations?
 **A:** When multiple scope configurations are provided, the PostCSS plugin processes the input CSS file multiple times, generating a single output file that contains all scoped versions. This allows the same styles to work in different contexts (global, component-specific, etc.) without conflicts.
@@ -1484,10 +1558,18 @@ npm test
 
 ## Development
 
+Requires **Node >= 14.17** to use the published package. The unit-test suite needs **Node >= 18** (`node:test`); see [docs/support-matrix.md](docs/support-matrix.md#nodejs).
+
 ### Build
 
 ```bash
 npm run build
+```
+
+### Runtime smoke (Node 14.17+)
+
+```bash
+npm run smoke:runtime
 ```
 
 ### Demo

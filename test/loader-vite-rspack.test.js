@@ -1,6 +1,7 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('path');
+const os = require('os');
 
 /**
  * 以 webpack loader 上下文执行 scope loader。
@@ -191,20 +192,60 @@ export function C() { return <div className="c" />; }
   });
 });
 
-describe('Rspack 辅助函数', () => {
-  it('withReactScopeStyle 追加 loader 规则', () => {
-    const rspack = require('../rspack/index');
-    const withReactScopeStyle = rspack.default || rspack;
-    const config = withReactScopeStyle({});
-    assert.ok(config.module.rules.length >= 1);
-    assert.equal(
-      /loader[\\/]index\.js$/.test(config.module.rules[0].use[0].loader),
-      true
+describe('Rspack ReactScopeStyleRspackPlugin', () => {
+  it('导出插件类与 withReactScopeStyle，注入逻辑与 Webpack 对齐', () => {
+    const rspackApi = require('../rspack');
+    assert.equal(typeof rspackApi, 'function');
+    assert.equal(rspackApi, rspackApi.default);
+    assert.equal(rspackApi, rspackApi.ReactScopeStyleRspackPlugin);
+    assert.equal(typeof rspackApi.withReactScopeStyle, 'function');
+    assert.equal(typeof rspackApi.injectScopeLoader, 'function');
+    assert.equal(typeof rspackApi.injectBabelPreset, 'function');
+
+    const loaderPath = path.join(__dirname, '../loader/index.js');
+    const presetPath = path.join(__dirname, '../src/index.js');
+    const ReactScopeStyleRspackPlugin = rspackApi.ReactScopeStyleRspackPlugin;
+    const plugin = new ReactScopeStyleRspackPlugin({
+      sourceMap: true,
+      babel: { scopePrefix: 'v-' },
+    });
+    const compiler = {
+      options: {
+        context: path.join(os.tmpdir(), 'rss-rspack-empty'),
+        module: {
+          rules: [
+            {
+              test: /\.scss$/i,
+              use: ['style-loader', 'css-loader', 'sass-loader'],
+            },
+            {
+              test: /\.js$/,
+              use: ['babel-loader'],
+            },
+          ],
+        },
+      },
+    };
+    plugin.apply(compiler);
+    assert.equal(compiler.options.module.rules[0].use[2].loader, loaderPath);
+    assert.deepEqual(compiler.options.module.rules[1].use[0].options.presets, [
+      [presetPath, { scopePrefix: 'v-' }],
+    ]);
+
+    const onlyLoader = rspackApi.withReactScopeStyle(
+      {
+        context: path.join(os.tmpdir(), 'rss-rspack-empty-2'),
+        module: {
+          rules: [
+            { test: /\.css$/i, use: ['style-loader', 'css-loader'] },
+            { test: /\.js$/, use: ['babel-loader'] },
+          ],
+        },
+      },
+      { babel: false, sourceMap: true }
     );
-    const chained = withReactScopeStyle({ module: { rules: [] } }, { sourceMap: true });
-    assert.equal(chained.module.rules.length, 1);
-    assert.equal(chained.module.rules[0].use[0].options.sourceMap, true);
-    assert.equal(rspack.default || rspack, withReactScopeStyle);
+    assert.equal(onlyLoader.module.rules[0].use[2].loader, loaderPath);
+    assert.equal(onlyLoader.module.rules[1].use[0], 'babel-loader');
   });
 });
 
