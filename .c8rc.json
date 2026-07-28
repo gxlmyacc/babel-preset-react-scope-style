@@ -8,13 +8,16 @@
     "rspack/**/*.js",
     "webpack/**/*.js",
     "next/**/*.js",
-    "stylelint/**/*.js"
+    "stylelint/**/*.js",
+    "esbuild/**/*.js"
   ],
   "exclude": [
     "postcss/postcss8.js",
     "src/options-default.js",
     "postcss/demo/**",
-    "lib/alias-config.js"
+    "lib/alias-config.js",
+    "esbuild/cli.js",
+    "esbuild/run-build.js"
   ],
   "reporter": ["text", "html", "lcov"],
   "check-coverage": true,

@@ -1560,11 +1560,7 @@ npm test
 
 Requires **Node >= 14.17** to use the published package. The unit-test suite needs **Node >= 18** (`node:test`); see [docs/support-matrix.md](docs/support-matrix.md#nodejs).
 
-### Build
-
-```bash
-npm run build
-```
+The package ships **`src/` directly** (no `esm/` compile step). `main` / `exports["."]` point at `src/index.js`.
 
 ### Runtime smoke (Node 14.17+)
 
@@ -1602,9 +1598,12 @@ Check the `babel/demo` and `postcss/demo` directories for working examples.
 
 ### Debug Mode
 
-Enable debug logging by setting the `DEBUG` environment variable:
+Enable debug logging by setting the `DEBUG` environment variable in your app build, for example:
+
 ```bash
 DEBUG=babel-preset-react-scope-style npm run build
+# or, for the webpack example:
+cd examples/webpack && DEBUG=babel-preset-react-scope-style npm run build
 ```
 
 ## License

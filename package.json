@@ -1,7 +1,7 @@
 {
   "name": "babel-preset-react-scope-style",
   "version": "0.1.0-alpha.4",
-  "description": "A babel plugin that scope style for style files in react component",
+  "description": "A Babel preset and PostCSS toolkit for scoping styles in React components",
   "keywords": [
     "babel",
     "plugin",
@@ -86,7 +86,6 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "babel src -d esm",
     "smoke:runtime": "node scripts/smoke-runtime.js",
     "test": "node scripts/run-tests.js",
     "debug:test": "node --inspect-brk=9229 scripts/debug-test.js test/postcss-nesting.test.js",

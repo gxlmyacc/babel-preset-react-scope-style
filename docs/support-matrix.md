@@ -56,7 +56,7 @@ Runnable demos:
 
 ## Runtime entry
 
-All integrations resolve the Babel preset from **`src/index.js`** (package `main` / `exports["."]`). Do not rely on a separate `esm/` build for the options singleton shared with PostCSS.
+All integrations resolve the Babel preset from **`src/index.js`** (package `main` / `exports["."]`). There is no separate `esm/` compile step for this package.
 
 ## Node.js
 

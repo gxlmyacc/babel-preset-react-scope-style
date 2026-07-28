@@ -12,8 +12,6 @@
 ## Setup
 
 ```bash
-# repository root
-npm run build
 cd examples/esbuild-bundle
 npm install
 ```

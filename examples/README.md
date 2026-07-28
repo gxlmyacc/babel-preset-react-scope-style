@@ -17,13 +17,7 @@ Application code for all bundler examples lives under `shared/`.
 
 ## Setup
 
-From the repository root:
-
-```bash
-npm run build
-```
-
-Then pick a bundler:
+Pick a bundler (parent package is linked via `"babel-preset-react-scope-style": "file:../.."`; no root compile step — the package runs from `src/`):
 
 ```bash
 cd examples/webpack   # or rspack / vite / esbuild-bundle / esbuild-lib / next / next-app

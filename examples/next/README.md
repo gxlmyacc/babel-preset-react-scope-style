@@ -5,8 +5,6 @@ Bundler-only package. App source: [`../shared/`](../shared/).
 ## Setup
 
 ```bash
-# repository root
-npm run build
 cd examples/next
 npm install
 ```

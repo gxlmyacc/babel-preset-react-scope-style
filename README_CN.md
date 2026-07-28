@@ -1584,11 +1584,7 @@ npm test
 
 使用已发布的包需要 **Node >= 14.17**。单元测试需要 **Node >= 18**（`node:test`）；详见 [docs/support-matrix.md](docs/support-matrix.md#nodejs)。
 
-### 构建
-
-```bash
-npm run build
-```
+本包直接发布 **`src/`**（无 `esm/` 编译步骤）。`main` / `exports["."]` 指向 `src/index.js`。
 
 ### 运行时冒烟（Node 14.17+）
 
@@ -1626,9 +1622,12 @@ npm run smoke:runtime
 
 ### 调试模式
 
-通过设置`DEBUG`环境变量启用调试日志：
+在业务项目构建时设置 `DEBUG` 环境变量，例如：
+
 ```bash
 DEBUG=babel-preset-react-scope-style npm run build
+# 或使用本仓库 webpack 示例：
+cd examples/webpack && DEBUG=babel-preset-react-scope-style npm run build
 ```
 
 ## 许可证

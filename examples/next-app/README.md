@@ -13,8 +13,6 @@ This demo uses the **App Router** (`app/`) with the same Babel + webpack require
 ## Setup
 
 ```bash
-# repository root
-npm run build
 cd examples/next-app
 npm install
 ```

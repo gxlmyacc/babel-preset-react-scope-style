@@ -2,7 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
-## [0.1.0-alpha.4] - Unreleased
+## [Unreleased]
+
+### Changed
+
+- Removed unused root `npm run build` (`babel src -d esm`); package runtime is `src/` only.
+- Package `description` clarified as Babel preset + PostCSS toolkit.
+- Examples setup no longer requires a root compile step.
+
+### Added
+
+- CI `examples-build` job (webpack / vite / next-app production builds).
+- Coverage gate includes `esbuild/**` (excluding CLI `esbuild/cli.js` and `esbuild/run-build.js`); added focused unit tests.
+
+## [0.1.0-alpha.4] - 2026-07-28
 
 ### Changed
 

@@ -64,3 +64,29 @@ jobs:
 
       - name: Stylelint
         run: npm run lint:style
+
+  # 示例真实构建：覆盖 file: 链接 + 各 bundler 生产构建路径
+  examples-build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        example: [webpack, vite, next-app]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install package dependencies
+        run: npm ci
+
+      - name: Install example dependencies
+        working-directory: examples/${{ matrix.example }}
+        run: npm install
+
+      - name: Build example
+        working-directory: examples/${{ matrix.example }}
+        run: npm run build

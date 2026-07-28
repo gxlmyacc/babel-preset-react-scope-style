@@ -252,4 +252,5 @@ function reactScopeStyle(userOptions = {}) {
 module.exports = reactScopeStyle;
 module.exports.default = reactScopeStyle;
 module.exports.splitPathQuery = splitPathQuery;
+module.exports.resolveScriptLoader = resolveScriptLoader;
 module.exports.compileStylePreprocessor = compileStylePreprocessor;

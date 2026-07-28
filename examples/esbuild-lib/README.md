@@ -9,8 +9,6 @@
 ## Setup
 
 ```bash
-# repository root
-npm run build
 cd examples/esbuild-lib
 npm install
 npm run build
