@@ -1,5 +1,7 @@
 # Next.js App Router example
 
+## [中文说明](./README_CN.md)
+
 Bundler-only package. App source: [`../shared/`](../shared/).
 
 This demo uses the **App Router** (`app/`) with the same Babel + webpack requirements as the Pages example.

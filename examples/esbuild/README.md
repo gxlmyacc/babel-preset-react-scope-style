@@ -1,6 +1,8 @@
-# esbuild 示例（已迁移）
+# esbuild example (moved)
 
-本目录仅作重定向保留。请使用：
+## [中文说明](./README_CN.md)
 
-- **Bundle 模式（SPA）** → [`../esbuild-bundle/`](../esbuild-bundle/)
-- **Lib 模式（多文件 ESM）** → [`../esbuild-lib/`](../esbuild-lib/)
+This directory is kept as a redirect only. Use:
+
+- **Bundle mode (SPA)** → [`../esbuild-bundle/`](../esbuild-bundle/)
+- **Lib mode (multi-file ESM)** → [`../esbuild-lib/`](../esbuild-lib/)

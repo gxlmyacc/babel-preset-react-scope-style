@@ -1,6 +1,8 @@
 # Examples
 
-Runnable demos for [babel-preset-react-scope-style](../../README.md).
+Runnable demos for [babel-preset-react-scope-style](../README.md).
+
+## [中文说明](./README_CN.md)
 
 | Directory | Role |
 |-----------|------|
@@ -8,10 +10,10 @@ Runnable demos for [babel-preset-react-scope-style](../../README.md).
 | [webpack](./webpack/) | Webpack 5 + Babel preset + `ReactScopeStyleWebpackPlugin` |
 | [rspack](./rspack/) | Rspack + Babel preset + `ReactScopeStyleRspackPlugin` |
 | [vite](./vite/) | Vite + `babel-preset-react-scope-style/vite` |
-| [esbuild-bundle](./esbuild-bundle/) | esbuild CLI — **bundle** 模式（SPA，shared 应用） |
-| [esbuild-lib](./esbuild-lib/) | esbuild CLI — **lib** 模式（多文件 ESM，shared 应用） |
+| [esbuild-bundle](./esbuild-bundle/) | esbuild CLI — **bundle** mode (SPA, shared app) |
+| [esbuild-lib](./esbuild-lib/) | esbuild CLI — **lib** mode (multi-file ESM, shared app) |
 | [next](./next/) | Next.js **Pages Router** + `babel-preset-react-scope-style/next` |
-| [next-app](./next-app/) | Next.js **App Router** + Babel + `withReactScopeStyle`（非 SWC / 非 Turbopack） |
+| [next-app](./next-app/) | Next.js **App Router** + Babel + `withReactScopeStyle` (not SWC-only / not Turbopack) |
 
 Application code for all bundler examples lives under `shared/`.
 
@@ -32,7 +34,7 @@ npm run dev
 - Next.js Pages: http://localhost:3003
 - Next.js App Router: http://localhost:3004
 
-Both link the parent package via `"babel-preset-react-scope-style": "file:../.."`. Each bundler folder has `.npmrc` with `install-links=false` (copies instead of symlinks on Windows).
+Each bundler folder links the parent package via `"babel-preset-react-scope-style": "file:../.."`. Each has `.npmrc` with `install-links=false` (copies instead of symlinks on Windows).
 
 ## i18n
 
@@ -42,11 +44,11 @@ The shared app supports **English** (default) and **Chinese**. Copy lives under 
 
 | Scene | What it shows |
 |-------|----------------|
-| **基础 scoped** | `?scoped` import, default scope on last selector segment |
-| **共享 global** | `?global` import, `[class*=ex-]` shared styles |
-| **:scope 选择器** | Default vs `.box:scope` vs `.box :scope` |
-| **:global 选择器** | Leading `:global` and nested `:global .external-widget` |
-| **透传子组件** | Parent `className` + `.skin-a:scope` targeting child inner nodes |
-| **自定义 classAttrs** | `wrapClassName` on mock modal |
+| **Basic scoped** | `?scoped` import, default scope on last selector segment |
+| **Shared global** | `?global` import, `[class*=ex-]` shared styles |
+| **:scope selectors** | Default vs `.box:scope` vs `.box :scope` |
+| **:global selectors** | Leading `:global` and nested `:global .external-widget` |
+| **Pass-through child** | Parent `className` + `.skin-a:scope` targeting child inner nodes |
+| **Custom classAttrs** | `wrapClassName` on mock modal |
 
 Scope options are defined once in `shared/scope-style-options.cjs`.

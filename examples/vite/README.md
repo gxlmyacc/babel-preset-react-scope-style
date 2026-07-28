@@ -1,5 +1,7 @@
 # Vite example
 
+## [中文说明](./README_CN.md)
+
 Bundler-only package. App source: [`../shared/`](../shared/).
 
 ## Setup

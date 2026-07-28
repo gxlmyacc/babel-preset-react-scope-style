@@ -169,13 +169,12 @@ describe('esbuild coverage — lib-alias-plugin', () => {
     const filePath = path.join('/proj/src/styles', 'a.css');
     const plugins = createPostcssAliasPluginsFromMap({ '@assets': '/proj/assets' }, filePath);
     assert.equal(plugins.length, 1);
-    const root = postcss.parse(
-      '@import "@assets/theme.css";\n.a{background:url(@assets/logo.png)}'
+    const css = await postcss(plugins).process(
+      '@import "@assets/theme.css";\n.a{background:url(@assets/logo.png)}',
+      { from: filePath }
     );
-    plugins[0].Once(root);
-    const css = root.toString();
-    assert.match(css, /theme\.css/);
-    assert.match(css, /logo\.png/);
+    assert.match(css.css, /theme\.css/);
+    assert.match(css.css, /logo\.png/);
 
     const replaced = replaceStyleAliasInValue(
       'url(@assets/x.png)',
@@ -296,5 +295,285 @@ describe('esbuild coverage — resolve-config', () => {
     });
     assert.ok(withOutfile.outfile);
     assert.equal(withOutfile.outdir, undefined);
+  });
+
+  it('resolveScopePresetOptions / entry 绝对路径 / libMode alias 剥离', () => {
+    const {
+      resolveBuildConfig,
+      resolveScopePresetOptions,
+      resolveEntryPoints,
+      toEsbuildOptions,
+      resolveConfigFile,
+    } = require('../esbuild/resolve-config');
+
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'rss-rc-'));
+    fs.writeFileSync(
+      path.join(tmp, 'package.json'),
+      JSON.stringify({ name: 'demo', namespace: 'from-pkg' })
+    );
+    const src = path.join(tmp, 'src');
+    fs.mkdirSync(src);
+    fs.writeFileSync(path.join(src, 'a.ts'), 'export const a = 1;');
+    fs.writeFileSync(path.join(src, 'b.js'), 'export const b = 1;');
+
+    const absEntry = path.join(tmp, 'src', 'b.js');
+    assert.equal(
+      resolveEntryPoints({
+        rootDir: tmp,
+        entry: absEntry,
+        libMode: false,
+      }),
+      absEntry
+    );
+
+    const libFiles = resolveEntryPoints({
+      rootDir: tmp,
+      entry: null,
+      libMode: true,
+      src: 'src',
+      ignore: ['**/a.ts'],
+      typescript: true,
+    });
+    assert.ok(Array.isArray(libFiles));
+    assert.ok(libFiles.some((f) => f.endsWith('b.js')));
+
+    const cfg = resolveBuildConfig('build', {
+      root: tmp,
+      entry: 'src/b.js',
+      bundle: true,
+      servedir: './public',
+      outdir: './out-alt',
+      scopeStyleOptions: { scopePrefix: 'v-' },
+    });
+    assert.match(cfg.servedir.replace(/\\/g, '/'), /public$/);
+    const preset = resolveScopePresetOptions(cfg);
+    assert.equal(preset.scopePrefix, 'v-');
+    assert.equal(preset.pkg.name, 'demo');
+
+    const noPkg = fs.mkdtempSync(path.join(os.tmpdir(), 'rss-nopkg-'));
+    const presetEmpty = resolveScopePresetOptions({
+      rootDir: noPkg,
+      scopeStyle: true,
+      scopeStyleVersion: false,
+      scopeNamespace: '',
+      scopeStyleOptions: {},
+    });
+    assert.equal(presetEmpty.pkg, null);
+
+    const libOpts = toEsbuildOptions({
+      rootDir: tmp,
+      outDir: path.join(tmp, 'esm'),
+      srcDir: src,
+      entry: null,
+      libMode: true,
+      src: 'src',
+      ignore: [],
+      typescript: false,
+      format: 'esm',
+      jsx: 'automatic',
+      sourcemap: false,
+      define: {},
+      external: [],
+      alias: { react: path.join(tmp, 'node_modules/react') },
+      esbuild: {},
+    });
+    assert.equal(libOpts.alias, undefined);
+    assert.equal(libOpts.outbase, src);
+
+    assert.ok(resolveConfigFile(tmp, 'package.json', false));
+    assert.equal(resolveConfigFile(tmp, undefined, true), null);
+  });
+});
+
+describe('esbuild coverage — index branches', () => {
+  /**
+   * 在临时目录写入可被 require.resolve 找到的假 sass/less 包。
+   * @param {string} root - 项目根
+   * @param {'sass'|'less'} name - 包名
+   * @param {string} source - 模块源码
+   * @returns {void}
+   */
+  function writeFakePkg(root, name, source) {
+    const dir = path.join(root, 'node_modules', name);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, 'package.json'),
+      JSON.stringify({ name, main: 'index.js' })
+    );
+    fs.writeFileSync(path.join(dir, 'index.js'), source);
+  }
+
+  it('compileStylePreprocessor 成功编译 scss/less', async () => {
+    const { compileStylePreprocessor } = require('../esbuild/index');
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'rss-pp-ok-'));
+    writeFakePkg(
+      tmp,
+      'sass',
+      'module.exports = { compile() { return { css: ".from-sass{}" }; } };'
+    );
+    writeFakePkg(
+      tmp,
+      'less',
+      'module.exports = { render() { return Promise.resolve({ css: ".from-less{}" }); } };'
+    );
+
+    const scss = path.join(tmp, 'a.scss');
+    const lessFile = path.join(tmp, 'a.less');
+    fs.writeFileSync(scss, '$c:red;.a{color:$c}');
+    fs.writeFileSync(lessFile, '.a{color:red}');
+
+    assert.equal(await compileStylePreprocessor(scss, ''), '.from-sass{}');
+    assert.equal(await compileStylePreprocessor(lessFile, '.a{}'), '.from-less{}');
+  });
+
+  it('onLoad 非脚本后缀返回 null；样式 load 无 query / 非样式文件', async () => {
+    const reactScopeStyle = require('../esbuild/index');
+    const plugin = reactScopeStyle({ scopePrefix: 'v-' });
+    const { onLoad, onResolve } = collectPluginHandlers(plugin);
+    const jsHandler = onLoad.find((h) => !h.namespace).handler;
+    const styleLoad = onLoad.find((h) => h.namespace === 'react-scope-style').handler;
+    const resolveHandler = onResolve[0].handler;
+
+    assert.equal(await jsHandler({ path: path.join(os.tmpdir(), 'not-js.txt') }), null);
+    assert.equal(await styleLoad({ path: path.join(os.tmpdir(), 'x.txt'), pluginData: {} }), null);
+
+    const plainCss = path.join(os.tmpdir(), `rss-plain-${Date.now()}.css`);
+    fs.writeFileSync(plainCss, '.z{color:red}');
+    assert.equal(
+      await styleLoad({
+        path: plainCss,
+        pluginData: { query: '' },
+        suffix: '',
+      }),
+      null
+    );
+
+    const absCss = path.join(os.tmpdir(), `rss-abs-${Date.now()}.css`);
+    fs.writeFileSync(absCss, '.z{}');
+    const resolvedAbs = resolveHandler({
+      path: absCss,
+      resolveDir: os.tmpdir(),
+      query: '?scope-style&scoped=true&id=v-z',
+    });
+    assert.ok(resolvedAbs);
+    assert.equal(resolvedAbs.path, absCss);
+  });
+
+  it('libMode resolve 跳过 node_modules 与缺失源文件', () => {
+    const reactScopeStyle = require('../esbuild/index');
+    const { createStyleScopedMap } = require('../esbuild/lib-scope-bridge');
+    const styleScoped = createStyleScopedMap();
+    const plugin = reactScopeStyle({
+      libMode: true,
+      styleScoped,
+      rootDir: os.tmpdir(),
+    });
+    const { onResolve } = collectPluginHandlers(plugin);
+    const resolveHandler = onResolve[0].handler;
+
+    const nmDir = path.join(os.tmpdir(), `rss-nm-${Date.now()}`, 'node_modules', 'pkg');
+    fs.mkdirSync(nmDir, { recursive: true });
+    const nmCss = path.join(nmDir, 'pkg.css');
+    fs.writeFileSync(nmCss, '.a{}');
+
+    assert.equal(
+      resolveHandler({
+        path: './pkg.css',
+        resolveDir: nmDir,
+        query: '',
+      }),
+      null
+    );
+    assert.equal(
+      resolveHandler({
+        path: './missing-style.css',
+        resolveDir: os.tmpdir(),
+        query: '',
+      }),
+      null
+    );
+  });
+});
+
+describe('esbuild coverage — lib-scope-bridge more', () => {
+  it('resolveStyleScopedKey 相对 source；preScan / buildLibStyles / copy', async () => {
+    const {
+      resolveStyleScopedKey,
+      createStyleScopedMap,
+      preScanJsForStyleScoped,
+      buildLibStyles,
+      copyLibStaticAssets,
+    } = require('../esbuild/lib-scope-bridge');
+
+    const jsFile = path.join('/proj/src', 'Btn.jsx');
+    const keyRel = resolveStyleScopedKey({
+      filename: jsFile,
+      source: '../shared/theme.scss?scoped',
+      global: true,
+    }, '/proj');
+    assert.match(keyRel.replace(/\\/g, '/'), /theme\.css$/);
+
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'rss-bridge-'));
+    const src = path.join(tmp, 'src');
+    fs.mkdirSync(path.join(src, 'assets'), { recursive: true });
+    fs.writeFileSync(
+      path.join(src, 'Box.jsx'),
+      "import './Box.css?scoped';\nexport function Box(){ return <div className=\"box\" />; }\n"
+    );
+    fs.writeFileSync(path.join(src, 'Box.css'), '.box { color: red; }');
+    fs.writeFileSync(path.join(src, 'assets', 'meta.json'), '{"ok":1}');
+
+    const styleScoped = createStyleScopedMap();
+    preScanJsForStyleScoped({
+      rootDir: tmp,
+      srcDir: 'src',
+      typescript: false,
+      ignore: ['**/assets/**'],
+      presetOptions: { scopePrefix: 'v-' },
+      styleScoped,
+    });
+    assert.ok(styleScoped.size >= 1);
+
+    await buildLibStyles({
+      rootDir: tmp,
+      styleSrcDir: src,
+      styleOutDir: path.join(tmp, 'out'),
+      aliasConfig: true,
+      alias: {},
+    }, styleScoped);
+
+    const outCss = path.join(tmp, 'out', 'Box.css');
+    assert.ok(fs.existsSync(outCss));
+    assert.match(fs.readFileSync(outCss, 'utf8'), /\.box/);
+
+    copyLibStaticAssets({
+      rootDir: tmp,
+      srcDir: src,
+      outDir: path.join(tmp, 'out'),
+      ignore: ['**/skip/**'],
+    });
+    assert.ok(fs.existsSync(path.join(tmp, 'out', 'assets', 'meta.json')));
+  });
+});
+
+describe('esbuild coverage — lib-alias exact', () => {
+  it('resolveAliasRequest 精确键命中；replace 相对路径无点前缀', () => {
+    const {
+      resolveAliasRequest,
+      replaceStyleAliasInValue,
+      sortAliasEntries,
+    } = require('../esbuild/lib-alias-plugin');
+
+    assert.deepEqual(sortAliasEntries(null), []);
+    assert.equal(resolveAliasRequest('react', { react: '/proj/node_modules/react' }), '/proj/node_modules/react');
+    assert.equal(resolveAliasRequest('', { a: '/x' }), null);
+
+    const fromDir = '/proj/src';
+    const value = replaceStyleAliasInValue(
+      'url(@assets/x.png)',
+      fromDir,
+      { '@assets': '/proj/src/assets' }
+    );
+    assert.match(value, /assets/);
   });
 });

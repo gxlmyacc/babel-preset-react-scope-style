@@ -101,7 +101,6 @@ function createPostcssAliasPluginsFromMap(aliasMap, filePath) {
       });
     },
   };
-  plugin.postcss = true;
   return [plugin];
 }
 

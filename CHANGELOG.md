@@ -9,11 +9,13 @@ All notable changes to this project are documented in this file.
 - Removed unused root `npm run build` (`babel src -d esm`); package runtime is `src/` only.
 - Package `description` clarified as Babel preset + PostCSS toolkit.
 - Examples setup no longer requires a root compile step.
+- README slimmed to quick start + docs index; long sections moved under `docs/` (EN + zh-CN).
+- Fixed esbuild PostCSS alias plugin (`createPostcssAliasPluginsFromMap`): object plugins must not set `postcss: true` (that marks a creator function).
 
 ### Added
 
-- CI `examples-build` job (webpack / vite / next-app production builds).
-- Coverage gate includes `esbuild/**` (excluding CLI `esbuild/cli.js` and `esbuild/run-build.js`); added focused unit tests.
+- CI `examples-build` job (webpack / vite / next-app / esbuild-bundle / esbuild-lib).
+- Coverage gate includes `esbuild/**` (excluding CLI `esbuild/cli.js` and `esbuild/run-build.js`); expanded unit tests for branch coverage.
 
 ## [0.1.0-alpha.4] - 2026-07-28
 

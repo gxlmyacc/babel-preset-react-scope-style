@@ -71,7 +71,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        example: [webpack, vite, next-app]
+        example: [webpack, vite, next-app, esbuild-bundle, esbuild-lib]
     steps:
       - uses: actions/checkout@v4
 

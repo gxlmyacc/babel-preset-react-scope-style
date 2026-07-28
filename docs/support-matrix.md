@@ -1,6 +1,6 @@
 # Support matrix
 
-Compatibility and known limits for [babel-preset-react-scope-style](../README.md).
+Compatibility and known limits for [babel-preset-react-scope-style](../README.md). Build setup details: [integrations.md](./integrations.md) · [integrations.zh-CN.md](./integrations.zh-CN.md).
 
 | Tool | JSX / Babel | CSS scoping | Status | Notes |
 |------|-------------|-------------|--------|-------|

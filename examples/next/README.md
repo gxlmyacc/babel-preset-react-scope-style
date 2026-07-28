@@ -1,4 +1,6 @@
-# Next.js example
+# Next.js example (Pages Router)
+
+## [中文说明](./README_CN.md)
 
 Bundler-only package. App source: [`../shared/`](../shared/).
 
@@ -17,6 +19,8 @@ npm install
 
 ## Config
 
-- `next.config.js` — `withReactScopeStyle()` from `babel-preset-react-scope-style/next`，注入 webpack scope loader
-- `babel.config.js` — `next/babel` + preset（options from `../shared/scope-style-options.cjs`）
-- Pages Router demo: [examples/next](../examples/next/) (port 3003).
+- `next.config.js` — `withReactScopeStyle()` from `babel-preset-react-scope-style/next` injects the webpack scope loader
+- `babel.config.js` — `next/babel` + preset (options from `../shared/scope-style-options.cjs`)
+- Pages Router demo on port 3003
+
+App Router demo: [`../next-app/`](../next-app/) (port 3004).

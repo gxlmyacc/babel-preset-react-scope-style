@@ -33,6 +33,7 @@
     "webpack",
     "bin",
     "types",
+    "docs",
     "CHANGELOG.md"
   ],
   "bin": {

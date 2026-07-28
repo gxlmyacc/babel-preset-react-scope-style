@@ -1,5 +1,7 @@
 # Rspack example
 
+## [中文说明](./README_CN.md)
+
 Bundler-only package. App source: [`../shared/`](../shared/).
 
 ## Setup
@@ -16,8 +18,8 @@ npm install
 
 ## Config
 
-- `rspack.config.js` — `context: ../shared`，`resolveLoader` 指向本目录 `node_modules`（与 Webpack 示例相同的 loader 链）
-- `../shared/package.json` — 声明样式文件 `sideEffects`，避免生产构建摇掉 `import '*.scss'`
+- `rspack.config.js` — `context: ../shared`, `resolveLoader` points at this folder’s `node_modules` (same loader chain as the Webpack example)
+- `../shared/package.json` — declares style `sideEffects` so production builds keep `import '*.scss'`
 - `babel.config.js` — preset + options from `../shared/scope-style-options.cjs`
 - Loader order: `style-loader` → `css-loader` → scope loader → `sass-loader`
 

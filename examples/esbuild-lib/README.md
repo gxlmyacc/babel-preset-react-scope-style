@@ -1,10 +1,12 @@
-# esbuild lib 示例
+# esbuild lib example
 
-**库模式（默认）**：多文件 ESM 输出，与 webpack / vite / esbuild-bundle 共用 [`../shared/`](../shared/) 源码。
+## [中文说明](./README_CN.md)
 
-- import 改写为 plain `.css`（无 `?scope-style` query）
-- 通过 `StyleScoped` 桥接表作用域化样式
-- `shared/src/assets/` 下 json / txt / png 等非代码文件原样复制到输出目录
+**Lib mode (default)**: multi-file ESM output. Shares [`../shared/`](../shared/) sources with webpack / vite / esbuild-bundle.
+
+- Imports rewritten to plain `.css` (no `?scope-style` query)
+- Styles scoped via the `StyleScoped` bridge map
+- Non-code files under `shared/src/assets/` (json / txt / png) are copied as-is to the output
 
 ## Setup
 
@@ -14,34 +16,34 @@ npm install
 npm run build
 ```
 
-产物目录：
+Output directories:
 
-- `npm run build` → `esm/`（配置文件 + `scopeStyleOptions`）
-- `npm run build:defaults` → `dist/`（无配置文件，纯 CLI 默认）
+- `npm run build` → `esm/` (config file + `scopeStyleOptions`)
+- `npm run build:defaults` → `dist/` (no config file, pure CLI defaults)
 
-## 配置
+## Configuration
 
-### 配置文件（推荐）
+### Config file (recommended)
 
-[`lib-scope.config.cjs`](./lib-scope.config.cjs) 使用非默认文件名，需 `--config` 显式加载：
+[`lib-scope.config.cjs`](./lib-scope.config.cjs) uses a non-default filename, so pass `--config` explicitly:
 
 ```bash
 npm run build
-# 等价于
+# equivalent to
 react-scope-style build --config lib-scope.config.cjs
 ```
 
-### 纯 CLI 默认（无配置文件）
+### Pure CLI defaults (no config file)
 
 ```bash
 npm run build:defaults
-# 等价于
+# equivalent to
 react-scope-style build --root ../shared --src ./src --out ../esbuild-lib/dist
 ```
 
-`root` 指向 shared（源码不在本目录）；库模式与 `scopeStyle` 为 CLI 内置默认。scope 命名空间读取 shared 的 `package.json`（`react-scope-style-demo-shared`），前缀为 preset 默认 `v-`（无 `scopeStyleOptions` 时）。
+`root` points at shared (sources are not in this folder). Lib mode and `scopeStyle` are CLI built-in defaults. The scope namespace is read from shared’s `package.json` (`react-scope-style-demo-shared`); the prefix is the preset default `v-` when `scopeStyleOptions` is omitted.
 
-配置文件要点：
+Config file essentials:
 
 ```javascript
 module.exports = {
@@ -52,14 +54,14 @@ module.exports = {
 };
 ```
 
-库模式（`bundle: false`）与 `scopeStyle` 为 CLI 默认。
+Lib mode (`bundle: false`) and `scopeStyle` are CLI defaults.
 
-## 验证
+## Verify
 
-构建后检查（`npm run build` / `esm/`）：
+After build (`npm run build` / `esm/`):
 
-- `esm/main.js` — `import` 为 plain `.css`（无 query）
-- `esm/demos/ScopedBasic/ScopedBasic.css` — 选择器含 `ex-` scope class
-- `esm/assets/meta.json`、`note.txt`、`logo.png` — 与 `shared/src/assets/` 一致
+- `esm/main.js` — imports are plain `.css` (no query)
+- `esm/demos/ScopedBasic/ScopedBasic.css` — selectors include `ex-` scope classes
+- `esm/assets/meta.json`, `note.txt`, `logo.png` — match `shared/src/assets/`
 
-SPA bundle 示例见 [`../esbuild-bundle/`](../esbuild-bundle/)。
+SPA bundle example: [`../esbuild-bundle/`](../esbuild-bundle/).
