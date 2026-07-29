@@ -253,6 +253,50 @@ describe('PostCSS 边界情况', () => {
     assert.equal(css, '.btn.v-x { color: red; }');
   });
 
+  describe('from-query（Turbopack PostCSS 通道）', () => {
+    it('无显式 options 时从 from URL query 解析 scope id', async () => {
+      resetScopeOptions();
+      const postcss = require('postcss');
+      const createPlugin = require('../postcss');
+      const result = await postcss([createPlugin({})]).process('.card { color: red; }', {
+        from: '/project/src/page.scss?scope-style&scoped=true&id=v-fromquery',
+      });
+      assert.equal(result.css.trim(), '.card.v-fromquery { color: red; }');
+    });
+
+    it('from 无 scope query 时 no-op', async () => {
+      resetScopeOptions();
+      const postcss = require('postcss');
+      const createPlugin = require('../postcss');
+      const result = await postcss([createPlugin({})]).process('.card { color: red; }', {
+        from: '/project/src/page.scss',
+      });
+      assert.equal(result.css.trim(), '.card { color: red; }');
+    });
+
+    it('from 含 global=true 时使用 global 作用域', async () => {
+      resetScopeOptions();
+      const postcss = require('postcss');
+      const createPlugin = require('../postcss');
+      const result = await postcss([createPlugin()]).process('.util { margin: 0; }', {
+        from: '/project/src/theme.scss?scope-style&scoped=true&global=true&id=v-',
+      });
+      assert.equal(result.css.trim(), '.util[class*=v-] { margin: 0; }');
+    });
+
+    it('显式 options 优先于 from query', async () => {
+      resetScopeOptions();
+      const postcss = require('postcss');
+      const createPlugin = require('../postcss');
+      const result = await postcss([
+        createPlugin({ scoped: true, id: 'v-explicit' }),
+      ]).process('.card { color: red; }', {
+        from: '/project/src/page.scss?scope-style&scoped=true&id=v-fromquery',
+      });
+      assert.equal(result.css.trim(), '.card.v-explicit { color: red; }');
+    });
+  });
+
   describe('PostCSS 7 包装层', () => {
     let pkgPath;
     let indexPath;

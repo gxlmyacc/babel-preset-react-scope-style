@@ -19,6 +19,7 @@ All notable changes to this project are documented in this file.
 - Phase B0: Babel golden fixtures under `test/fixtures/phase-b/`, [docs/phase-b-swc.md](docs/phase-b-swc.md), SWC noop plugin crate + `examples/next-swc-poc`.
 - Phase B1: SWC plugin implements `inject-scope` + `transform-class` parity; `withReactScopeStyle({ swcPlugin: true })` for Next SWC-only (webpack CSS still required).
 - SWC WASM output flattened to `swc/` (removed unused `packages/` monorepo layer).
+- Phase B2: PostCSS from-query (scope id from `result.opts.from`); `withReactScopeStyle({ turbopack: true })`; TURBOPACK-gated PostCSS in `next-swc-poc`. Next 14.2 Turbopack e2e blocked (no Babel; SWC WASM fails) — documented in [docs/phase-b-swc.md](docs/phase-b-swc.md).
 
 ## [0.1.0-alpha.4] - 2026-07-28
 

@@ -1,20 +1,23 @@
 # Phase B: SWC / Turbopack (planning notes)
 
-Status: **B1 delivered** — SWC plugin implements Babel `inject-scope` + `transform-class` parity (fixtures under `test/fixtures/phase-b/`); `examples/next-swc-poc` uses `withReactScopeStyle({ swcPlugin: true })` without Babel. Turbopack CSS is **B2** (query channel first).
+Status: **B1 delivered**; **B2 infrastructure landed, Next 14.2 Turbopack end-to-end blocked**.
+
+- **B1**: SWC `inject-scope` + `transform-class`; `withReactScopeStyle({ swcPlugin: true })` + Webpack CSS loader ([`examples/next-swc-poc`](../examples/next-swc-poc/)).
+- **B2**: PostCSS **from-query** + `turbopack: true` stub + TURBOPACK-gated `postcss.config.js`. Full Turbopack app path on Next **14.2** is **not runnable** yet (see spike below). StyleScoped fallback and Next 15/16 matrix are follow-ups.
 
 ## Why Phase B
 
 Today Next.js integration requires:
 
-1. **Babel** (`babel.config.js` with this preset) for JSX + `?scoped` / `?global` import rewrite
-2. **Webpack loader** injection via `withReactScopeStyle` for CSS scoping
+1. **Babel** (`babel.config.js` with this preset) for JSX + `?scoped` / `?global` import rewrite — **or** SWC WASM (B1, Webpack)
+2. **Webpack loader** injection via `withReactScopeStyle` for CSS scoping — Turbopack cannot use that loader
 
 Goals:
 
 | Stage | Goal |
 |-------|------|
 | **B1** | Pure SWC for JS (no `babel.config.js`); keep webpack CSS loader + **import query** |
-| **B2** | Turbopack: prefer the same **query** channel; StyleScoped table / content markers only if query fails |
+| **B2** | Turbopack: prefer the same **query** channel via PostCSS `from`; StyleScoped only if query fails |
 
 ## Babel truth source
 
@@ -27,90 +30,81 @@ Golden fixtures live under [`test/fixtures/phase-b/`](../test/fixtures/phase-b/)
 
 Runner: `node --test test/phase-b-fixtures.test.js` (also part of `npm test`).
 
-SWC must match these fixtures (allowing whitespace / quote style diffs if normalized).
-
 ## Next.js + `experimental.swcPlugins`
 
 ```js
-/** @type {import('next').NextConfig} */
-module.exports = {
-  experimental: {
-    swcPlugins: [
-      [
-        // package name or absolute path to .wasm
-        'swc-plugin-react-scope-style',
-        { scopePrefix: 'v-', classNameLibrary: 'auto' },
-      ],
-    ],
-  },
-};
+const withReactScopeStyle = require('babel-preset-react-scope-style/next');
+
+module.exports = withReactScopeStyle(nextConfig, {
+  swcPlugin: true,
+  swcPluginOptions: { scopePrefix: 'v-', pkg: { name: 'my-app' } },
+  // Turbopack stub + docs; CSS still needs PostCSS from-query when TURBOPACK=1
+  turbopack: true,
+});
 ```
 
 Notes:
 
 - Second tuple element must be an object (use `{}` if no options).
 - Presence of `babel.config.js` still forces Babel for JS; SWC-only demos must **omit** Babel config.
-- Plugin WASM must be built with a `swc_core` ABI compatible with the **Next-embedded** SWC (not necessarily npm `@swc/core`). Use [plugins.swc.rs](https://plugins.swc.rs/) for the matrix.
+- Plugin WASM must be built with a `swc_core` ABI compatible with the **Next-embedded** SWC. Use [plugins.swc.rs](https://plugins.swc.rs/) for the matrix.
 
-## Target matrix (initial)
+## Target matrix
 
-| Runtime | Example in repo | Notes |
-|---------|-----------------|-------|
-| Next.js **14.2.x** (webpack) | `examples/next-swc-poc` | B0 PoC / B1 primary |
-| Next.js 15+ | TBD | May need a separate WASM build (different `swc_core`) |
+| Runtime | Example | Notes |
+|---------|---------|-------|
+| Next.js **14.2.x** (webpack) | `examples/next-swc-poc` | **Supported** (B1) |
+| Next.js **14.2.x** (`--turbo`) | same | **Blocked** — see B2 spike |
+| Next.js 15+ / 16 (default Turbopack) | TBD | Needs SWC ABI re-pin + re-spike |
 
-Pin plugin releases to documented Next ranges; bump `swc_core` only when intentionally adding a Next major.
+## B2 spike results (Next 14.2.35)
 
-## ABI strategy
+Constraint: Turbopack **does not** allow custom loaders that transform stylesheets — cannot reuse [`loader/index.js`](../loader/index.js). Planned path: SWC/Babel rewrite query → built-in Sass/CSS → PostCSS reads `id` from `result.opts.from`.
 
-1. Document `swc_core` version used to compile each published WASM (`Cargo.toml` currently pins `0.90.37` for Next 14.2.x — verify on [plugins.swc.rs](https://plugins.swc.rs/) before B1 release).
-2. CI builds WASM and smoke-loads it under the matrix Next version(s) once Rust is available in CI.
-3. If Next bumps embedded SWC incompatibly, ship a new plugin minor/major rather than silently breaking.
+| Attempt | Outcome |
+|---------|---------|
+| `next dev --turbo` + `experimental.swcPlugins` (our WASM) | Runtime error: `Expected to find module` (SWC plugin load under Turbopack) |
+| `next dev --turbo` + `babel.config.js` (preset rewrite) | Next exits: **Babel is not yet supported** with Turbopack on 14.2 |
+| Webpack `next build` / `next dev` | Still green (B1 unchanged). Note: a leftover `TURBOPACK=1` in the shell makes Next 14.2 treat build as turbo and fail — unset it before webpack builds. |
 
-## Query channel (B2 preference)
+Therefore: **do not claim Turbopack support for Next 14.2**. Infrastructure for when the host can run a JS rewriter under Turbopack:
 
-Preferred Turbopack CSS path (same as webpack today):
+1. PostCSS plugin resolves scope from `from` query when no explicit `{ id }` ([`postcss/plugin.js`](../postcss/plugin.js))
+2. Example `postcss.config.js` registers the plugin **only if** `process.env.TURBOPACK` (avoids double-scope with Webpack loader)
+3. `withReactScopeStyle({ turbopack: true })` marks intent / enables docs helpers — it does **not** write `experimental.turbo` (on Next 14.2 that makes `next build` fail with “doesn't support turbopack yet”)
+4. Helper: `createTurbopackPostcssPlugins()` / `babel-preset-react-scope-style/postcss/turbopack`
 
-1. SWC rewrites `import './x.scss?scoped'` → `...?scope-style&scoped=true&id=v-…`
-2. CSS pipeline reads query and runs existing PostCSS scope plugin
-3. Distinct queries ⇒ distinct resources ⇒ multi-importer copies
+### Follow-ups
 
-Fallback only if Turbopack drops/dedupes query: Node-side StyleScoped registry (watch-safe) or content markers.
+- **StyleScoped / content-marker** fallback if query is stripped once a Turbopack host can rewrite JS
+- **Next 15/16** matrix: default Turbopack + compatible `swc_core` WASM build
+- Re-spike `from` query preservation under PostCSS when SWC plugins work with Turbopack
+
+## Query channel (design)
+
+```text
+JS:  import './x.scss?scoped'
+  → SWC/Babel: './x.scss?scope-style&scoped=true&id=v-…'
+CSS:
+  Webpack → scope loader (resourceQuery) → PostCSS with explicit options
+  Turbopack → built-in pipeline → PostCSS with from-query (no CSS loader)
+```
+
+`selectorAlreadyScoped` still guards accidental double application of the same id.
 
 ## Scaffold
 
 - Rust crate: [`crates/swc-plugin-react-scope-style/`](../crates/swc-plugin-react-scope-style/)
 - WASM output: [`swc/`](../swc/) (`swc_plugin_react_scope_style.wasm`, gitignored)
-- Build: `npm run build:swc-plugin` (requires Rust + `wasm32-wasip1` or `wasm32-wasi`)
-- Next helper: `withReactScopeStyle(nextConfig, { swcPlugin: true, swcPluginOptions })`
+- Build: `npm run build:swc-plugin`
+- Next helper: `withReactScopeStyle(nextConfig, { swcPlugin, turbopack, swcPluginOptions })`
 - Demo: [`examples/next-swc-poc/`](../examples/next-swc-poc/)
 
-If `rustup` cannot reach `static.rust-lang.org`, use a mirror then retry:
-
-```powershell
-$env:RUSTUP_DIST_SERVER='https://mirrors.ustc.edu.cn/rust-static'
-$env:RUSTUP_UPDATE_ROOT='https://mirrors.ustc.edu.cn/rust-static/rustup'
-rustup default stable
-rustup target add wasm32-wasip1
-npm run build:swc-plugin
-cd examples/next-swc-poc
-npm install
-npm run build
-```
-
-Without a compiled `.wasm`, fixtures/docs/crate sources still land; Next PoC build needs `swc/swc_plugin_react_scope_style.wasm`.
-
-**Windows build tips**
-
-- Prefer an ASCII `CARGO_TARGET_DIR` / staging dir (`npm run build:swc-plugin` copies the crate under `%TEMP%` when the repo path contains non-ASCII characters such as `文档`).
-- Host linking for build-scripts needs a real MSVC `link.exe` (Visual Studio Build Tools) **or** the `x86_64-pc-windows-gnu` toolchain with MinGW. If Git/Cygwin’s `link.exe` is first on `PATH`, MSVC builds fail with `link: extra operand`.
-- Example that worked in B0 on this machine: `RSS_CARGO_TOOLCHAIN=stable-x86_64-pc-windows-gnu npm run build:swc-plugin` after `rustup target add wasm32-wasip1 --toolchain stable-x86_64-pc-windows-gnu`.
-- Pin `serde = "=1.0.203"` (see crate `Cargo.toml`) so `swc_common@0.33` can resolve `serde::__private`.
-- Crate `.cargo/config.toml` passes `-C link-arg=--allow-undefined` so host imports (`__set_transform_result`, …) resolve at Next runtime.
+**Windows build tips** — see prior B0 notes (ASCII staging, GNU toolchain, `serde = "=1.0.203"`, `--allow-undefined`).
 
 ## Non-goals (near term)
 
-- Implementing `scopeFn` in SWC
+- Implementing `scopeFn` in SWC (arbitrary JS callbacks cannot cross WASM)
 - Replacing Vite/esbuild Babel usage with SWC
-- Turbopack CSS (B2)
+- Claiming Next 14.2 Turbopack app support before host fixes
 - Rewriting PostCSS scope logic in Rust

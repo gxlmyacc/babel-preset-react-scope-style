@@ -135,6 +135,12 @@ export interface WithReactScopeStyleNextOptions {
   swcPlugin?: boolean | string;
   /** 传给 SWC 插件的 camelCase 选项（如 scopePrefix、pkg、classNameLibrary） */
   swcPluginOptions?: ScopeStyleOptions;
+  /**
+   * 声明 Turbopack CSS 意图（PostCSS from-query 文档路径）。
+   * 不会写入 `experimental.turbo`（Next 14.2 上会导致 `next build` 失败）。
+   * 详见 docs/phase-b-swc.md。
+   */
+  turbopack?: boolean;
 }
 
 /**
@@ -143,11 +149,17 @@ export interface WithReactScopeStyleNextOptions {
  * @param options.loaderOptions 传给 scope loader 的 options
  * @param options.swcPlugin 是否挂载 experimental.swcPlugins（Phase B1）
  * @param options.swcPluginOptions SWC 插件选项
+ * @param options.turbopack 是否声明 Turbopack stub（Phase B2）
  */
 export function withReactScopeStyleNext(
   nextConfig?: Record<string, unknown>,
   options?: WithReactScopeStyleNextOptions
 ): Record<string, unknown>;
+
+/** Turbopack PostCSS 插件表（from-query）；Webpack 勿与 loader 同时启用 */
+export function createTurbopackPostcssPlugins(): {
+  plugins: Record<string, Record<string, never>>;
+};
 
 export const postcssScopeStyle: (options?: Record<string, unknown>) => Plugin;
 

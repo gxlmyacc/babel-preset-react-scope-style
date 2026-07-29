@@ -1,4 +1,5 @@
 const { createScopeQuery, isFunction } = require('../src/utils');
+const { parseScopeStyleQuery } = require('../lib/parse-scope-style-query');
 const { scopeSelector, stripGlobalMarkersFromSelector } = require('./selector-scope');
 const {
   runNestingPrepass,
@@ -298,9 +299,54 @@ function applyScopeOptionToRoot(root, opt, options) {
  */
 
 /**
+ * 从 PostCSS 处理上下文解析资源路径（含可能的 query）。
+ * @param {import('postcss').Root} root - CSS 根节点
+ * @param {{ result?: { opts?: { from?: string } } }} [helpers] - PostCSS helpers
+ * @returns {string}
+ */
+function resolveResourceFrom(root, helpers) {
+  if (helpers && helpers.result && helpers.result.opts && helpers.result.opts.from) {
+    return String(helpers.result.opts.from);
+  }
+  if (root.source && root.source.input) {
+    const input = root.source.input;
+    if (input.file) return String(input.file);
+    if (input.from) return String(input.from);
+  }
+  return '';
+}
+
+/**
+ * 从路径字符串取出 query（含前导 `?`）。
+ * @param {string} resourcePath - 可能含 query 的路径
+ * @returns {string}
+ */
+function extractQueryFromPath(resourcePath) {
+  if (!resourcePath) return '';
+  const idx = resourcePath.indexOf('?');
+  return idx >= 0 ? resourcePath.slice(idx) : '';
+}
+
+/**
+ * 在无显式 `{ scoped, id }` 时，尝试从 `from` URL query 解析 scope（Turbopack PostCSS 通道）。
+ * @param {PluginOptions[]} opts - 已规范化的配置列表
+ * @param {import('postcss').Root} root - CSS 根节点
+ * @param {{ result?: { opts?: { from?: string } } }} [helpers] - PostCSS helpers
+ * @returns {PluginOptions[]}
+ */
+function resolveEffectiveScopeOpts(opts, root, helpers) {
+  const explicit = opts.filter((o) => o && o.scoped && o.id);
+  if (explicit.length) return explicit;
+
+  const from = resolveResourceFrom(root, helpers);
+  const parsed = parseScopeStyleQuery(extractQueryFromPath(from));
+  return parsed ? [parsed] : [];
+}
+
+/**
  * PostCSS 作用域插件核心工厂（与 PostCSS 版本无关）。
  * @param {PluginOptions|PluginOptions[]|((root: import('postcss').Root) => PluginOptions|PluginOptions[])} pluginOptions - 插件参数
- * @returns {(root: import('postcss').Root, helpers?: { parse?: (css: string) => import('postcss').Root }) => void}
+ * @returns {(root: import('postcss').Root, helpers?: { parse?: (css: string) => import('postcss').Root, result?: object }) => void}
  */
 const plugin = function (pluginOptions) {
   pluginOptions = pluginOptions || {};
@@ -319,7 +365,7 @@ const plugin = function (pluginOptions) {
       scopeFn: options.scopeFn || (isFunction(options.scope) ? options.scope : null),
     };
 
-    const effectiveOpts = opts.filter((o) => o && o.scoped && o.id);
+    const effectiveOpts = resolveEffectiveScopeOpts(opts, root, helpers);
 
     if (effectiveOpts.length <= 1) {
       if (effectiveOpts[0]) applyScopeOptionToRoot(root, effectiveOpts[0], packageOptions);
@@ -367,5 +413,8 @@ plugin.id = 'postcss-scope-style-add-id';
 plugin.normalizeNodes = normalizeNodes;
 plugin.insertScopeStyleImportAfterAnchor = insertScopeStyleImportAfterAnchor;
 plugin.applyScopeOptionToRoot = applyScopeOptionToRoot;
+plugin.resolveResourceFrom = resolveResourceFrom;
+plugin.extractQueryFromPath = extractQueryFromPath;
+plugin.resolveEffectiveScopeOpts = resolveEffectiveScopeOpts;
 
 module.exports = plugin;

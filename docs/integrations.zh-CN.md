@@ -212,7 +212,7 @@ module.exports = {
 - **Babel 路径（默认）：** 提供含 `next/babel` **与**本 preset 的 `babel.config.js`。
 - **纯 SWC 路径（Phase B1）：** 省略 Babel 配置，使用 `withReactScopeStyle(nextConfig, { swcPlugin: true })` — 见 [phase-b-swc.md](./phase-b-swc.md) / [examples/next-swc-poc](../examples/next-swc-poc/)。
 - **Pages Router 与 App Router** 均支持 Babel + webpack，或 SWC 插件 + webpack。
-- **暂不支持 Turbopack**（`next dev --turbo`；B2 规划中）。
+- **Next 14.2 上暂不支持 Turbopack**（B2 spike：Turbopack 禁用 Babel；SWC WASM 加载失败）。PostCSS from-query 基础设施已就绪，待后续矩阵 — [phase-b-swc.md](./phase-b-swc.md)。
 - 详见 [support-matrix.md](./support-matrix.md)。
 
 配置 Babel 后，用 `withReactScopeStyle` 包装 `next.config.js`：

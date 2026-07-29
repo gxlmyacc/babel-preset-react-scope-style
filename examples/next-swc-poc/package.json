@@ -5,6 +5,7 @@
   "description": "Phase B1: Next App Router + SWC plugin (no babel.config) + webpack CSS loader",
   "scripts": {
     "dev": "next dev -p 3005",
+    "dev:turbo": "next dev --turbo -p 3005",
     "build": "next build",
     "start": "next start -p 3005"
   },

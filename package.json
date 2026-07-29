@@ -52,6 +52,10 @@
       "types": "./types/index.d.ts",
       "default": "./postcss/postcss8.js"
     },
+    "./postcss/turbopack": {
+      "types": "./types/index.d.ts",
+      "default": "./postcss/turbopack.js"
+    },
     "./vite": {
       "types": "./types/index.d.ts",
       "default": "./vite/index.js"

@@ -147,4 +147,20 @@ describe('Next.js withReactScopeStyle', () => {
     assert.equal(wrapped.experimental.swcPlugins.length, 1);
     assert.equal(wrapped.experimental.swcPlugins[0][1].scopePrefix, 'x-');
   });
+
+  it('turbopack: true 不写入 experimental.turbo（避免 Next 14.2 build 误开 Turbopack）', () => {
+    const withReactScopeStyle = require('../next');
+    const wrapped = withReactScopeStyle(
+      { reactStrictMode: true },
+      { turbopack: true }
+    );
+    assert.equal(wrapped.reactStrictMode, true);
+    assert.equal(wrapped.experimental && wrapped.experimental.turbo, undefined);
+  });
+
+  it('createTurbopackPostcssPlugins 返回 from-query 插件表', () => {
+    const { createTurbopackPostcssPlugins } = require('../next');
+    const cfg = createTurbopackPostcssPlugins();
+    assert.ok(cfg.plugins['babel-preset-react-scope-style/postcss']);
+  });
 });

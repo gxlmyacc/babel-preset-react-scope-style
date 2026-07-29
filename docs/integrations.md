@@ -212,7 +212,7 @@ Peers: `next`, `@babel/core`; add `classnames` or `clsx` for dynamic `className`
 - **Babel path (default):** a `babel.config.js` with `next/babel` **and** this preset so Next uses Babel.
 - **SWC-only path (Phase B1):** omit Babel config and use `withReactScopeStyle(nextConfig, { swcPlugin: true })` — see [phase-b-swc.md](./phase-b-swc.md) / [examples/next-swc-poc](../examples/next-swc-poc/).
 - **Pages Router and App Router** are supported with Babel + webpack, or SWC plugin + webpack.
-- **Turbopack** (`next dev --turbo`) is **not** supported yet (webpack loader injection; B2 planned).
+- **Turbopack** (`next dev --turbo`) is **not** supported on Next 14.2 yet (B2 spike: no Babel under Turbopack; SWC WASM fails). PostCSS from-query helpers exist for a future matrix — [phase-b-swc.md](./phase-b-swc.md).
 - See [support-matrix.md](./support-matrix.md).
 
 Configure Babel, then wrap `next.config.js` with `withReactScopeStyle`:
