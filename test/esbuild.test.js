@@ -101,6 +101,36 @@ export function C() { return <div className="c" />; }
     assert.equal(skipNodeModules, null);
   });
 
+  it('onLoad 转换带类型注解的 TSX', async () => {
+    const reactScopeStyle = require('../esbuild/index');
+    const plugin = reactScopeStyle({
+      scopePrefix: 'v-',
+      pkg: { name: 'test-app' },
+    });
+    const { onLoad } = collectPluginHandlers(plugin);
+    const jsHandler = onLoad.find((h) => !h.namespace && h.filter.test('/x.tsx')).handler;
+
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scope-esbuild-tsx-'));
+    const tsxFile = path.join(tmpDir, 'C.tsx');
+    fs.writeFileSync(
+      tsxFile,
+      `
+import React from 'react';
+import './c.css?scoped';
+type Props = { label: string };
+export function C(props: Props) {
+  return <div className="c">{props.label}</div>;
+}
+`
+    );
+
+    const result = await jsHandler({ path: tsxFile });
+    assert.ok(result && result.contents);
+    assert.match(result.contents, /scope-style&scoped=true&id=v-/);
+    assert.doesNotMatch(result.contents, /type Props/);
+    assert.equal(result.loader, 'tsx');
+  });
+
   it('esbuild build 端到端改写 scoped 样式 import', async () => {
     const esbuild = require('esbuild');
     const reactScopeStyle = require('../esbuild/index');

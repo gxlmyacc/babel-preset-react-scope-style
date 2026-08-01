@@ -106,6 +106,7 @@ async function compileStylePreprocessor(filePath, rawContent) {
  */
 function reactScopeStyle(userOptions = {}) {
   const { loadScopePreset } = require('../lib/resolve-preset');
+  const { isTypeScriptFilename } = require('../lib/alias-config');
   const preset = loadScopePreset();
   const {
     libMode = false,
@@ -113,6 +114,8 @@ function reactScopeStyle(userOptions = {}) {
     rootDir = process.cwd(),
     aliasConfig = true,
     aliasMap = {},
+    /** 是否对 .ts/.tsx 注入 @babel/preset-typescript（默认 true；与 CLI 库模式 glob 的 typescript 无关） */
+    typescript: enableTypescript = true,
     ...presetOptions
   } = userOptions;
 
@@ -137,6 +140,11 @@ function reactScopeStyle(userOptions = {}) {
           return null;
         }
 
+        // 关闭时跳过 TS，交给 esbuild 默认 ts/tsx loader
+        if (isTypeScriptFilename(filePath) && enableTypescript === false) {
+          return null;
+        }
+
         const code = await fs.promises.readFile(filePath, 'utf8');
         const result = transformSync(code, buildBabelTransformOptions({
           filename: filePath,
@@ -145,6 +153,7 @@ function reactScopeStyle(userOptions = {}) {
           rootDir,
           aliasConfig,
           sourceMaps: build.initialOptions.sourcemap !== false,
+          enableTypescript,
         }));
         /* c8 ignore next — transformSync 在有效源码下总会返回 code */
         if (!result || result.code == null) {

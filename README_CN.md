@@ -82,14 +82,14 @@ import './theme.scss?global';
 
 若使用 **Vite**、**esbuild**、**Next.js**、**Rspack** 或 **纯 PostCSS**，请参阅 [构建工具集成](./docs/integrations.zh-CN.md)。
 
-| 工具 | 入口 | CSS 作用域化 |
-|------|------|--------------|
-| **Webpack** | `babel-preset-react-scope-style/webpack` | 插件自动注入或 `.../loader` |
-| **Vite** | `babel-preset-react-scope-style/vite` | 由 Vite 插件处理 |
-| **esbuild** | `babel-preset-react-scope-style/esbuild` | 由 esbuild 插件处理 |
-| **Next.js** | `babel-preset-react-scope-style/next` | 注入 webpack loader |
-| **Rspack** | `babel-preset-react-scope-style/rspack` | 与 Webpack 相同 |
-| **自定义** | preset + `babel-preset-react-scope-style/postcss` | 手动配置 PostCSS |
+| 工具 | 入口 | CSS 作用域化 | TypeScript |
+|------|------|--------------|------------|
+| **Webpack** | `babel-preset-react-scope-style/webpack` | 插件自动注入或 `.../loader` | 依赖项目已有 Babel/TS 链路 |
+| **Vite** | `babel-preset-react-scope-style/vite` | 由 Vite 插件处理 | `.ts`/`.tsx` 默认注入 `@babel/preset-typescript`；`typescript: false` 则跳过 |
+| **esbuild** | `babel-preset-react-scope-style/esbuild` | 由 esbuild 插件处理 | 同上插件开关；库模式 glob 另需 CLI `--typescript` |
+| **Next.js** | `babel-preset-react-scope-style/next` | 注入 webpack loader | Next Babel / SWC 原生支持 |
+| **Rspack** | `babel-preset-react-scope-style/rspack` | 与 Webpack 相同 | 同 Webpack |
+| **自定义** | preset + `babel-preset-react-scope-style/postcss` | 手动配置 PostCSS | JS 侧自备 TS 编译 |
 
 完整支持矩阵（App Router、Turbopack、CSS Modules 限制）：[docs/support-matrix.md](./docs/support-matrix.md)。
 

@@ -190,6 +190,44 @@ export function C() { return <div className="c" />; }
     const vite = require('../vite/index');
     assert.equal(vite, vite.default);
   });
+
+  it('转换带类型注解的 TSX 并改写 ?scoped', async () => {
+    const reactScopeStyle = require('../vite/index');
+    const plugin = reactScopeStyle({
+      scopePrefix: 'v-',
+      pkg: { name: 'test-app' },
+    });
+    const tsx = `
+import React from 'react';
+import './c.scss?scoped';
+type Props = { label: string };
+export function C(props: Props) {
+  return <div className="c">{props.label}</div>;
+}
+`;
+    const result = await plugin.transform(tsx, '/project/src/C.tsx?t=1');
+    assert.ok(result && result.code);
+    assert.match(result.code, /scope-style&scoped=true&id=v-/);
+    assert.doesNotMatch(result.code, /type Props/);
+    assert.match(result.code, /props\.label/);
+  });
+
+  it('typescript: false 时跳过 .tsx，不注入 preset-typescript', async () => {
+    const reactScopeStyle = require('../vite/index');
+    const plugin = reactScopeStyle({ typescript: false });
+    const skipped = await plugin.transform(
+      'export const x: number = 1;',
+      '/project/src/a.tsx'
+    );
+    assert.equal(skipped, null);
+
+    const jsx = await plugin.transform(
+      "import React from 'react';\nimport './c.scss?scoped';\nexport function C() { return <div className=\"c\" />; }\n",
+      '/project/src/C.jsx'
+    );
+    assert.ok(jsx && jsx.code);
+    assert.match(jsx.code, /scope-style&scoped=true/);
+  });
 });
 
 describe('Rspack ReactScopeStyleRspackPlugin', () => {

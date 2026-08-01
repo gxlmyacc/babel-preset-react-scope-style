@@ -56,7 +56,7 @@ export default defineConfig({
 
 **工作流程**
 
-1. Vite 插件对 `.js` / `.jsx` / `.ts` / `.tsx` 执行与本 preset 相同的 Babel 转换。
+1. Vite 插件对 `.js` / `.jsx` / `.ts` / `.tsx` 执行本 preset 的 Babel 转换。`.ts` / `.tsx` 默认注入 `@babel/preset-typescript`（`typescript: true`）；设 `typescript: false` 则跳过这些文件，交给 Vite 自带 TS 管线。插件使用 `babelrc: false`，**不会**与项目里已注册的 `@babel/preset-typescript` 叠两份。同一项目可混用 JS 与 TS。
 2. `import './Button.scss?scoped'` 会被改写为带 `scope-style&scoped=true&id=v-xxx` 的 URL。
 3. 当 Vite 处理 URL 中包含上述 query 的 CSS/SCSS/Less/Sass 时，插件执行 PostCSS 作用域转换。
 
@@ -160,7 +160,7 @@ await esbuild.build({
 
 **工作流程（bundle 模式）**
 
-1. esbuild 插件对 `.js` / `.jsx` / `.ts` / `.tsx` 执行与本 preset 相同的 Babel 转换。
+1. esbuild 插件对 `.js` / `.jsx` / `.ts` / `.tsx` 执行本 preset 的 Babel 转换；`.ts` / `.tsx` 在插件选项 `typescript` 不为 `false` 时注入 `@babel/preset-typescript`（默认 `true`）。该选项与 CLI 库模式的 `--typescript`（控制 glob）含义不同。JS/TS 混用入口没问题。
 2. `import './Button.scss?scoped'` 会被改写为带 `scope-style&scoped=true&id=v-xxx` 的 URL。
 3. 当 esbuild 加载 URL 中包含上述 query 的 CSS/SCSS/Less/Sass 时，插件按需编译预处理器并执行 PostCSS 作用域转换。
 

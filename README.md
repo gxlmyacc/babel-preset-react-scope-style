@@ -82,14 +82,14 @@ import './theme.scss?global';
 
 For **Vite**, **esbuild**, **Next.js**, **Rspack**, or **standalone PostCSS**, see the [integrations guide](./docs/integrations.md).
 
-| Tool | Entry | CSS scoping |
-|------|-------|-------------|
-| **Webpack** | `babel-preset-react-scope-style/webpack` | plugin auto-inject or `.../loader` |
-| **Vite** | `babel-preset-react-scope-style/vite` | handled by Vite plugin |
-| **esbuild** | `babel-preset-react-scope-style/esbuild` | handled by esbuild plugin |
-| **Next.js** | `babel-preset-react-scope-style/next` | injects webpack loader |
-| **Rspack** | `babel-preset-react-scope-style/rspack` | same as Webpack |
-| **Custom** | preset + `babel-preset-react-scope-style/postcss` | manual PostCSS options |
+| Tool | Entry | CSS scoping | TypeScript |
+|------|-------|-------------|------------|
+| **Webpack** | `babel-preset-react-scope-style/webpack` | plugin auto-inject or `.../loader` | needs your existing Babel/TS pipeline |
+| **Vite** | `babel-preset-react-scope-style/vite` | handled by Vite plugin | `@babel/preset-typescript` for `.ts`/`.tsx` by default; `typescript: false` skips them |
+| **esbuild** | `babel-preset-react-scope-style/esbuild` | handled by esbuild plugin | same plugin flag; lib-mode glob needs CLI `--typescript` |
+| **Next.js** | `babel-preset-react-scope-style/next` | injects webpack loader | Next Babel / SWC |
+| **Rspack** | `babel-preset-react-scope-style/rspack` | same as Webpack | same as Webpack |
+| **Custom** | preset + `babel-preset-react-scope-style/postcss` | manual PostCSS options | provide your own TS compile for JS |
 
 Full support matrix (App Router, Turbopack, CSS Modules limits): [docs/support-matrix.md](./docs/support-matrix.md).
 

@@ -56,7 +56,7 @@ export default defineConfig({
 
 **How it works**
 
-1. The Vite plugin runs Babel with this preset on `.js` / `.jsx` / `.ts` / `.tsx` (same as Webpack).
+1. The Vite plugin runs Babel on `.js` / `.jsx` / `.ts` / `.tsx` with this preset. For `.ts` / `.tsx` it injects `@babel/preset-typescript` by default (`typescript: true`). Set `typescript: false` to skip those files (Vite’s own TS pipeline handles them). Uses `babelrc: false`, so it does **not** stack with a project-level `@babel/preset-typescript`. JS and TS can coexist in one project.
 2. Style imports like `import './Button.scss?scoped'` are rewritten to include `scope-style&scoped=true&id=v-xxx`.
 3. When Vite processes CSS/SCSS/Less/Sass modules whose URL contains that query, the plugin runs the PostCSS scope transform.
 
@@ -160,7 +160,7 @@ await esbuild.build({
 
 **How it works (bundle mode)**
 
-1. The esbuild plugin runs Babel with this preset on `.js` / `.jsx` / `.ts` / `.tsx` (same as Vite).
+1. The esbuild plugin runs Babel on `.js` / `.jsx` / `.ts` / `.tsx` with this preset; `.ts` / `.tsx` get `@babel/preset-typescript` when plugin option `typescript` is not `false` (default `true`). That flag is separate from CLI lib-mode `--typescript` (glob). Mixed JS/TS entries are fine.
 2. Style imports like `import './Button.scss?scoped'` are rewritten to include `scope-style&scoped=true&id=v-xxx`.
 3. When esbuild loads CSS/SCSS/Less/Sass whose URL contains that query, the plugin compiles preprocessors (if needed) and runs the PostCSS scope transform.
 

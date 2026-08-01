@@ -33,9 +33,26 @@ export interface ScopeStyleOptions {
 declare const preset: { (api: unknown, options?: ScopeStyleOptions): { plugins: PluginItem[] } };
 export default preset;
 
-export function reactScopeStyleVite(options?: ScopeStyleOptions): import('vite').Plugin;
+/** Vite / esbuild 插件选项（在 ScopeStyleOptions 上增加 typescript 开关） */
+export interface BundlerScopeStyleOptions extends ScopeStyleOptions {
+  /**
+   * 是否对 `.ts` / `.tsx` 注入 `@babel/preset-typescript`（默认 `true`）。
+   * 为 `false` 时跳过这些文件，交给 Vite/esbuild 默认 TS 管线。
+   * 与 esbuild CLI 库模式的 `typescript`（是否 glob ts/tsx）含义不同。
+   */
+  typescript?: boolean;
+}
 
-export function reactScopeStyleEsbuild(options?: ScopeStyleOptions): import('esbuild').Plugin;
+export function reactScopeStyleVite(options?: BundlerScopeStyleOptions): import('vite').Plugin;
+
+export function reactScopeStyleEsbuild(
+  options?: BundlerScopeStyleOptions & {
+    libMode?: boolean;
+    styleScoped?: Map<string, unknown>;
+    rootDir?: string;
+    aliasConfig?: boolean | Record<string, unknown>;
+  }
+): import('esbuild').Plugin;
 
 export interface EsbuildScopeConfig {
   /** 项目根目录（相对路径基于当前工作目录解析）；影响源码、输出与 package.json 读取 */
@@ -60,7 +77,10 @@ export interface EsbuildScopeConfig {
   jsx?: 'automatic' | 'transform' | 'preserve';
   /** 是否生成 source map */
   sourcemap?: boolean;
-  /** 库模式 glob 是否包含 `.ts` / `.tsx` / `.mts` / `.cts` 扩展名 */
+  /**
+   * 库模式 glob 是否包含 `.ts` / `.tsx` / `.mts` / `.cts` 扩展名。
+   * 注意：这与 Vite/esbuild 插件选项里的 `typescript`（是否注入 preset-typescript）不是同一含义。
+   */
   typescript?: boolean;
   /** 是否启用 JSX 作用域 className 与样式 scope 转换（默认 `true`） */
   scopeStyle?: boolean;
