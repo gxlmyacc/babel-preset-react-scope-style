@@ -1,6 +1,6 @@
 {
   "name": "babel-preset-react-scope-style",
-  "version": "0.1.0-alpha.5",
+  "version": "0.1.0",
   "description": "A Babel preset and PostCSS toolkit for scoping styles in React components",
   "keywords": [
     "babel",

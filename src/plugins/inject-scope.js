@@ -33,6 +33,13 @@ module.exports = function ({ types: t, template }) {
   const scopePrefix = createScopePrefix(scopeNamespace);
   const classAttrs = options.classAttrs;
   const scopeAll = options.scopeAll;
+
+  function isReactFragment(tagName, ctx) {
+    if (ctx.reactFragmentIdentifiers.has(tagName)) return true;
+    const [namespace, member, extra] = tagName.split('.');
+    return !extra && member === 'Fragment' && ctx.reactNamespaceIdentifiers.has(namespace);
+  }
+
   return {
     visitor: {
       Program: {
@@ -52,12 +59,24 @@ module.exports = function ({ types: t, template }) {
             filename,
             regx: options.scopeRegx,
             handled: [],
-            classNameCallee: ''
+            classNameCallee: '',
+            reactFragmentIdentifiers: new Set(),
+            reactNamespaceIdentifiers: new Set()
           };
 
           path.traverse({
             ImportDeclaration(path) {
               let source = path.node.source.value;
+              if (source === 'react') {
+                path.node.specifiers.forEach((specifier) => {
+                  if (t.isImportDefaultSpecifier(specifier) || t.isImportNamespaceSpecifier(specifier)) {
+                    this.reactNamespaceIdentifiers.add(specifier.local.name);
+                  } else if (t.isImportSpecifier(specifier)
+                    && expr2str(specifier.imported) === 'Fragment') {
+                    this.reactFragmentIdentifiers.add(specifier.local.name);
+                  }
+                });
+              }
               const [matched, , scoped] = source.match(this.regx) || [];
               if (!matched) return;
 
@@ -138,7 +157,7 @@ module.exports = function ({ types: t, template }) {
             path.traverse({
               JSXElement(path) {
                 let tagName = expr2str(path.node.openingElement.name);
-                if (!tagName || excludedTags.includes(tagName)) return;
+                if (!tagName || excludedTags.includes(tagName) || isReactFragment(tagName, this)) return;
                 classAttrs.forEach((classAttrName) => traverseClassAttrs.call(this, path, classAttrName, tagName));
               }
             }, ctx);

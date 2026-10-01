@@ -130,6 +130,25 @@ export function A() {
     assert.equal(code.includes('<slot className='), false);
   });
 
+  it('跳过 React Fragment 及其导入别名，不误伤同名业务组件', () => {
+    const code = transformWithPreset(`
+import R, { Fragment as F } from 'react';
+import './x.scss?scoped';
+function Fragment() { return <section />; }
+export function A() {
+  return (
+    <R.Fragment>
+      <F><Fragment><div className="inner" /></Fragment></F>
+    </R.Fragment>
+  );
+}
+`);
+    assert.equal(code.includes('<R.Fragment className='), false);
+    assert.equal(code.includes('<F className='), false);
+    assert.match(code, /<Fragment className="v-[^"]+">/);
+    assert.match(code, /<div className="v-[^"]+ inner" \/>/);
+  });
+
   it('支持 .less 与 .sass import', () => {
     const less = transformWithPreset(`
 import React from 'react';

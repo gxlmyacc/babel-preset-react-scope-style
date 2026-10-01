@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented in this file.
 
-## [Unreleased]
+## [0.1.0]
 
 ### Changed
 
@@ -11,6 +11,7 @@ All notable changes to this project are documented in this file.
 - Examples setup no longer requires a root compile step.
 - README slimmed to quick start + docs index; long sections moved under `docs/` (EN + zh-CN).
 - Fixed esbuild PostCSS alias plugin (`createPostcssAliasPluginsFromMap`): object plugins must not set `postcss: true` (that marks a creator function).
+- Fixed scoped JSX transform incorrectly injecting `className` into React Fragment elements, including aliased default, namespace, and named imports.
 
 ### Added
 
