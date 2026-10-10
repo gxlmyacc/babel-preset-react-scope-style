@@ -19,6 +19,37 @@ describe('PostCSS 作用域插件', () => {
     assert.equal(css, '.a.v-x, .b.v-x { color: red; }');
   });
 
+  it('为 Sass 展平后的每个 OverlayScrollbar 分支替换 :scope', async () => {
+    const selectors = [
+      '.dplx-overlay-scrollbar:scope[data-overlayscrollbars~=host]',
+      '.dplx-overlay-scrollbar:scope [data-overlayscrollbars~=host]',
+      '.dplx-overlay-scrollbar:scope [data-overlayscrollbars-padding]',
+      '.dplx-overlay-scrollbar:scope [data-overlayscrollbars~=viewport]',
+    ];
+    const input = `${selectors.join(', ')} { position: relative; }`;
+    await Promise.all([false, true].map(async (global) => {
+      const css = await runPostcssScope(input, { scoped: true, id: 'dte-test', global });
+      const scope = global ? '[class*=dte-test]' : '.dte-test';
+      assert.equal(
+        css,
+        `${selectors.map((selector) => selector.replace(':scope', scope)).join(', ')} { position: relative; }`
+      );
+    }));
+  });
+
+  it('旧构建工具的 postcss/postcss8 子路径使用当前插件', async () => {
+    const plugin = require('babel-preset-react-scope-style/postcss/postcss8');
+    const postcss = require('postcss');
+    assert.equal(plugin, require('../postcss'));
+    const css = '.table:scope .host, .table:scope .viewport { position: relative; }';
+    const result = await postcss([plugin(() => [{ scoped: true, id: 'dte-test' }])])
+      .process(css, { from: undefined });
+    assert.equal(
+      result.css,
+      '.table.dte-test .host, .table.dte-test .viewport { position: relative; }'
+    );
+  });
+
   it('扁平选择器将 scope class 插在伪类（如 :hover）之前', async () => {
     const css = await runPostcssScope(
       [
