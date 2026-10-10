@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.1.1]
+
+### Added
+
+- Restored the legacy `postcss/postcss8` package export for build-react-esm-project upgrades; added regressions for comma-separated Sass-expanded `:scope` selectors.
+
 ## [0.1.0]
 
 ### Changed
@@ -14,6 +20,8 @@ All notable changes to this project are documented in this file.
 - Fixed scoped JSX transform incorrectly injecting `className` into React Fragment elements, including aliased default, namespace, and named imports.
 
 ### Added
+
+- Restored the legacy `postcss/postcss8` package export for build-react-esm-project upgrades; added regressions for comma-separated Sass-expanded `:scope` selectors.
 
 - CI `examples-build` job (webpack / vite / next-app / esbuild-bundle / esbuild-lib).
 - Coverage gate includes `esbuild/**` (excluding CLI `esbuild/cli.js` and `esbuild/run-build.js`); expanded unit tests for branch coverage.
