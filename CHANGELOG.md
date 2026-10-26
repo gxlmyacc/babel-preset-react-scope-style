@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.1.2]
+
+### Added
+
+- PostCSS-only `injectScope: false` converts scope/global markers without injecting scope identifiers or rebuilding JavaScript.
+- Optional `selectorPrefix` adds snapshot-container prefixes without repeating them in native nested rules; `selectorPrefixExclude` defaults to html/head/body/:root and supports custom per-selector exclusions.
+- Optional `transformSelector(selector, { filename })` hook for custom selector rewriting after marker conversion, with individual selector and per-source context handling.
+- Dedicated TypeScript declarations for the PostCSS and legacy PostCSS entry points, plus regression tests for unscoped output and selector customization.
+
 ## [0.1.1]
 
 ### Added

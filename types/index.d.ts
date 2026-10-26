@@ -187,3 +187,5 @@ export interface ScopeStyleLoaderOptions {
   /** 是否生成 source map（与 css-loader 链式传递的 prev map 配合） */
   sourceMap?: boolean;
 }
+
+export type { PostcssScopeStyleOptions, PostcssScopeStyleConfig, TransformSelectorContext } from './postcss';

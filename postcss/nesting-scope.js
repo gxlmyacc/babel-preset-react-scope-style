@@ -254,7 +254,7 @@ function hasAttachedScopePseudo(selector) {
 /**
  * 该 rule 的选择器是否已在链上建立 :scope 锚点（含裸/附着 :scope，或已替换为 scope class）。
  * @param {string} selector - 选择器文本
- * @param {{ id?: string, isGlobal?: boolean }} [scopeOpts] - scope 参数
+ * @param {{ id?: string, isGlobal?: boolean, injectScope?: boolean }} [scopeOpts] - scope 参数
  * @returns {boolean}
  */
 function isScopeAnchorSelector(selector, scopeOpts = {}) {
@@ -271,7 +271,7 @@ function isScopeAnchorSelector(selector, scopeOpts = {}) {
 /**
  * 祖先链上是否已有 :scope 锚点；有则其后代叶子不再重复挂 scope。
  * @param {import('postcss').Rule} rule - 当前 rule
- * @param {{ id?: string, isGlobal?: boolean }} [scopeOpts] - 与 scopeSelector 一致的 scope 参数
+ * @param {{ id?: string, isGlobal?: boolean, injectScope?: boolean }} [scopeOpts] - 与 scopeSelector 一致的 scope 参数
  * @returns {boolean}
  */
 function isUnderScopeAnchorAncestor(rule, scopeOpts = {}) {
@@ -288,7 +288,7 @@ function isUnderScopeAnchorAncestor(rule, scopeOpts = {}) {
 /**
  * 是否应对该 rule 调用 scopeSelector。
  * @param {import('postcss').Rule} rule - PostCSS 规则节点
- * @param {{ id?: string, isGlobal?: boolean }} [scopeOpts] - 当前 scope 上下文
+ * @param {{ id?: string, isGlobal?: boolean, injectScope?: boolean }} [scopeOpts] - 当前 scope 上下文
  * @returns {boolean}
  */
 function shouldApplyScope(rule, scopeOpts = {}) {
@@ -575,11 +575,12 @@ function runNestingPrepass(root) {
 
 /**
  * &:scope / &:global 包装块替换为带 scope 的 &。
- * @param {string} scopeId - 作用域 id
+ * @param {string} scopeId - 作用域 id，空字符串仅保留 & 或 * 占位
  * @param {boolean} isGlobal - 是否 global 模式
  * @returns {string}
  */
 function ampersandScopeMarkerWithScope(scopeId, isGlobal) {
+  if (!scopeId) return '&';
   if (isGlobal) {
     return `&[class*=${scopeId}]`;
   }
@@ -588,11 +589,12 @@ function ampersandScopeMarkerWithScope(scopeId, isGlobal) {
 
 /**
  * 裸 :scope / :global 嵌套占位：*.scopeId 或 *[class*=scopeId]。
- * @param {string} scopeId - 作用域 id
+ * @param {string} scopeId - 作用域 id，空字符串仅保留 & 或 * 占位
  * @param {boolean} isGlobal - 是否 global 模式
  * @returns {string}
  */
 function bareScopeMarkerToStar(scopeId, isGlobal) {
+  if (!scopeId) return '*';
   if (isGlobal) {
     return `*[class*=${scopeId}]`;
   }
@@ -606,13 +608,13 @@ function replaceNestingSegmentMarker(rule, kind, scopeOpts = {}) {
 
   if (isStarPlaceholderNestingSelector(marker, kind)) {
     if (kind === 'global' && rule.parent && rule.parent.type === 'root') return false;
-    if (!id) return false;
+    if (!id && scopeOpts.injectScope !== false) return false;
     rule.selector = bareScopeMarkerToStar(id, isGlobal);
     return true;
   }
 
   if (isAmpersandNestingSelector(marker, kind)) {
-    if (!id) return false;
+    if (!id && scopeOpts.injectScope !== false) return false;
     rule.selector = ampersandScopeMarkerWithScope(id, isGlobal);
     return true;
   }
@@ -623,7 +625,7 @@ function replaceNestingSegmentMarker(rule, kind, scopeOpts = {}) {
 /**
  * scope 后替换嵌套包装占位：根级裸 :global 由上提处理；裸 / &: 段 → * / &.scope。
  * @param {import('postcss').Root} root - CSS 根
- * @param {{ id?: string, isGlobal?: boolean }} [scopeOpts] - 与 scopeSelector 一致的 scope 参数
+ * @param {{ id?: string, isGlobal?: boolean, injectScope?: boolean }} [scopeOpts] - 与 scopeSelector 一致的 scope 参数
  * @returns {void}
  */
 function replaceBareNestingMarkersWithAmpersand(root, scopeOpts = {}) {

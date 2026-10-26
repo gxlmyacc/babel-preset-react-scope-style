@@ -1,6 +1,6 @@
 {
   "name": "babel-preset-react-scope-style",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A Babel preset and PostCSS toolkit for scoping styles in React components",
   "keywords": [
     "babel",
@@ -49,11 +49,11 @@
       "default": "./loader/index.js"
     },
     "./postcss": {
-      "types": "./types/index.d.ts",
+      "types": "./types/postcss.d.ts",
       "default": "./postcss/postcss8.js"
     },
     "./postcss/postcss8": {
-      "types": "./types/index.d.ts",
+      "types": "./types/postcss.d.ts",
       "default": "./postcss/postcss8.js"
     },
     "./postcss/turbopack": {

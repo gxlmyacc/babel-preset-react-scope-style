@@ -128,6 +128,7 @@ module.exports = {
     'no-proto': 2,
     // 禁用特定的全局变量
     'no-restricted-globals': 0,
+    'no-restricted-syntax': 0,
     // 禁止在return语句中使用赋值语句
     'no-return-assign': 0,
     // 禁止使用return await

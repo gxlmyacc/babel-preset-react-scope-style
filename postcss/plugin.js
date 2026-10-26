@@ -1,6 +1,7 @@
+const selectorParser = require('postcss-selector-parser');
 const { createScopeQuery, isFunction } = require('../src/utils');
 const { parseScopeStyleQuery } = require('../lib/parse-scope-style-query');
-const { scopeSelector, stripGlobalMarkersFromSelector } = require('./selector-scope');
+const { scopeSelector, stripGlobalMarkersFromSelector, shouldSkipRule } = require('./selector-scope');
 const {
   runNestingPrepass,
   shouldApplyScope,
@@ -29,7 +30,7 @@ function getNodePathFile(node) {
 
 /**
  * 对 scope 配置项排序并去重（global 优先，同 id 只保留一份）。
- * @param {Array<{ scoped?: boolean, global?: boolean, id?: string }>} opts - 配置列表
+ * @param {PluginOptions[]} opts - 配置列表
  * @returns {void}
  */
 function normalizeOpts(opts) {
@@ -42,12 +43,13 @@ function normalizeOpts(opts) {
   let findGlobal = false;
   for (let i = opts.length - 1; i >= 0; i--) {
     const item = opts[i];
-    if (map[item.id] || (item.global && findGlobal)) {
+    const key = item.injectScope === false ? `no-scope:${item.id || ''}` : item.id;
+    if (map[key] || (item.global && item.injectScope !== false && findGlobal)) {
       opts.splice(i, 1);
       continue;
     }
-    if (item.global) findGlobal = true;
-    map[item.id] = true;
+    if (item.global && item.injectScope !== false) findGlobal = true;
+    map[key] = true;
   }
 }
 
@@ -187,10 +189,11 @@ function insertScopeStyleImportAfterAnchor(root, rule) {
  * @param {boolean} ctx.isGlobal - 是否 global
  * @param {RegExp} ctx.scopeRegx - 路径匹配正则
  * @param {Function|null} ctx.scopeFn - 自定义改写函数
+ * @param {boolean} [ctx.injectScope=true] - 是否向选择器注入作用域
  * @returns {void}
  */
 function rewriteImportUrls(root, ctx) {
-  const { id, isGlobal, scopeRegx, scopeFn } = ctx;
+  const { id, isGlobal, scopeRegx, scopeFn, injectScope = true } = ctx;
 
   root.walkAtRules('import', (rule) => {
     const key = 'params';
@@ -200,6 +203,13 @@ function rewriteImportUrls(root, ctx) {
     rule[key] = rule[key].replace(pattern, (matched, before, url, after) => {
       const [, , scoped] = url.match(scopeRegx) || [];
       if (!scoped) return matched;
+
+      if (!injectScope && scoped === '?scoped') {
+        const nextUrl = url.replace(scopeRegx, (match, p1) => (scopeFn
+          ? scopeFn(p1, '', { filename: getNodePathFile(rule), source: url, scopeId: '' })
+          : p1));
+        return `${before}${nextUrl}${after}`;
+      }
 
       if (!id || scoped !== '?scoped') {
         if (scopeFn) {
@@ -233,12 +243,15 @@ function rewriteImportUrls(root, ctx) {
 /**
  * 遍历所有规则并改写选择器（含 @media / @supports 等嵌套）。
  * @param {import('postcss').Root} root - CSS 根节点
- * @param {{ id: string, isGlobal: boolean, globalSelector?: string }} scopeOpts - 作用域参数
+ * @param {{ id: string, isGlobal: boolean, globalSelector?: string, injectScope?: boolean }} scopeOpts - 作用域参数
  * @returns {void}
  */
 function rewriteAllSelectors(root, scopeOpts) {
   runNestingPrepass(root);
   removeEmptyGlobalMarkerRules(root);
+  if (scopeOpts.injectScope === false) {
+    replaceBareNestingMarkersWithAmpersand(root, scopeOpts);
+  }
 
   root.walkRules((rule) => {
     if (!rule.selector) return;
@@ -267,6 +280,29 @@ function rewriteAllSelectors(root, scopeOpts) {
   unwrapRootBareGlobalWrappers(root);
   replaceBareNestingMarkersWithAmpersand(root, scopeOpts);
   removeEffectivelyEmptyRules(root);
+  // global 子树及函数伪类中的显式 :scope 也需消解，不保留浏览器原生 :scope 语义。
+  if (scopeOpts.injectScope === false) {
+    root.walkRules((rule) => {
+      if (!rule.selector || shouldSkipRule(rule)) return;
+      rule.selector = scopeSelector(rule.selector, scopeOpts);
+    });
+  }
+}
+
+/**
+ * 判断最终选择器的顶层简单选择器是否命中前缀排除项。
+ * 不递归匹配函数或属性内容，避免把 :not(body) 和 [data-name="body"] 当作页面根节点。
+ * @param {string} selector 已转换的单条选择器。
+ * @param {Set<string>} exclusions 排除的简单选择器集合。
+ * @returns {boolean} 是否保留原选择器、不添加前缀。
+ */
+function isSelectorPrefixExcluded(selector, exclusions) {
+  if (!exclusions.size) return false;
+  const parsed = selectorParser().astSync(selector);
+  return parsed.nodes.some((branch) => branch.nodes.some((node) => {
+    const value = node.toString();
+    return exclusions.has(node.type === 'tag' ? value.toLowerCase() : value);
+  }));
 }
 
 /**
@@ -277,15 +313,43 @@ function rewriteAllSelectors(root, scopeOpts) {
  * @returns {void}
  */
 function applyScopeOptionToRoot(root, opt, options) {
-  const { scoped, id = '', global: isGlobal, globalSelector = '' } = opt;
+  const {
+    scoped, global: isGlobal, globalSelector = '', injectScope = true, transformSelector,
+    selectorPrefix = '', selectorPrefixExclude = ['html', 'head', 'body', ':root'],
+  } = opt;
+  const id = injectScope ? (opt.id || '') : '';
   rewriteImportUrls(root, {
     id,
+    injectScope,
     isGlobal,
     scopeRegx: options.scopeRegx,
     scopeFn: options.scopeFn || null,
   });
-  if (!scoped || !id) return;
-  rewriteAllSelectors(root, { id, isGlobal, globalSelector });
+  if (!scoped || (!id && injectScope)) return;
+  rewriteAllSelectors(root, { id, isGlobal, globalSelector, injectScope });
+  if (!transformSelector && !selectorPrefix) return;
+  const prefixes = require('postcss').list.comma(selectorPrefix.trim());
+  const exclusions = new Set(selectorPrefixExclude);
+  root.walkRules((rule) => {
+    if (!rule.selector || shouldSkipRule(rule)) return;
+    rule.selectors = rule.selectors.map((selector) => {
+      const result = transformSelector
+        ? transformSelector(selector, { filename: (getNodePathFile(rule) || '').split('?')[0] })
+        : selector;
+      if (typeof result !== 'string' || !result.trim()) {
+        throw rule.error('transformSelector must return a non-empty selector string');
+      }
+      return result;
+    });
+    let parent = rule.parent;
+    while (parent && parent.type !== 'rule') parent = parent.parent;
+    // 原生嵌套已经继承外层容器，重复添加会要求第二个快照容器。
+    if (!parent && prefixes.length) {
+      rule.selectors = rule.selectors.flatMap((selector) => (isSelectorPrefixExcluded(selector, exclusions)
+        ? [selector]
+        : prefixes.map((prefix) => `${prefix} ${selector}`)));
+    }
+  });
 }
 
 
@@ -295,6 +359,13 @@ function applyScopeOptionToRoot(root, opt, options) {
  *   global?: boolean,
  *   id?: string,
  *   globalSelector?: string,
+ *   selectorPrefixExclude?: string[], // 不添加容器前缀的顶层简单选择器，默认 html/head/body/:root。
+ *   selectorPrefix?: string, // 自定义回调之后统一添加的容器选择器；嵌套规则仅处理最外层。
+ *   injectScope?: boolean, // 默认 true；false 时仅解析标记，不向 CSS 选择器注入 id。
+ *   transformSelector?: (
+ *     selector: string,
+ *     context: { filename: string }
+ *   ) => string, // 标记转换后的逐选择器回调。
  * }} PluginOptions
  */
 
@@ -335,12 +406,12 @@ function extractQueryFromPath(resourcePath) {
  * @returns {PluginOptions[]}
  */
 function resolveEffectiveScopeOpts(opts, root, helpers) {
-  const explicit = opts.filter((o) => o && o.scoped && o.id);
+  const explicit = opts.filter((o) => o && o.scoped && (o.id || o.injectScope === false));
   if (explicit.length) return explicit;
 
   const from = resolveResourceFrom(root, helpers);
   const parsed = parseScopeStyleQuery(extractQueryFromPath(from));
-  return parsed ? [parsed] : [];
+  return parsed ? [{ ...opts[0], ...parsed }] : [];
 }
 
 /**

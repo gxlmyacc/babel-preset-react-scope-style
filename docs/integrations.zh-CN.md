@@ -268,7 +268,7 @@ module.exports = {
 **说明**
 
 - **Webpack / Vite**：Babel 改写 import 并注入 scope id；loader/插件会把 `scoped`、`global`、`id` 传给 PostCSS，**不要**在 `postcss.config.js` 里再配本插件。
-- **独立 PostCSS**：须自行设置 `scoped`、`global`、`id`，并与组件上的 scope class 保持一致。
+- **独立 PostCSS**：默认须自行设置 `scoped`、`global`、`id`，并与组件上的 scope class 保持一致；仅生成无作用域样式时可设置 `injectScope: false` 并省略 `id`。
 
 插件参数（参考）：
 
@@ -277,7 +277,11 @@ module.exports = {
   scoped: true,       // 启用作用域
   global: false,      // true 时使用 [class*=id] 属性选择器
   id: 'v-abc123',     // 作用域 id（与 JSX 注入的 class 相同）
-  globalSelector: '', // :global 的替换内容
+  // globalSelector: '', // :global 的替换内容
+  // injectScope: true,  // false 时仅转换标记，不向 CSS 选择器注入 id
+  // selectorPrefix: '', // 可选：例如 '.history-snapshot'
+  // selectorPrefixExclude: ['html', 'head', 'body', ':root'], // 跳过统一前缀
+  // transformSelector(selector, { filename }) { return selector; },
 }
 ```
 
@@ -285,3 +289,43 @@ module.exports = {
 
 
 **插件顺序：** `babel-preset-react-scope-style/postcss` 必须在 **嵌套 Rule 树** 上运行 (PostCSS 8+ native nesting). 若添加 `postcss-nesting` to emit flat selectors for legacy browsers, 应放在 scope 插件 **之后** 以便作用域化仍使用相同的 leaf-gate 规则，再由 nesting 仅展平输出。
+
+### 仅生成不带作用域标识的样式
+
+历史快照等场景可独立调用 PostCSS，无需运行 Babel 或重新生成 JS。SCSS 须先通过 Sass 编译为 CSS，再交给本插件：
+
+```javascript
+const sass = require('sass');
+const postcss = require('postcss');
+const scopeStyle = require('babel-preset-react-scope-style/postcss');
+
+const filename = 'src/TableSummaryCell.scss';
+const compiled = sass.compile(filename);
+const result = await postcss([
+  scopeStyle({
+    scoped: true,
+    injectScope: false,
+    selectorPrefix: '.history-snapshot',
+    // selectorPrefixExclude: ['html', 'head', 'body', ':root'], // 默认值，可自定义
+    transformSelector(selector, { filename: sourceFile }) {
+      // 示例：按源文件补上稳定的业务类名，防止不同分区的 .cell 规则相互覆盖。
+      return sourceFile.endsWith('TableSummaryCell.scss')
+        ? `.table-summary ${selector}`
+        : selector;
+    },
+  }),
+]).process(compiled.css, { from: filename, map: false });
+// 将 result.css 写入需要的 CSS 或 SCSS 入口；内容为纯 CSS。
+```
+
+- `injectScope` 默认 `true`。设置为 `false` 时允许省略 `id`，仍解析 `:scope` / `:global`，但不添加 hash class 或 `[class*=id]`。它仅作用于 PostCSS，不修改 Babel/JSX 的类名生成或注入。
+- 附着式 `.table:scope` 输出 `.table`；独立 `:scope` 保留 `*`，嵌套 `&:scope` 保留 `&`；裸/分隔式嵌套标记保留 `*` 的后代层级，避免简单删除改变选择器含义。函数式 `:global(...)` 仍不支持。
+- `selectorPrefix` 可选，在自定义回调之后给最外层规则的每条选择器添加容器前缀，包含 `:global` 转换后的规则，排除命中 `selectorPrefixExclude` 的分支。支持逗号分隔的多个容器；原生嵌套的后代规则继承外层前缀，不重复添加。空字符串表示不添加。
+- `selectorPrefixExclude` 默认 `['html', 'head', 'body', ':root']`。若一条选择器的顶层简单选择器命中排除项，该条保留原样、不加前缀，例如 `body, .table` 输出 `body, .history-snapshot .table`。根元素不是映射成容器，而是保留全局匹配；只有前缀注入被跳过，hash 和自定义回调仍按配置处理。
+- 自定义 `selectorPrefixExclude` 数组替换默认值，传 `[]` 则全部添加前缀。支持标签、类名、ID、属性或伪类等单个简单选择器，例如 `['html', 'head', 'body', ':root', '.external']`；不支持用复合选择器作为排除项。只匹配当前选择器的顶层节点，不会把 `.body`、`[data-name="body"]`、`:not(body)` 误判为 `body`。
+- `:global` 本身不跳过统一前缀，是否跳过由排除项决定。`selectorPrefix` 不改写 `@keyframes` 名称或 `@font-face` 等无选择器的 at-rule。
+- `transformSelector` 可选，在标记转换完成后逐条接收逗号分隔的选择器。函数/属性值内部的逗号不会被拆分；回调须返回非空字符串，异常直接向调用方报告。
+- 上下文 `filename` 来自当前规则的源文件，无来源时为 `''`。合并不同源文件的 PostCSS AST 时仍保留各规则来源；先编译和处理各文件再拼接 CSS 文本，也可保留文件区分能力。
+- 回调包含全局规则以及 `@media` / `@supports` 内的规则，跳过关键帧的 `from` / `to` / 百分比选择器。原生嵌套时接收当前规则的相对选择器（如 `&`），按各业务场景自行决定是否改写。
+- 默认注入模式下同样可使用回调，接收到的是已带作用域标识的选择器；多个作用域上下文分别调用。`from` query 自动推导作用域时同样保留这些配置。
+- 本插件不负责收集文件、合并样式、去重或还原历史 DOM；这些步骤由生成脚本安排，普通组件的作用域构建流程可以保持原样。

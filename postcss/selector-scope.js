@@ -76,7 +76,7 @@ function selectorAlreadyScoped(selector, id, isGlobal) {
  * @returns {void}
  */
 function appendScopeToSelector(selector, id, isGlobal) {
-  if (!selector.nodes.length || selectorAlreadyScoped(selector, id, isGlobal)) {
+  if (!id || !selector.nodes.length || selectorAlreadyScoped(selector, id, isGlobal)) {
     return;
   }
 
@@ -122,6 +122,7 @@ function isSpacedMiddlePseudo(nodes, markerIdx) {
  * @returns {import('postcss-selector-parser').Selector['nodes']}
  */
 function createStarScopeCompound(id, isGlobal) {
+  if (!id) return [selectorParser.universal()];
   if (isGlobal) {
     return [selectorParser.universal(), createGlobalScopeAttribute(id)];
   }
@@ -149,7 +150,15 @@ function replaceScopePseudo(selector, id, isGlobal) {
   scopeNodes.reverse().forEach((node) => {
     const parent = node.parent;
     const index = parent.nodes.indexOf(node);
-    if (isSpacedMiddlePseudo(parent.nodes, index)) {
+    if (!id) {
+      // 无 id 时，独立的 :scope 保留元素占位；附着式仅移除标记。
+      let start = index;
+      let end = index;
+      while (start > 0 && parent.nodes[start - 1].type !== 'combinator') start--;
+      while (end + 1 < parent.nodes.length && parent.nodes[end + 1].type !== 'combinator') end++;
+      if (start === end) node.replaceWith(selectorParser.universal({ spaces: node.spaces }));
+      else node.remove();
+    } else if (isSpacedMiddlePseudo(parent.nodes, index)) {
       parent.nodes.splice(index, 1, ...createStarScopeCompound(id, isGlobal));
     } else {
       const replacement = isGlobal ? createGlobalScopeAttribute(id) : createScopedClassName(id);
@@ -481,12 +490,18 @@ function scopeSelector(selector, options) {
   if (!normalized) return selector;
 
   if (isLeadingGlobalRule(normalized)) {
-    return stripLeadingGlobalFromAllSelectors(normalized, globalSelector);
+    const stripped = stripLeadingGlobalFromAllSelectors(normalized, globalSelector);
+    return id ? stripped : scopeSelector(stripped || '*', options);
   }
 
   return selectorParser((selectors) => {
     selectors.each((sel) => {
+      if (!id) {
+        stripLeadingGlobalPseudoFromCompound(sel, globalSelector);
+        if (!sel.nodes.length) sel.append(selectorParser.universal());
+      }
       scopeCompoundSelector(sel, { id, isGlobal });
+      if (!id) replaceScopePseudo(sel, id, isGlobal);
     });
   }).processSync(normalized);
 }

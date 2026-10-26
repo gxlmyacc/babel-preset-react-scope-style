@@ -268,7 +268,7 @@ module.exports = {
 **Important**
 
 - With **Webpack / Vite**, the Babel preset rewrites imports and injects scope IDs; the loader/plugin passes `scoped`, `global`, and `id` to PostCSS **automatically** — you do **not** add this plugin to `postcss.config.js`.
-- With **standalone PostCSS**, you must set `scoped`, `global`, and `id` yourself and keep `id` in sync with the Babel-generated scope class on your components.
+- With **standalone PostCSS**, by default, set `scoped`, `global`, and `id` yourself and keep `id` in sync with the Babel-generated scope class on your components. For styles without scope identifiers, set `injectScope: false` and omit `id`.
 
 Plugin options (reference):
 
@@ -277,7 +277,11 @@ Plugin options (reference):
   scoped: true,       // enable scoping
   global: false,      // true → [class*=id] attribute selectors
   id: 'v-abc123',     // scope id (same as injected JSX class)
-  globalSelector: '', // replacement for :global
+  // globalSelector: '', // replacement for :global
+  // injectScope: true,  // false processes markers without injecting an id
+  // selectorPrefix: '', // optional, e.g. '.history-snapshot'
+  // selectorPrefixExclude: ['html', 'head', 'body', ':root'], // omit the prefix
+  // transformSelector(selector, { filename }) { return selector; },
 }
 ```
 
@@ -285,3 +289,42 @@ See also: [Usage](./usage.md), [Configuration](./configuration.md).
 
 
 **Plugin order:** `babel-preset-react-scope-style/postcss` must run on the **nested Rule tree** (PostCSS 8+ native nesting). If you add `postcss-nesting` to emit flat selectors for legacy browsers, list it **after** the scope plugin so scoping uses the same leaf-gate rules, then nesting only flattens output.
+
+### Generate styles without scope identifiers
+
+For historical DOM snapshots, run PostCSS independently without running Babel or rebuilding JavaScript. Compile SCSS with Sass first:
+
+```javascript
+const sass = require('sass');
+const postcss = require('postcss');
+const scopeStyle = require('babel-preset-react-scope-style/postcss');
+
+const filename = 'src/TableSummaryCell.scss';
+const compiled = sass.compile(filename);
+const result = await postcss([
+  scopeStyle({
+    scoped: true,
+    injectScope: false,
+    selectorPrefix: '.history-snapshot',
+    // selectorPrefixExclude: ['html', 'head', 'body', ':root'], // defaults; customizable
+    transformSelector(selector, { filename: sourceFile }) {
+      return sourceFile.endsWith('TableSummaryCell.scss')
+        ? `.table-summary ${selector}`
+        : selector;
+    },
+  }),
+]).process(compiled.css, { from: filename, map: false });
+// Write result.css to the desired CSS or SCSS entry; the content is plain CSS.
+```
+
+- `injectScope` defaults to `true`. With `false`, `id` is optional: `:scope` / `:global` are still processed, but no scope class or `[class*=id]` is injected. This is a PostCSS-only option and does not change Babel/JSX behavior.
+- Attached `.table:scope` becomes `.table`; standalone `:scope` retains `*`, nested `&:scope` retains `&`, and bare/spaced nesting markers retain their descendant `*` placeholder. Functional `:global(...)` remains unsupported.
+- Optional `selectorPrefix` adds a container prefix after the custom callback to selectors of outermost rules, including converted global rules, except branches matching `selectorPrefixExclude`. Multiple comma-separated containers are supported. Native nested rules inherit the outer prefix without repeating it. An empty string disables prefixing.
+- `selectorPrefixExclude` defaults to `['html', 'head', 'body', ':root']`. A selector containing a matching top-level simple selector keeps its original form, e.g. `body, .table` becomes `body, .history-snapshot .table`. Excluded document roots retain global matching; they are not mapped to the container. Only prefixing is skipped: scope-id processing and the custom callback still apply.
+- A custom exclusion array replaces the defaults; `[]` prefixes everything. Entries are simple selectors (tag, class, ID, attribute, or pseudo-class), e.g. `['html', 'head', 'body', ':root', '.external']`, not compound selectors. Matching does not descend into functions or attributes: `.body`, `[data-name="body"]` and `:not(body)` are not mistaken for `body`.
+- `:global` itself does not bypass prefixing; exclusions decide whether it is skipped. Prefixing does not rename keyframes or rewrite selectorless at-rules such as `@font-face`.
+- Optional `transformSelector` runs after marker conversion, once per comma-separated selector. Commas inside functions or attributes are preserved. Return a non-empty string; callback errors propagate to the caller.
+- Context `filename` is the current rule's source path, or `''` when unavailable. Rules merged as PostCSS ASTs retain their own sources. Alternatively, process each source file before concatenating CSS text.
+- The callback includes global rules and rules inside `@media` / `@supports`, but skips keyframe selectors. Native nesting passes the current relative selector (such as `&`); customize it as appropriate for the application.
+- The callback also works with normal injection, receiving scoped selectors, and runs separately for each scope context. These options are preserved when scope is inferred from the `from` query.
+- File collection, style ordering, merging and deduplication remain the caller's responsibility; regular scoped component builds can remain unchanged.
